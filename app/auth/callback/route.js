@@ -8,6 +8,8 @@ export async function GET(request) {
 
   if (code) {
     const supabase = createClient();
+console.log("URL exists:", !!process.env.NEXT_PUBLIC_SUPABASE_URL);
+console.log("ANON KEY length:", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.length);
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {

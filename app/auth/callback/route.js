@@ -10,17 +10,18 @@ export async function GET(request) {
     const supabase = createClient();
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-    if (!error && data?.user) {
-      // If this was a signup with a chosen role, apply it to the new profile.
+    if (error) {
+      console.error("EXCHANGE ERROR:", error.message);
+      return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error.message)}`);
+    }
+
+    if (data?.user) {
       if (role === "owner" || role === "player") {
-        await supabase
-          .from("profiles")
-          .update({ role })
-          .eq("id", data.user.id);
+        await supabase.from("profiles").update({ role }).eq("id", data.user.id);
       }
       return NextResponse.redirect(`${origin}/`);
     }
   }
 
-  return NextResponse.redirect(`${origin}/login?error=auth_failed`);
+  return NextResponse.redirect(`${origin}/login?error=no_code`);
 }

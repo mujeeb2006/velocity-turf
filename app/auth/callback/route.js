@@ -8,8 +8,9 @@ export async function GET(request) {
 
   if (code) {
     const supabase = createClient();
-console.log("URL exists:", !!process.env.NEXT_PUBLIC_SUPABASE_URL);
-console.log("ANON KEY length:", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.length);
+console.log("URL VALUE:", JSON.stringify(process.env.NEXT_PUBLIC_SUPABASE_URL));
+console.log("KEY START:", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.slice(0, 20));
+console.log("KEY END:", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.slice(-20));
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {

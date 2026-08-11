@@ -8,9 +8,13 @@ export async function GET(request) {
 
   if (code) {
     const supabase = createClient();
-console.log("URL VALUE:", JSON.stringify(process.env.NEXT_PUBLIC_SUPABASE_URL));
-console.log("KEY START:", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.slice(0, 20));
-console.log("KEY END:", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.slice(-20));
+
+    // Direct raw test, bypassing the SDK
+    const testCall = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/user`, {
+      headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY }
+    });
+    console.log("DIRECT FETCH STATUS:", testCall.status);
+
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {

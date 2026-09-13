@@ -3,6 +3,10 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/components/ui/toast";
+import { SkeletonGrid, SkeletonCard, Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { RankBadge } from "@/components/ui/rank-badge";
 
 // ============================================================
 // DESIGN TOKENS & CONSTANTS
@@ -98,7 +102,7 @@ function calcPrice(turf, weather) {
 // ============================================================
 // ICONS
 // ============================================================
-const Icon = ({ name, size = 20, color = "currentColor" }) => {
+const Icon = ({ name, size = 20, color = "currentColor", filled = false }) => {
   const icons = {
     home: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />,
     search: <><circle cx="11" cy="11" r="8" stroke={color} strokeWidth={2} /><path strokeLinecap="round" strokeWidth={2} d="M21 21l-4.35-4.35" /></>,
@@ -121,7 +125,7 @@ const Icon = ({ name, size = 20, color = "currentColor" }) => {
     logout: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 5v1a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h5a2 2 0 012 2v1" />,
   };
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? color : "none"} stroke={color} xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
       {icons[name]}
     </svg>
   );
@@ -304,7 +308,7 @@ function TurfCard({ turf, onBook, onMatch }) {
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
           <div style={{ display: "flex", gap: 2 }}>
             {[...Array(5)].map((_, i) => (
-              <Icon key={i} name="star" size={12} color={i < Math.floor(turf.rating) ? "#FBBF24" : "rgba(255,255,255,0.2)"} />
+              <Icon key={i} name="star" size={12} filled={i < Math.round(turf.rating)} color={i < Math.round(turf.rating) ? "#FBBF24" : "rgba(255,255,255,0.2)"} />
             ))}
           </div>
           <span style={{ color: "#FBBF24", fontWeight: 700, fontSize: 13 }}>{turf.rating}</span>
@@ -639,7 +643,7 @@ function HeroSection({ onExplore }) {
 // ============================================================
 // DISCOVER / TURF LIST
 // ============================================================
-function DiscoverSection({ onBook, onMatch }) {
+function DiscoverSection({ onBook, onMatch, isLoading }) {
   const [filter, setFilter] = useState("All");
   const sports = ["All", "Football", "Basketball", "Cricket"];
 
@@ -670,11 +674,21 @@ function DiscoverSection({ onBook, onMatch }) {
             ))}
           </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 24 }}>
-          {filtered.map(t => (
-            <TurfCard key={t.id} turf={t} onBook={onBook} onMatch={onMatch} />
-          ))}
-        </div>
+        {isLoading ? (
+          <SkeletonGrid count={3} minColWidth={320} cardHeight={160} />
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            icon="🔍"
+            title="No turfs match that filter"
+            subtitle="Try a different sport, or check back later as new turfs come online."
+          />
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 24 }}>
+            {filtered.map(t => (
+              <TurfCard key={t.id} turf={t} onBook={onBook} onMatch={onMatch} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -683,7 +697,7 @@ function DiscoverSection({ onBook, onMatch }) {
 // ============================================================
 // MATCHMAKING SECTION
 // ============================================================
-function MatchmakingSection({ onJoin }) {
+function MatchmakingSection({ onJoin, isLoading }) {
   return (
     <div style={{ padding: "60px 24px", background: "rgba(34,197,94,0.02)" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
@@ -695,6 +709,18 @@ function MatchmakingSection({ onJoin }) {
           <p style={{ color: "rgba(255,255,255,0.4)", margin: "6px 0 0" }}>Collaborative filtering groups you with players of your skill level</p>
         </div>
 
+        {isLoading ? (
+          <div style={{ display: "grid", gap: 16 }}>
+            {[...Array(3)].map((_, i) => <SkeletonCard key={i} lines={2} />)}
+          </div>
+        ) : MATCHES.length === 0 ? (
+          <EmptyState
+            icon="🎮"
+            title="No open matches right now"
+            subtitle="Check back soon, or start your own game and invite players."
+            accent={COLORS.pitchGreen}
+          />
+        ) : (
         <div style={{ display: "grid", gap: 16 }}>
           {MATCHES.map(m => {
             const fill = m.players / m.max;
@@ -756,6 +782,7 @@ function MatchmakingSection({ onJoin }) {
             );
           })}
         </div>
+        )}
       </div>
     </div>
   );
@@ -764,7 +791,7 @@ function MatchmakingSection({ onJoin }) {
 // ============================================================
 // LOYALTY LEDGER
 // ============================================================
-function LoyaltySection() {
+function LoyaltySection({ isLoading }) {
   const userPoints = 1650;
   const nextMilestone = 2000;
   const progress = userPoints / nextMilestone;
@@ -779,6 +806,12 @@ function LoyaltySection() {
           <h2 style={{ color: "#fff", fontFamily: "'Exo 2', sans-serif", fontSize: 32, fontWeight: 800, margin: 0 }}>Loyalty Ledger</h2>
         </div>
 
+        {isLoading ? (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+            <SkeletonCard lines={4} />
+            <SkeletonCard lines={4} />
+          </div>
+        ) : (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
           {/* My Points Card */}
           <div style={{ ...glassStyle(), borderRadius: 20, padding: 28, background: "linear-gradient(135deg, rgba(249,115,22,0.08), rgba(14,165,233,0.05))" }}>
@@ -821,8 +854,12 @@ function LoyaltySection() {
                   background: p.name === "You" ? "rgba(14,165,233,0.08)" : "rgba(255,255,255,0.02)",
                   border: `1px solid ${p.name === "You" ? "rgba(14,165,233,0.25)" : "rgba(255,255,255,0.05)"}`,
                   borderRadius: 12,
-                }}>
-                  <span style={{ fontSize: 18, width: 28 }}>{p.badge}</span>
+                  transition: "background 0.2s",
+                }}
+                  onMouseEnter={e => { if (p.name !== "You") e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+                  onMouseLeave={e => { if (p.name !== "You") e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}
+                >
+                  <RankBadge rank={p.rank} size={28} />
                   <div style={{ flex: 1 }}>
                     <div style={{ color: p.name === "You" ? COLORS.electricBlue : "#fff", fontWeight: 600, fontSize: 14 }}>{p.name}</div>
                     <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>{p.streak} day streak 🔥</div>
@@ -835,6 +872,7 @@ function LoyaltySection() {
             </div>
           </div>
         </div>
+        )}
       </div>
     </div>
   );
@@ -843,7 +881,7 @@ function LoyaltySection() {
 // ============================================================
 // DASHBOARD
 // ============================================================
-function DashboardSection() {
+function DashboardSection({ isLoading }) {
   const upcoming = [
     { turf: "Arena Nova", sport: "Football", date: "Apr 8", time: "6:00 PM", status: "confirmed", price: 1440 },
     { turf: "Zen Court", sport: "Basketball", date: "Apr 10", time: "8:00 AM", status: "pending", price: 800 },
@@ -854,6 +892,18 @@ function DashboardSection() {
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
         <h2 style={{ color: "#fff", fontFamily: "'Exo 2', sans-serif", fontSize: 32, fontWeight: 800, margin: "0 0 32px" }}>My Dashboard</h2>
 
+        {isLoading ? (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
+              {[...Array(4)].map((_, i) => <SkeletonCard key={i} lines={1} />)}
+            </div>
+            <Skeleton width={160} height={14} style={{ marginBottom: 16 }} />
+            <div style={{ display: "grid", gap: 12 }}>
+              {[...Array(2)].map((_, i) => <SkeletonCard key={i} lines={2} />)}
+            </div>
+          </>
+        ) : (
+        <>
         {/* Stat Cards */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
           {[
@@ -862,7 +912,10 @@ function DashboardSection() {
             { label: "Reward Points", value: "1,650", icon: "trophy", color: COLORS.energyOrange },
             { label: "Active Streak", value: "3 days", icon: "lightning", color: "#A855F7" },
           ].map(s => (
-            <div key={s.label} style={{ ...glassStyle(), borderRadius: 18, padding: "20px 22px" }}>
+            <div key={s.label} style={{ ...glassStyle(), borderRadius: 18, padding: "20px 22px", transition: "transform 0.2s, box-shadow 0.2s" }}
+              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 12px 32px rgba(14,165,233,0.15)"; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
+            >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                 <div style={{ background: s.color + "18", borderRadius: 10, padding: 8 }}>
                   <Icon name={s.icon} size={18} color={s.color} />
@@ -876,9 +929,19 @@ function DashboardSection() {
 
         {/* Upcoming Bookings */}
         <h3 style={{ color: "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.5, margin: "0 0 16px" }}>Upcoming Bookings</h3>
+        {upcoming.length === 0 ? (
+          <EmptyState
+            icon="📅"
+            title="No upcoming bookings"
+            subtitle="Head to Discover to find a turf and lock in your next game."
+          />
+        ) : (
         <div style={{ display: "grid", gap: 12 }}>
           {upcoming.map((b, i) => (
-            <div key={i} style={{ ...glassStyle(), borderRadius: 16, padding: "18px 22px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+            <div key={i} style={{ ...glassStyle(), borderRadius: 16, padding: "18px 22px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, transition: "border-color 0.2s" }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = "rgba(14,165,233,0.35)"}
+              onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(14,165,233,0.15)"}
+            >
               <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
                 <div style={{ width: 44, height: 44, borderRadius: 12, background: COLORS.electricBlue + "18", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>
                   {b.sport === "Football" ? "⚽" : "🏀"}
@@ -898,32 +961,20 @@ function DashboardSection() {
                 }}>
                   {b.status === "confirmed" ? "✓ Confirmed" : "⏳ Pending"}
                 </span>
-                <button style={{ background: "rgba(255,255,255,0.05)", border: "none", borderRadius: 10, padding: "8px 14px", color: "rgba(255,255,255,0.5)", cursor: "pointer", fontSize: 13 }}>
+                <button style={{ background: "rgba(255,255,255,0.05)", border: "none", borderRadius: 10, padding: "8px 14px", color: "rgba(255,255,255,0.5)", cursor: "pointer", fontSize: 13, transition: "background 0.2s" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.12)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+                >
                   View QR
                 </button>
               </div>
             </div>
           ))}
         </div>
+        )}
+        </>
+        )}
       </div>
-    </div>
-  );
-}
-
-// ============================================================
-// NOTIFICATION TOAST
-// ============================================================
-function Toast({ message, onClose }) {
-  useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, []);
-  return (
-    <div style={{
-      position: "fixed", top: 24, right: 24, zIndex: 2000,
-      ...glassStyle({ background: "rgba(34,197,94,0.12)", borderColor: "rgba(34,197,94,0.3)" }),
-      borderRadius: 14, padding: "14px 20px", display: "flex", alignItems: "center", gap: 12,
-      animation: "slideIn 0.3s ease", maxWidth: 360,
-    }}>
-      <span style={{ fontSize: 20 }}>🔔</span>
-      <span style={{ color: "#fff", fontSize: 14 }}>{message}</span>
     </div>
   );
 }
@@ -934,15 +985,24 @@ function Toast({ message, onClose }) {
 export default function PlayerAppClient({ profile }) {
   const router = useRouter();
   const supabase = createClient();
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState("home");
   const [bookingTurf, setBookingTurf] = useState(null);
-  const [toast, setToast] = useState(null);
+  const [loadedTabs, setLoadedTabs] = useState(() => new Set(["home"]));
 
-  const showToast = (msg) => setToast(msg);
+  useEffect(() => {
+    if (loadedTabs.has(activeTab)) return;
+    const t = setTimeout(() => {
+      setLoadedTabs(prev => new Set(prev).add(activeTab));
+    }, 550);
+    return () => clearTimeout(t);
+  }, [activeTab, loadedTabs]);
+
+  const isTabLoading = (tab) => !loadedTabs.has(tab);
 
   const handleBook = (turf) => setBookingTurf(turf);
   const handleBookingClose = () => setBookingTurf(null);
-  const handleJoin = (match) => showToast(`Joined "${match.sport} Match" at ${match.turf}! 🎉`);
+  const handleJoin = (match) => showToast(`Joined "${match.sport} Match" at ${match.turf}! 🎉`, { type: "success" });
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -1028,7 +1088,7 @@ export default function PlayerAppClient({ profile }) {
 
           {/* Right side */}
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <button onClick={() => showToast("Real-time slot updates active! 🔴")} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, width: 38, height: 38, cursor: "pointer", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+            <button onClick={() => showToast("Real-time slot updates active! 🔴", { type: "info" })} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, width: 38, height: 38, cursor: "pointer", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
               <Icon name="notification" size={16} />
               <span style={{ position: "absolute", top: 6, right: 6, width: 8, height: 8, borderRadius: "50%", background: COLORS.energyOrange, animation: "pulse 2s infinite" }} />
             </button>
@@ -1075,10 +1135,10 @@ export default function PlayerAppClient({ profile }) {
               </div>
             </>
           )}
-          {activeTab === "discover" && <DiscoverSection onBook={handleBook} onMatch={handleJoin} />}
-          {activeTab === "matches" && <MatchmakingSection onJoin={handleJoin} />}
-          {activeTab === "loyalty" && <LoyaltySection />}
-          {activeTab === "dashboard" && <DashboardSection />}
+          {activeTab === "discover" && <DiscoverSection onBook={handleBook} onMatch={handleJoin} isLoading={isTabLoading("discover")} />}
+          {activeTab === "matches" && <MatchmakingSection onJoin={handleJoin} isLoading={isTabLoading("matches")} />}
+          {activeTab === "loyalty" && <LoyaltySection isLoading={isTabLoading("loyalty")} />}
+          {activeTab === "dashboard" && <DashboardSection isLoading={isTabLoading("dashboard")} />}
         </main>
 
         {/* BOTTOM TAB BAR (Mobile feel) */}
@@ -1107,11 +1167,8 @@ export default function PlayerAppClient({ profile }) {
 
         {/* BOOKING MODAL */}
         {bookingTurf && (
-          <BookingModal turf={bookingTurf} onClose={handleBookingClose} onConfirm={() => { handleBookingClose(); showToast("Booking confirmed! Check your email for QR code. 🎉"); }} />
+          <BookingModal turf={bookingTurf} onClose={handleBookingClose} onConfirm={() => { handleBookingClose(); showToast("Booking confirmed! Check your email for QR code. 🎉", { type: "success" }); }} />
         )}
-
-        {/* TOAST */}
-        {toast && <Toast message={toast} onClose={() => setToast(null)} />}
 
         {/* Real-time indicator */}
         <div style={{

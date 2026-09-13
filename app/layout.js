@@ -1,4 +1,5 @@
 import "./globals.css";
+import { ToastProvider } from "@/components/ui/toast";
 
 export const metadata = {
   title: "Velocity Turf",
@@ -14,7 +15,9 @@ export default function RootLayout({ children }) {
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <ToastProvider>{children}</ToastProvider>
+      </body>
     </html>
   );
 }

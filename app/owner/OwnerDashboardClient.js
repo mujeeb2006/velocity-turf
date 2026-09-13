@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/components/ui/toast";
+import { SkeletonCard, SkeletonRow } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 
 const COLORS = {
   electricBlue: "#0EA5E9",
@@ -23,7 +26,7 @@ const glass = (extra = {}) => ({
 const font = "'Exo 2', sans-serif";
 const mono = "'Space Mono', monospace";
 
-const Icon = ({ name, size = 18, color = "currentColor" }) => {
+const Icon = ({ name, size = 18, color = "currentColor", filled = false }) => {
   const paths = {
     grid: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" />,
     building: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21h18M6 21V7a1 1 0 011-1h10a1 1 0 011 1v14M9 9h1m4 0h1m-6 4h1m4 0h1m-6 4h1m4 0h1" />,
@@ -36,7 +39,7 @@ const Icon = ({ name, size = 18, color = "currentColor" }) => {
     logout: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 5v1a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h5a2 2 0 012 2v1" />,
   };
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? color : "none"} stroke={color} xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
       {paths[name]}
     </svg>
   );
@@ -44,7 +47,10 @@ const Icon = ({ name, size = 18, color = "currentColor" }) => {
 
 function StatCard({ label, value, icon, color, sub }) {
   return (
-    <div style={{ ...glass(), borderRadius: 18, padding: "18px 20px" }}>
+    <div style={{ ...glass(), borderRadius: 18, padding: "18px 20px", transition: "transform 0.2s, box-shadow 0.2s" }}
+      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 12px 32px rgba(14,165,233,0.15)"; }}
+      onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
+    >
       <div style={{ background: color + "18", borderRadius: 10, padding: 8, display: "inline-flex", marginBottom: 12 }}>
         <Icon name={icon} size={17} color={color} />
       </div>
@@ -143,8 +149,18 @@ const OWNER_REVIEWS = [
 export default function OwnerDashboardClient({ profile }) {
   const router = useRouter();
   const supabase = createClient();
+  const { showToast } = useToast();
   const [tab, setTab] = useState("overview");
   const [requests, setRequests] = useState(INITIAL_REQUESTS);
+  const [loadedTabs, setLoadedTabs] = useState(() => new Set(["overview"]));
+
+  useEffect(() => {
+    if (loadedTabs.has(tab)) return;
+    const t = setTimeout(() => setLoadedTabs(prev => new Set(prev).add(tab)), 500);
+    return () => clearTimeout(t);
+  }, [tab, loadedTabs]);
+
+  const isLoading = !loadedTabs.has(tab);
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -152,7 +168,16 @@ export default function OwnerDashboardClient({ profile }) {
     router.refresh();
   }
 
-  const respond = (id) => setRequests(prev => prev.filter(r => r.id !== id));
+  const respond = (id, action) => {
+    const req = requests.find(r => r.id === id);
+    setRequests(prev => prev.filter(r => r.id !== id));
+    if (req) {
+      showToast(
+        action === "accept" ? `Accepted ${req.user}'s booking for ${req.turf}` : `Declined ${req.user}'s booking for ${req.turf}`,
+        { type: action === "accept" ? "success" : "info" }
+      );
+    }
+  };
 
   const items = [
     { id: "overview", label: "Overview", icon: "grid" },
@@ -170,31 +195,54 @@ export default function OwnerDashboardClient({ profile }) {
         {tab === "overview" && (
           <>
             <TopBar title={`Welcome back, ${profile?.full_name || "Owner"}`} sub="Here's how your turfs are doing" action={
-              <button style={{ background: `linear-gradient(135deg, ${COLORS.electricBlue}, ${COLORS.pitchGreen})`, border: "none", color: "#fff", borderRadius: 12, padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, display: "flex", alignItems: "center", gap: 6 }}>
+              <button style={{ background: `linear-gradient(135deg, ${COLORS.electricBlue}, ${COLORS.pitchGreen})`, border: "none", color: "#fff", borderRadius: 12, padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, display: "flex", alignItems: "center", gap: 6, transition: "opacity 0.2s" }}
+                onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
+                onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+                onClick={() => showToast("Add Turf flow is coming soon.", { type: "info" })}
+              >
                 <Icon name="plus" size={14} /> Add New Turf
               </button>
             } />
+            {isLoading ? (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px,1fr))", gap: 16, marginBottom: 32 }}>
+                {[...Array(4)].map((_, i) => <SkeletonCard key={i} lines={1} />)}
+              </div>
+            ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px,1fr))", gap: 16, marginBottom: 32 }}>
               <StatCard label="Total Revenue" value={`₹${totalRevenue.toLocaleString()}`} icon="rupee" color={COLORS.electricBlue} sub="Lifetime, all turfs" />
               <StatCard label="Today's Bookings" value={OWNER_TURFS.reduce((s, t) => s + t.todayBookings, 0)} icon="clock" color={COLORS.pitchGreen} />
               <StatCard label="Avg. Occupancy" value="69%" icon="trending" color={COLORS.energyOrange} />
               <StatCard label="Avg. Rating" value="4.8" icon="star" color="#FBBF24" />
             </div>
+            )}
 
             <h3 style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.2, margin: "0 0 14px" }}>Pending Requests</h3>
-            {requests.length === 0 ? (
-              <div style={{ ...glass(), borderRadius: 18, padding: 24, color: "rgba(255,255,255,0.4)", fontSize: 14 }}>All caught up — no pending requests.</div>
+            {isLoading ? (
+              <div style={{ display: "grid", gap: 12 }}>
+                {[...Array(2)].map((_, i) => <SkeletonRow key={i} columns={3} />)}
+              </div>
+            ) : requests.length === 0 ? (
+              <EmptyState icon="✅" title="All caught up" subtitle="No pending booking requests right now." accent={COLORS.pitchGreen} />
             ) : (
               <div style={{ display: "grid", gap: 12 }}>
                 {requests.map(r => (
-                  <div key={r.id} style={{ ...glass(), borderRadius: 16, padding: 18, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+                  <div key={r.id} style={{ ...glass(), borderRadius: 16, padding: 18, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, transition: "border-color 0.2s" }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = "rgba(14,165,233,0.35)"}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(14,165,233,0.15)"}
+                  >
                     <div>
                       <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{r.user} · {r.turf}</div>
                       <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 12.5 }}>{r.date}, {r.time} · {r.note} · ₹{r.amount}</div>
                     </div>
                     <div style={{ display: "flex", gap: 8 }}>
-                      <button onClick={() => respond(r.id)} style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: COLORS.danger, borderRadius: 10, padding: "8px 14px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: font }}>Decline</button>
-                      <button onClick={() => respond(r.id)} style={{ background: `linear-gradient(135deg, ${COLORS.electricBlue}, ${COLORS.pitchGreen})`, border: "none", color: "#fff", borderRadius: 10, padding: "8px 14px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: font }}>Accept</button>
+                      <button onClick={() => respond(r.id, "decline")} style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: COLORS.danger, borderRadius: 10, padding: "8px 14px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: font, transition: "background 0.2s" }}
+                        onMouseEnter={e => e.currentTarget.style.background = "rgba(239,68,68,0.2)"}
+                        onMouseLeave={e => e.currentTarget.style.background = "rgba(239,68,68,0.1)"}
+                      >Decline</button>
+                      <button onClick={() => respond(r.id, "accept")} style={{ background: `linear-gradient(135deg, ${COLORS.electricBlue}, ${COLORS.pitchGreen})`, border: "none", color: "#fff", borderRadius: 10, padding: "8px 14px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: font, transition: "opacity 0.2s" }}
+                        onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
+                        onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+                      >Accept</button>
                     </div>
                   </div>
                 ))}
@@ -206,9 +254,17 @@ export default function OwnerDashboardClient({ profile }) {
         {tab === "turfs" && (
           <>
             <TopBar title="My Turfs" sub={`${OWNER_TURFS.length} listings`} />
+            {isLoading ? (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>
+                {[...Array(2)].map((_, i) => <SkeletonCard key={i} lines={3} />)}
+              </div>
+            ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>
               {OWNER_TURFS.map(t => (
-                <div key={t.id} style={{ ...glass(), borderRadius: 18, padding: 20 }}>
+                <div key={t.id} style={{ ...glass(), borderRadius: 18, padding: 20, transition: "transform 0.2s, box-shadow 0.2s" }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 16px 40px rgba(14,165,233,0.15)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
+                >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                     <div>
                       <div style={{ color: "#fff", fontWeight: 700, fontSize: 16, fontFamily: font }}>{t.name}</div>
@@ -233,31 +289,48 @@ export default function OwnerDashboardClient({ profile }) {
                       <div style={{ color: "#fff", fontWeight: 700, fontSize: 14, fontFamily: mono }}>₹{t.revenue.toLocaleString()}</div>
                     </div>
                   </div>
-                  <button style={{ marginTop: 14, width: "100%", padding: "10px", borderRadius: 12, background: "rgba(14,165,233,0.1)", border: "1px solid rgba(14,165,233,0.3)", color: COLORS.electricBlue, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font }}>
+                  <button onClick={() => showToast(`Slot manager for ${t.name} is coming soon.`, { type: "info" })} style={{ marginTop: 14, width: "100%", padding: "10px", borderRadius: 12, background: "rgba(14,165,233,0.1)", border: "1px solid rgba(14,165,233,0.3)", color: COLORS.electricBlue, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, transition: "background 0.2s" }}
+                    onMouseEnter={e => e.currentTarget.style.background = "rgba(14,165,233,0.2)"}
+                    onMouseLeave={e => e.currentTarget.style.background = "rgba(14,165,233,0.1)"}
+                  >
                     Manage Slots
                   </button>
                 </div>
               ))}
             </div>
+            )}
           </>
         )}
 
         {tab === "requests" && (
           <>
             <TopBar title="Booking Requests" sub={`${requests.length} awaiting response`} />
-            {requests.length === 0 ? (
-              <div style={{ ...glass(), borderRadius: 18, padding: 24, color: "rgba(255,255,255,0.4)", fontSize: 14 }}>No pending requests right now.</div>
+            {isLoading ? (
+              <div style={{ display: "grid", gap: 12 }}>
+                {[...Array(2)].map((_, i) => <SkeletonRow key={i} columns={3} />)}
+              </div>
+            ) : requests.length === 0 ? (
+              <EmptyState icon="📭" title="No pending requests" subtitle="New booking requests from players will show up here." accent={COLORS.pitchGreen} />
             ) : (
               <div style={{ display: "grid", gap: 12 }}>
                 {requests.map(r => (
-                  <div key={r.id} style={{ ...glass(), borderRadius: 16, padding: 18, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+                  <div key={r.id} style={{ ...glass(), borderRadius: 16, padding: 18, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, transition: "border-color 0.2s" }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = "rgba(14,165,233,0.35)"}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(14,165,233,0.15)"}
+                  >
                     <div>
                       <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{r.user} · {r.turf}</div>
                       <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 12.5 }}>{r.date}, {r.time} · {r.note} · ₹{r.amount}</div>
                     </div>
                     <div style={{ display: "flex", gap: 8 }}>
-                      <button onClick={() => respond(r.id)} style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: COLORS.danger, borderRadius: 10, padding: "8px 14px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: font }}>Decline</button>
-                      <button onClick={() => respond(r.id)} style={{ background: `linear-gradient(135deg, ${COLORS.electricBlue}, ${COLORS.pitchGreen})`, border: "none", color: "#fff", borderRadius: 10, padding: "8px 14px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: font }}>Accept</button>
+                      <button onClick={() => respond(r.id, "decline")} style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: COLORS.danger, borderRadius: 10, padding: "8px 14px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: font, transition: "background 0.2s" }}
+                        onMouseEnter={e => e.currentTarget.style.background = "rgba(239,68,68,0.2)"}
+                        onMouseLeave={e => e.currentTarget.style.background = "rgba(239,68,68,0.1)"}
+                      >Decline</button>
+                      <button onClick={() => respond(r.id, "accept")} style={{ background: `linear-gradient(135deg, ${COLORS.electricBlue}, ${COLORS.pitchGreen})`, border: "none", color: "#fff", borderRadius: 10, padding: "8px 14px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: font, transition: "opacity 0.2s" }}
+                        onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
+                        onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+                      >Accept</button>
                     </div>
                   </div>
                 ))}
@@ -269,6 +342,11 @@ export default function OwnerDashboardClient({ profile }) {
         {tab === "payouts" && (
           <>
             <TopBar title="Payouts" sub="Weekly settlement to your linked bank account" />
+            {isLoading ? (
+              <div style={{ ...glass(), borderRadius: 18, overflow: "hidden" }}>
+                {[...Array(3)].map((_, i) => <SkeletonRow key={i} columns={4} />)}
+              </div>
+            ) : (
             <div style={{ ...glass(), borderRadius: 18, overflow: "hidden" }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr 1fr 0.8fr", padding: "12px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
                 {["Payout ID", "Period", "Amount", "Status"].map(h => (
@@ -276,7 +354,10 @@ export default function OwnerDashboardClient({ profile }) {
                 ))}
               </div>
               {PAYOUTS.map((p, i) => (
-                <div key={p.id} style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr 1fr 0.8fr", alignItems: "center", padding: "16px 20px", borderBottom: i < PAYOUTS.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
+                <div key={p.id} style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr 1fr 0.8fr", alignItems: "center", padding: "16px 20px", borderBottom: i < PAYOUTS.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none", transition: "background 0.2s" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.03)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
                   <span style={{ color: "rgba(255,255,255,0.5)", fontFamily: mono, fontSize: 13 }}>{p.id}</span>
                   <span style={{ color: "#fff", fontSize: 13.5 }}>{p.period}</span>
                   <span style={{ color: "#fff", fontFamily: mono, fontWeight: 700, fontSize: 13.5 }}>₹{p.amount.toLocaleString()}</span>
@@ -284,25 +365,37 @@ export default function OwnerDashboardClient({ profile }) {
                 </div>
               ))}
             </div>
+            )}
           </>
         )}
 
         {tab === "reviews" && (
           <>
             <TopBar title="Reviews" sub="What players are saying about your turfs" />
+            {isLoading ? (
+              <div style={{ display: "grid", gap: 14 }}>
+                {[...Array(2)].map((_, i) => <SkeletonCard key={i} lines={2} />)}
+              </div>
+            ) : OWNER_REVIEWS.length === 0 ? (
+              <EmptyState icon="💬" title="No reviews yet" subtitle="Reviews from players will appear here after their first booking." />
+            ) : (
             <div style={{ display: "grid", gap: 14 }}>
               {OWNER_REVIEWS.map((r, i) => (
-                <div key={i} style={{ ...glass(), borderRadius: 16, padding: 18 }}>
+                <div key={i} style={{ ...glass(), borderRadius: 16, padding: 18, transition: "border-color 0.2s" }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = "rgba(14,165,233,0.35)"}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(14,165,233,0.15)"}
+                >
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
                     <span style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{r.user} <span style={{ color: "rgba(255,255,255,0.4)", fontWeight: 400 }}>· {r.turf}</span></span>
                     <div style={{ display: "flex", gap: 2 }}>
-                      {[...Array(5)].map((_, j) => <Icon key={j} name="star" size={13} color={j < r.rating ? "#FBBF24" : "rgba(255,255,255,0.15)"} />)}
+                      {[...Array(5)].map((_, j) => <Icon key={j} name="star" size={13} filled={j < r.rating} color={j < r.rating ? "#FBBF24" : "rgba(255,255,255,0.15)"} />)}
                     </div>
                   </div>
                   <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 13.5, margin: 0 }}>{r.text}</p>
                 </div>
               ))}
             </div>
+            )}
           </>
         )}
       </div>

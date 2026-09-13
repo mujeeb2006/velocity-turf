@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/components/ui/toast";
+import { SkeletonCard, SkeletonRow } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 
 const COLORS = {
   electricBlue: "#0EA5E9",
@@ -24,7 +27,7 @@ const glass = (extra = {}) => ({
 const font = "'Exo 2', sans-serif";
 const mono = "'Space Mono', monospace";
 
-const Icon = ({ name, size = 18, color = "currentColor" }) => {
+const Icon = ({ name, size = 18, color = "currentColor", filled = false }) => {
   const paths = {
     grid: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" />,
     building: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21h18M6 21V7a1 1 0 011-1h10a1 1 0 011 1v14M9 9h1m4 0h1m-6 4h1m4 0h1m-6 4h1m4 0h1" />,
@@ -41,7 +44,7 @@ const Icon = ({ name, size = 18, color = "currentColor" }) => {
     shield: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z" />,
   };
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? color : "none"} stroke={color} xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
       {paths[name]}
     </svg>
   );
@@ -49,7 +52,10 @@ const Icon = ({ name, size = 18, color = "currentColor" }) => {
 
 function StatCard({ label, value, icon, color, sub }) {
   return (
-    <div style={{ ...glass(), borderRadius: 18, padding: "18px 20px" }}>
+    <div style={{ ...glass(), borderRadius: 18, padding: "18px 20px", transition: "transform 0.2s, box-shadow 0.2s" }}
+      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 12px 32px rgba(14,165,233,0.15)"; }}
+      onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
+    >
       <div style={{ background: color + "18", borderRadius: 10, padding: 8, display: "inline-flex", marginBottom: 12 }}>
         <Icon name={icon} size={17} color={color} />
       </div>
@@ -158,7 +164,19 @@ const CITY_BREAKDOWN = [
 export default function AdminDashboardClient({ profile }) {
   const router = useRouter();
   const supabase = createClient();
+  const { showToast } = useToast();
   const [tab, setTab] = useState("overview");
+  const [pendingTurfs, setPendingTurfs] = useState(PENDING_TURFS);
+  const [disputes, setDisputes] = useState(DISPUTES);
+  const [loadedTabs, setLoadedTabs] = useState(() => new Set(["overview"]));
+
+  useEffect(() => {
+    if (loadedTabs.has(tab)) return;
+    const t = setTimeout(() => setLoadedTabs(prev => new Set(prev).add(tab)), 500);
+    return () => clearTimeout(t);
+  }, [tab, loadedTabs]);
+
+  const isLoading = !loadedTabs.has(tab);
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -166,12 +184,31 @@ export default function AdminDashboardClient({ profile }) {
     router.refresh();
   }
 
+  const decideTurf = (id, decision) => {
+    const t = pendingTurfs.find(t => t.id === id);
+    setPendingTurfs(prev => prev.filter(t => t.id !== id));
+    if (t) {
+      showToast(
+        decision === "approve" ? `Approved "${t.name}" — now live on the platform` : `Rejected "${t.name}"`,
+        { type: decision === "approve" ? "success" : "info" }
+      );
+    }
+  };
+
+  const issueRefund = (id) => {
+    const d = disputes.find(d => d.id === id);
+    setDisputes(prev => prev.map(d => d.id === id ? { ...d, status: "resolved" } : d));
+    if (d) showToast(`Refund issued for ${d.id} · ₹${d.amount}`, { type: "success" });
+  };
+
+  const openCount = disputes.filter(d => d.status === "open").length;
+
   const items = [
     { id: "overview", label: "Overview", icon: "grid" },
-    { id: "approvals", label: "Turf Approvals", icon: "building", badge: PENDING_TURFS.length },
+    { id: "approvals", label: "Turf Approvals", icon: "building", badge: pendingTurfs.length || undefined },
     { id: "turfs", label: "All Turfs", icon: "map" },
     { id: "users", label: "Users", icon: "users" },
-    { id: "disputes", label: "Disputes & Refunds", icon: "alert", badge: DISPUTES.filter(d => d.status === "open").length },
+    { id: "disputes", label: "Disputes & Refunds", icon: "alert", badge: openCount || undefined },
   ];
 
   return (
@@ -181,17 +218,31 @@ export default function AdminDashboardClient({ profile }) {
         {tab === "overview" && (
           <>
             <TopBar title={`Welcome, ${profile?.full_name || "Admin"}`} sub="Platform overview across all cities" />
+            {isLoading ? (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px,1fr))", gap: 16, marginBottom: 32 }}>
+                {[...Array(4)].map((_, i) => <SkeletonCard key={i} lines={1} />)}
+              </div>
+            ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px,1fr))", gap: 16, marginBottom: 32 }}>
               <StatCard label="Gross Revenue (MTD)" value="₹68.4L" icon="rupee" color={COLORS.electricBlue} sub="+14% vs last month" />
               <StatCard label="Active Turfs" value="198" icon="building" color={COLORS.pitchGreen} sub="12 pending approval" />
               <StatCard label="Total Users" value="91,240" icon="users" color={COLORS.energyOrange} sub="+2,140 this week" />
-              <StatCard label="Open Disputes" value={DISPUTES.filter(d => d.status === "open").length} icon="alert" color={COLORS.danger} sub="Avg resolve: 1.8 days" />
+              <StatCard label="Open Disputes" value={openCount} icon="alert" color={COLORS.danger} sub="Avg resolve: 1.8 days" />
             </div>
+            )}
 
             <h3 style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.2, margin: "0 0 14px" }}>Revenue by City</h3>
+            {isLoading ? (
+              <div style={{ ...glass(), borderRadius: 18, overflow: "hidden", marginBottom: 32 }}>
+                {[...Array(4)].map((_, i) => <SkeletonRow key={i} columns={4} />)}
+              </div>
+            ) : (
             <div style={{ ...glass(), borderRadius: 18, padding: 8, marginBottom: 32 }}>
               {CITY_BREAKDOWN.map((c, i) => (
-                <div key={c.city} style={{ display: "grid", gridTemplateColumns: "1.2fr 0.6fr 1fr 0.6fr", alignItems: "center", gap: 12, padding: "14px 16px", borderBottom: i < CITY_BREAKDOWN.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
+                <div key={c.city} style={{ display: "grid", gridTemplateColumns: "1.2fr 0.6fr 1fr 0.6fr", alignItems: "center", gap: 12, padding: "14px 16px", borderBottom: i < CITY_BREAKDOWN.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none", transition: "background 0.2s", borderRadius: 10 }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.03)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
                   <span style={{ color: "#fff", fontWeight: 600, fontSize: 14 }}>{c.city}</span>
                   <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12.5 }}>{c.turfs} turfs</span>
                   <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 3 }}>
@@ -201,11 +252,22 @@ export default function AdminDashboardClient({ profile }) {
                 </div>
               ))}
             </div>
+            )}
 
             <h3 style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.2, margin: "0 0 14px" }}>Recent Disputes</h3>
+            {isLoading ? (
+              <div style={{ ...glass(), borderRadius: 18, overflow: "hidden" }}>
+                {[...Array(3)].map((_, i) => <SkeletonRow key={i} columns={3} />)}
+              </div>
+            ) : disputes.length === 0 ? (
+              <EmptyState icon="✅" title="No disputes on file" subtitle="Refund and dispute tickets will show up here." accent={COLORS.pitchGreen} />
+            ) : (
             <div style={{ ...glass(), borderRadius: 18, padding: 8 }}>
-              {DISPUTES.slice(0, 3).map((d, i) => (
-                <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px", borderBottom: i < 2 ? "1px solid rgba(255,255,255,0.05)" : "none", gap: 12, flexWrap: "wrap" }}>
+              {disputes.slice(0, 3).map((d, i) => (
+                <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px", borderBottom: i < Math.min(3, disputes.length) - 1 ? "1px solid rgba(255,255,255,0.05)" : "none", gap: 12, flexWrap: "wrap", transition: "background 0.2s", borderRadius: 10 }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.03)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
                   <div>
                     <div style={{ color: "#fff", fontWeight: 600, fontSize: 14 }}>{d.issue}</div>
                     <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>{d.user} · {d.turf} · {d.id}</div>
@@ -214,37 +276,60 @@ export default function AdminDashboardClient({ profile }) {
                 </div>
               ))}
             </div>
+            )}
           </>
         )}
 
         {tab === "approvals" && (
           <>
-            <TopBar title="Turf Approvals" sub={`${PENDING_TURFS.length} listings awaiting review`} />
+            <TopBar title="Turf Approvals" sub={`${pendingTurfs.length} listings awaiting review`} />
+            {isLoading ? (
+              <div style={{ display: "grid", gap: 14 }}>
+                {[...Array(2)].map((_, i) => <SkeletonCard key={i} lines={2} />)}
+              </div>
+            ) : pendingTurfs.length === 0 ? (
+              <EmptyState icon="✅" title="No turfs awaiting review" subtitle="New owner submissions will appear here for approval." accent={COLORS.pitchGreen} />
+            ) : (
             <div style={{ display: "grid", gap: 14 }}>
-              {PENDING_TURFS.map(t => (
-                <div key={t.id} style={{ ...glass(), borderRadius: 18, padding: 20, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 14 }}>
+              {pendingTurfs.map(t => (
+                <div key={t.id} style={{ ...glass(), borderRadius: 18, padding: 20, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 14, transition: "border-color 0.2s" }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = "rgba(14,165,233,0.35)"}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(14,165,233,0.15)"}
+                >
                   <div>
                     <div style={{ color: "#fff", fontWeight: 700, fontSize: 16, fontFamily: font }}>{t.name}</div>
                     <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 13, marginTop: 4 }}>Owner: {t.owner} · {t.city} · Submitted {t.submitted}</div>
                     <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, marginTop: 4 }}>{t.docs} documents uploaded</div>
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
-                    <button style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: COLORS.danger, borderRadius: 12, padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, display: "flex", alignItems: "center", gap: 6 }}>
+                    <button onClick={() => decideTurf(t.id, "reject")} style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: COLORS.danger, borderRadius: 12, padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, display: "flex", alignItems: "center", gap: 6, transition: "background 0.2s" }}
+                      onMouseEnter={e => e.currentTarget.style.background = "rgba(239,68,68,0.2)"}
+                      onMouseLeave={e => e.currentTarget.style.background = "rgba(239,68,68,0.1)"}
+                    >
                       <Icon name="x" size={14} /> Reject
                     </button>
-                    <button style={{ background: `linear-gradient(135deg, ${COLORS.electricBlue}, ${COLORS.pitchGreen})`, border: "none", color: "#fff", borderRadius: 12, padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, display: "flex", alignItems: "center", gap: 6 }}>
+                    <button onClick={() => decideTurf(t.id, "approve")} style={{ background: `linear-gradient(135deg, ${COLORS.electricBlue}, ${COLORS.pitchGreen})`, border: "none", color: "#fff", borderRadius: 12, padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, display: "flex", alignItems: "center", gap: 6, transition: "opacity 0.2s" }}
+                      onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
+                      onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+                    >
                       <Icon name="check" size={14} /> Approve
                     </button>
                   </div>
                 </div>
               ))}
             </div>
+            )}
           </>
         )}
 
         {tab === "turfs" && (
           <>
             <TopBar title="All Turfs" sub={`${ALL_TURFS_ADMIN.length} listings on the platform`} />
+            {isLoading ? (
+              <div style={{ ...glass(), borderRadius: 18, overflow: "hidden" }}>
+                {[...Array(4)].map((_, i) => <SkeletonRow key={i} columns={6} />)}
+              </div>
+            ) : (
             <div style={{ ...glass(), borderRadius: 18, overflow: "hidden" }}>
               <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1.2fr 1fr 0.8fr 1fr 0.8fr", padding: "12px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
                 {["Turf", "Owner", "City", "Status", "Revenue", "Rating"].map(h => (
@@ -252,19 +337,23 @@ export default function AdminDashboardClient({ profile }) {
                 ))}
               </div>
               {ALL_TURFS_ADMIN.map((t, i) => (
-                <div key={t.id} style={{ display: "grid", gridTemplateColumns: "1.6fr 1.2fr 1fr 0.8fr 1fr 0.8fr", alignItems: "center", padding: "16px 20px", borderBottom: i < ALL_TURFS_ADMIN.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
+                <div key={t.id} style={{ display: "grid", gridTemplateColumns: "1.6fr 1.2fr 1fr 0.8fr 1fr 0.8fr", alignItems: "center", padding: "16px 20px", borderBottom: i < ALL_TURFS_ADMIN.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none", transition: "background 0.2s" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.03)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
                   <span style={{ color: "#fff", fontWeight: 600, fontSize: 14 }}>{t.name}</span>
                   <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>{t.owner}</span>
                   <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>{t.city}</span>
                   <Pill color={t.status === "live" ? COLORS.pitchGreen : t.status === "flagged" ? COLORS.danger : COLORS.energyOrange}>{t.status}</Pill>
                   <span style={{ color: "#fff", fontFamily: mono, fontSize: 13, fontWeight: 700 }}>₹{t.revenue.toLocaleString()}</span>
                   <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <Icon name="star" size={13} color="#FBBF24" />
+                    <Icon name="star" size={13} filled color="#FBBF24" />
                     <span style={{ color: "#FBBF24", fontSize: 13, fontWeight: 700 }}>{t.rating}</span>
                   </div>
                 </div>
               ))}
             </div>
+            )}
           </>
         )}
 
@@ -276,6 +365,13 @@ export default function AdminDashboardClient({ profile }) {
                 <input placeholder="Search users..." style={{ background: "none", border: "none", outline: "none", color: "#fff", fontSize: 13, fontFamily: font }} />
               </div>
             } />
+            {isLoading ? (
+              <div style={{ ...glass(), borderRadius: 18, overflow: "hidden" }}>
+                {[...Array(4)].map((_, i) => <SkeletonRow key={i} columns={5} />)}
+              </div>
+            ) : USERS.length === 0 ? (
+              <EmptyState icon="🔍" title="No users found" subtitle="Try a different search term." />
+            ) : (
             <div style={{ ...glass(), borderRadius: 18, overflow: "hidden" }}>
               <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr 0.8fr 0.8fr", padding: "12px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
                 {["Name", "Role", "Joined", "Bookings", "Status"].map(h => (
@@ -283,7 +379,10 @@ export default function AdminDashboardClient({ profile }) {
                 ))}
               </div>
               {USERS.map((u, i) => (
-                <div key={u.id} style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr 0.8fr 0.8fr", alignItems: "center", padding: "16px 20px", borderBottom: i < USERS.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
+                <div key={u.id} style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr 0.8fr 0.8fr", alignItems: "center", padding: "16px 20px", borderBottom: i < USERS.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none", transition: "background 0.2s" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.03)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
                   <span style={{ color: "#fff", fontWeight: 600, fontSize: 14 }}>{u.name}</span>
                   <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>{u.role}</span>
                   <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>{u.joined}</span>
@@ -292,15 +391,26 @@ export default function AdminDashboardClient({ profile }) {
                 </div>
               ))}
             </div>
+            )}
           </>
         )}
 
         {tab === "disputes" && (
           <>
-            <TopBar title="Disputes & Refunds" sub={`${DISPUTES.filter(d => d.status === "open").length} open · ${DISPUTES.length} total`} />
+            <TopBar title="Disputes & Refunds" sub={`${openCount} open · ${disputes.length} total`} />
+            {isLoading ? (
+              <div style={{ display: "grid", gap: 14 }}>
+                {[...Array(2)].map((_, i) => <SkeletonCard key={i} lines={2} />)}
+              </div>
+            ) : disputes.length === 0 ? (
+              <EmptyState icon="✅" title="No disputes" subtitle="Refund and dispute tickets will show up here." accent={COLORS.pitchGreen} />
+            ) : (
             <div style={{ display: "grid", gap: 14 }}>
-              {DISPUTES.map(d => (
-                <div key={d.id} style={{ ...glass(), borderRadius: 18, padding: 20, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 14 }}>
+              {disputes.map(d => (
+                <div key={d.id} style={{ ...glass(), borderRadius: 18, padding: 20, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 14, transition: "border-color 0.2s" }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = "rgba(14,165,233,0.35)"}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(14,165,233,0.15)"}
+                >
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
                       <span style={{ color: "rgba(255,255,255,0.35)", fontFamily: mono, fontSize: 12 }}>{d.id}</span>
@@ -311,10 +421,16 @@ export default function AdminDashboardClient({ profile }) {
                   </div>
                   {d.status === "open" && (
                     <div style={{ display: "flex", gap: 8 }}>
-                      <button style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)", borderRadius: 12, padding: "10px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: font }}>
+                      <button onClick={() => showToast(`Viewing details for ${d.id}`, { type: "info" })} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)", borderRadius: 12, padding: "10px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: font, transition: "background 0.2s" }}
+                        onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.12)"}
+                        onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+                      >
                         View Details
                       </button>
-                      <button style={{ background: `linear-gradient(135deg, ${COLORS.electricBlue}, ${COLORS.pitchGreen})`, border: "none", color: "#fff", borderRadius: 12, padding: "10px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font }}>
+                      <button onClick={() => issueRefund(d.id)} style={{ background: `linear-gradient(135deg, ${COLORS.electricBlue}, ${COLORS.pitchGreen})`, border: "none", color: "#fff", borderRadius: 12, padding: "10px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, transition: "opacity 0.2s" }}
+                        onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
+                        onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+                      >
                         Issue Refund
                       </button>
                     </div>
@@ -322,6 +438,7 @@ export default function AdminDashboardClient({ profile }) {
                 </div>
               ))}
             </div>
+            )}
           </>
         )}
       </div>

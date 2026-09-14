@@ -132,11 +132,7 @@ function TopBar({ title, sub, action }) {
   );
 }
 
-// ---- Mock data (swap for real Supabase queries once turfs/bookings tables exist) ----
-const PENDING_TURFS = [
-  { id: 1, name: "Skyline Sports Arena", owner: "Ramesh Gupta", city: "Pune", submitted: "2 days ago", docs: 4 },
-  { id: 2, name: "GreenTurf Kondapur", owner: "Anitha Rao", city: "Hyderabad", submitted: "5 hours ago", docs: 3 },
-];
+
 const ALL_TURFS_ADMIN = [
   { id: 1, name: "Arena Nova", owner: "Vikram Singh", city: "Noida", status: "live", revenue: 494400, rating: 4.9 },
   { id: 2, name: "Zen Court", owner: "Meera Iyer", city: "Bengaluru", status: "live", revenue: 214400, rating: 4.7 },
@@ -166,7 +162,8 @@ export default function AdminDashboardClient({ profile }) {
   const supabase = createClient();
   const { showToast } = useToast();
   const [tab, setTab] = useState("overview");
-  const [pendingTurfs, setPendingTurfs] = useState(PENDING_TURFS);
+  const [pendingTurfs, setPendingTurfs] = useState([]);
+  const [pendingTurfsLoading, setPendingTurfsLoading] = useState(true);
   const [disputes, setDisputes] = useState(DISPUTES);
   const [loadedTabs, setLoadedTabs] = useState(() => new Set(["overview"]));
 
@@ -183,17 +180,97 @@ export default function AdminDashboardClient({ profile }) {
     router.push("/login");
     router.refresh();
   }
+    async function loadPendingTurfs() {
+  setPendingTurfsLoading(true);
 
-  const decideTurf = (id, decision) => {
-    const t = pendingTurfs.find(t => t.id === id);
-    setPendingTurfs(prev => prev.filter(t => t.id !== id));
-    if (t) {
-      showToast(
-        decision === "approve" ? `Approved "${t.name}" — now live on the platform` : `Rejected "${t.name}"`,
-        { type: decision === "approve" ? "success" : "info" }
-      );
-    }
+  const { data, error } = await supabase
+    .from("turfs")
+    .select(`
+      id,
+      name,
+      city,
+      doc_count,
+      created_at,
+      owner:profiles!turfs_owner_id_fkey (
+        full_name,
+        email
+      )
+    `)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Could not load pending turfs:", error);
+    showToast("Could not load pending turfs", { type: "error" });
+    setPendingTurfs([]);
+  } else {
+    const formattedTurfs = (data || []).map((turf) => ({
+      id: turf.id,
+      name: turf.name,
+      city: turf.city,
+      owner:
+        turf.owner?.full_name ||
+        turf.owner?.email ||
+        "Unknown owner",
+      submitted: new Date(turf.created_at).toLocaleDateString(),
+      docs: turf.doc_count || 0,
+    }));
+
+    setPendingTurfs(formattedTurfs);
+  }
+
+  setPendingTurfsLoading(false);
+}
+
+useEffect(() => {
+    loadPendingTurfs();
+  }, []);
+
+
+async function decideTurf(id, decision) {
+  const turf = pendingTurfs.find((item) => item.id === id);
+
+  if (!turf) return;
+
+  const isApproved = decision === "approve";
+
+  const updateData = {
+    status: isApproved ? "live" : "rejected",
+    approved_at: isApproved
+      ? new Date().toISOString()
+      : null,
+    rejected_reason: isApproved
+      ? null
+      : "Rejected by admin",
   };
+
+  const { error } = await supabase
+    .from("turfs")
+    .update(updateData)
+    .eq("id", id)
+    .eq("status", "pending");
+
+  if (error) {
+    console.error("Could not update turf:", error);
+    showToast("Could not update this turf", {
+      type: "error",
+    });
+    return;
+  }
+
+  setPendingTurfs((currentTurfs) =>
+    currentTurfs.filter((item) => item.id !== id)
+  );
+
+  showToast(
+    isApproved
+      ? `Approved "${turf.name}" — now live on the platform`
+      : `Rejected "${turf.name}"`,
+    {
+      type: isApproved ? "success" : "info",
+    }
+  );
+}
 
   const issueRefund = (id) => {
     const d = disputes.find(d => d.id === id);
@@ -282,15 +359,24 @@ export default function AdminDashboardClient({ profile }) {
 
         {tab === "approvals" && (
           <>
-            <TopBar title="Turf Approvals" sub={`${pendingTurfs.length} listings awaiting review`} />
-            {isLoading ? (
-              <div style={{ display: "grid", gap: 14 }}>
-                {[...Array(2)].map((_, i) => <SkeletonCard key={i} lines={2} />)}
-              </div>
-            ) : pendingTurfs.length === 0 ? (
-              <EmptyState icon="✅" title="No turfs awaiting review" subtitle="New owner submissions will appear here for approval." accent={COLORS.pitchGreen} />
-            ) : (
-            <div style={{ display: "grid", gap: 14 }}>
+    <TopBar 
+      title="Turf Approvals" 
+      sub={`${pendingTurfs.length} listings awaiting review`}      
+    />
+    {isLoading || pendingTurfsLoading ? (
+      <div style={{ display: "grid", gap: 14 }}>
+        {[...Array(2)].map((_, i) => (
+          <SkeletonCard key={i} lines={2} /> 
+ 	))}
+      </div>
+    ) : pendingTurfs.length === 0 ? (
+      <EmptyState 
+        icon="✅" 
+        title="No turfs awaiting review" 
+        subtitle="New owner submissions will appear here for approval."  		accent={COLORS.pitchGreen} 
+      />
+    ) : (
+      <div style={{ display: "grid", gap: 14 }}>
               {pendingTurfs.map(t => (
                 <div key={t.id} style={{ ...glass(), borderRadius: 18, padding: 20, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 14, transition: "border-color 0.2s" }}
                   onMouseEnter={e => e.currentTarget.style.borderColor = "rgba(14,165,233,0.35)"}

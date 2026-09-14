@@ -6,25 +6,24 @@ import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
 import { SkeletonCard, SkeletonRow } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { COLORS as V, FONT_DISPLAY, FONT_BODY, FONT_DATA, panel } from "@/lib/design-tokens";
 
+// Old palette names kept as aliases into the new design-tokens palette so
+// every existing `COLORS.electricBlue` etc. call site below picks up the
+// "floodlit night match" identity without a full rewrite.
 const COLORS = {
-  electricBlue: "#0EA5E9",
-  pitchGreen: "#22C55E",
-  energyOrange: "#F97316",
-  danger: "#EF4444",
-  dark: "#050A14",
+  electricBlue: V.flood,
+  pitchGreen: V.confirmed,
+  energyOrange: V.pending,
+  danger: V.danger,
+  dark: V.pitch,
 };
 
-const glass = (extra = {}) => ({
-  background: "rgba(13, 21, 38, 0.75)",
-  backdropFilter: "blur(20px)",
-  WebkitBackdropFilter: "blur(20px)",
-  border: "1px solid rgba(14,165,233,0.15)",
-  ...extra,
-});
+const glass = (extra = {}) => ({ ...panel(), ...extra });
 
-const font = "'Exo 2', sans-serif";
-const mono = "'Space Mono', monospace";
+const font = FONT_BODY;
+const fontDisplay = FONT_DISPLAY;
+const mono = FONT_DATA;
 
 const Icon = ({ name, size = 18, color = "currentColor", filled = false }) => {
   const paths = {
@@ -48,14 +47,14 @@ const Icon = ({ name, size = 18, color = "currentColor", filled = false }) => {
 function StatCard({ label, value, icon, color, sub }) {
   return (
     <div style={{ ...glass(), borderRadius: 18, padding: "18px 20px", transition: "transform 0.2s, box-shadow 0.2s" }}
-      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 12px 32px rgba(14,165,233,0.15)"; }}
+      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 12px 32px rgba(212,255,79,0.12)"; }}
       onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
     >
       <div style={{ background: color + "18", borderRadius: 10, padding: 8, display: "inline-flex", marginBottom: 12 }}>
         <Icon name={icon} size={17} color={color} />
       </div>
-      <div style={{ color: "#fff", fontWeight: 800, fontSize: 24, fontFamily: mono }}>{value}</div>
-      <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginTop: 4 }}>{label}</div>
+      <div style={{ color: V.chalk, fontWeight: 800, fontSize: 24, fontFamily: mono }}>{value}</div>
+      <div style={{ color: V.chalkFaint, fontSize: 12, marginTop: 4 }}>{label}</div>
       {sub && <div style={{ color, fontSize: 11, marginTop: 6, fontWeight: 600 }}>{sub}</div>}
     </div>
   );
@@ -71,42 +70,42 @@ function Pill({ children, color }) {
 
 function SideNav({ items, active, onSelect, userEmail, onSignOut }) {
   return (
-    <div style={{ width: 232, flexShrink: 0, minHeight: "100vh", position: "sticky", top: 0, ...glass({ background: "rgba(5,10,20,0.9)" }), borderRight: "1px solid rgba(14,165,233,0.1)", borderRadius: 0, padding: "24px 16px", display: "flex", flexDirection: "column" }}>
+    <div style={{ width: 232, flexShrink: 0, minHeight: "100vh", position: "sticky", top: 0, ...glass({ background: "rgba(7,13,10,0.92)" }), borderRight: `1px solid ${V.line}`, borderRadius: 0, padding: "24px 16px", display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 8px", marginBottom: 20 }}>
-        <div style={{ width: 34, height: 34, borderRadius: 10, background: `linear-gradient(135deg, ${COLORS.electricBlue}, ${COLORS.pitchGreen})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>⚡</div>
+        <div style={{ width: 34, height: 34, borderRadius: 10, background: V.flood, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>⚡</div>
         <span style={{ fontWeight: 900, fontSize: 17, fontFamily: font }}>
-          <span style={{ color: "#fff" }}>VELOCITY</span> <span style={{ color: COLORS.electricBlue }}>TURF</span>
+          <span style={{ color: V.chalk }}>VELOCITY</span> <span style={{ color: COLORS.electricBlue }}>TURF</span>
         </span>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 8, background: COLORS.electricBlue + "12", border: `1px solid ${COLORS.electricBlue}30`, borderRadius: 12, padding: "8px 12px", marginBottom: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, background: V.floodDim, border: `1px solid ${COLORS.electricBlue}30`, borderRadius: 12, padding: "8px 12px", marginBottom: 8 }}>
         <Icon name="building" size={15} color={COLORS.electricBlue} />
         <span style={{ color: COLORS.electricBlue, fontSize: 12, fontWeight: 700, fontFamily: mono }}>OWNER PORTAL</span>
       </div>
       {userEmail && (
-        <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11.5, padding: "0 4px", marginBottom: 20, wordBreak: "break-all" }}>{userEmail}</div>
+        <div style={{ color: V.chalkFaint, fontSize: 11.5, padding: "0 4px", marginBottom: 20, wordBreak: "break-all" }}>{userEmail}</div>
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
         {items.map(it => (
           <button key={it.id} onClick={() => onSelect(it.id)} style={{
             display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 12,
-            background: active === it.id ? "rgba(14,165,233,0.12)" : "transparent",
-            border: active === it.id ? "1px solid rgba(14,165,233,0.25)" : "1px solid transparent",
-            color: active === it.id ? "#fff" : "rgba(255,255,255,0.5)",
+            background: active === it.id ? V.line : "transparent",
+            border: active === it.id ? `1px solid ${V.flood}40` : "1px solid transparent",
+            color: active === it.id ? V.chalk : V.chalkDim,
             cursor: "pointer", fontSize: 13.5, fontWeight: 600, fontFamily: font, textAlign: "left",
           }}>
-            <Icon name={it.icon} size={16} color={active === it.id ? COLORS.electricBlue : "rgba(255,255,255,0.4)"} />
+            <Icon name={it.icon} size={16} color={active === it.id ? COLORS.electricBlue : V.chalkFaint} />
             {it.label}
-            {it.badge ? <span style={{ marginLeft: "auto", background: COLORS.energyOrange, color: "#fff", fontSize: 10, fontWeight: 800, padding: "1px 6px", borderRadius: 10 }}>{it.badge}</span> : null}
+            {it.badge ? <span style={{ marginLeft: "auto", background: COLORS.energyOrange, color: V.chalk, fontSize: 10, fontWeight: 800, padding: "1px 6px", borderRadius: 10 }}>{it.badge}</span> : null}
           </button>
         ))}
       </div>
 
       <button onClick={onSignOut} style={{
         display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 12,
-        background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-        color: "rgba(255,255,255,0.6)", cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: font,
+        background: V.pitchCardRaised, border: `1px solid ${V.line}`,
+        color: V.chalkDim, cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: font,
       }}>
         <Icon name="logout" size={15} />
         Sign out
@@ -119,8 +118,8 @@ function TopBar({ title, sub, action }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28, flexWrap: "wrap", gap: 12 }}>
       <div>
-        <h1 style={{ color: "#fff", fontFamily: font, fontSize: 26, fontWeight: 800, margin: 0 }}>{title}</h1>
-        {sub && <p style={{ color: "rgba(255,255,255,0.4)", margin: "4px 0 0", fontSize: 13.5 }}>{sub}</p>}
+        <h1 style={{ color: V.chalk, fontFamily: fontDisplay, fontSize: 32, fontWeight: 400, margin: 0 }}>{title}</h1>
+        {sub && <p style={{ color: V.chalkFaint, margin: "4px 0 0", fontSize: 13.5, fontFamily: font }}>{sub}</p>}
       </div>
       {action}
     </div>
@@ -195,7 +194,7 @@ export default function OwnerDashboardClient({ profile }) {
         {tab === "overview" && (
           <>
             <TopBar title={`Welcome back, ${profile?.full_name || "Owner"}`} sub="Here's how your turfs are doing" action={
-              <button style={{ background: `linear-gradient(135deg, ${COLORS.electricBlue}, ${COLORS.pitchGreen})`, border: "none", color: "#fff", borderRadius: 12, padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, display: "flex", alignItems: "center", gap: 6, transition: "opacity 0.2s" }}
+              <button style={{ background: V.flood, border: "none", color: V.pitch, borderRadius: 12, padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, display: "flex", alignItems: "center", gap: 6, transition: "opacity 0.2s" }}
                 onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
                 onMouseLeave={e => e.currentTarget.style.opacity = "1"}
                 onClick={() => showToast("Add Turf flow is coming soon.", { type: "info" })}
@@ -212,11 +211,11 @@ export default function OwnerDashboardClient({ profile }) {
               <StatCard label="Total Revenue" value={`₹${totalRevenue.toLocaleString()}`} icon="rupee" color={COLORS.electricBlue} sub="Lifetime, all turfs" />
               <StatCard label="Today's Bookings" value={OWNER_TURFS.reduce((s, t) => s + t.todayBookings, 0)} icon="clock" color={COLORS.pitchGreen} />
               <StatCard label="Avg. Occupancy" value="69%" icon="trending" color={COLORS.energyOrange} />
-              <StatCard label="Avg. Rating" value="4.8" icon="star" color="#FBBF24" />
+              <StatCard label="Avg. Rating" value="4.8" icon="star" color={V.flood} />
             </div>
             )}
 
-            <h3 style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.2, margin: "0 0 14px" }}>Pending Requests</h3>
+            <h3 style={{ color: V.chalkDim, fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.2, margin: "0 0 14px" }}>Pending Requests</h3>
             {isLoading ? (
               <div style={{ display: "grid", gap: 12 }}>
                 {[...Array(2)].map((_, i) => <SkeletonRow key={i} columns={3} />)}
@@ -227,19 +226,19 @@ export default function OwnerDashboardClient({ profile }) {
               <div style={{ display: "grid", gap: 12 }}>
                 {requests.map(r => (
                   <div key={r.id} style={{ ...glass(), borderRadius: 16, padding: 18, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, transition: "border-color 0.2s" }}
-                    onMouseEnter={e => e.currentTarget.style.borderColor = "rgba(14,165,233,0.35)"}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(14,165,233,0.15)"}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = V.line}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = V.line}
                   >
                     <div>
-                      <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{r.user} · {r.turf}</div>
-                      <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 12.5 }}>{r.date}, {r.time} · {r.note} · ₹{r.amount}</div>
+                      <div style={{ color: V.chalk, fontWeight: 700, fontSize: 14 }}>{r.user} · {r.turf}</div>
+                      <div style={{ color: V.chalkDim, fontSize: 12.5 }}>{r.date}, {r.time} · {r.note} · ₹{r.amount}</div>
                     </div>
                     <div style={{ display: "flex", gap: 8 }}>
-                      <button onClick={() => respond(r.id, "decline")} style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: COLORS.danger, borderRadius: 10, padding: "8px 14px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: font, transition: "background 0.2s" }}
-                        onMouseEnter={e => e.currentTarget.style.background = "rgba(239,68,68,0.2)"}
-                        onMouseLeave={e => e.currentTarget.style.background = "rgba(239,68,68,0.1)"}
+                      <button onClick={() => respond(r.id, "decline")} style={{ background: "rgba(240,85,74,0.12)", border: "1px solid rgba(240,85,74,0.35)", color: COLORS.danger, borderRadius: 10, padding: "8px 14px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: font, transition: "background 0.2s" }}
+                        onMouseEnter={e => e.currentTarget.style.background = "rgba(240,85,74,0.22)"}
+                        onMouseLeave={e => e.currentTarget.style.background = "rgba(240,85,74,0.12)"}
                       >Decline</button>
-                      <button onClick={() => respond(r.id, "accept")} style={{ background: `linear-gradient(135deg, ${COLORS.electricBlue}, ${COLORS.pitchGreen})`, border: "none", color: "#fff", borderRadius: 10, padding: "8px 14px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: font, transition: "opacity 0.2s" }}
+                      <button onClick={() => respond(r.id, "accept")} style={{ background: V.flood, border: "none", color: V.pitch, borderRadius: 10, padding: "8px 14px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: font, transition: "opacity 0.2s" }}
                         onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
                         onMouseLeave={e => e.currentTarget.style.opacity = "1"}
                       >Accept</button>
@@ -262,36 +261,36 @@ export default function OwnerDashboardClient({ profile }) {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>
               {OWNER_TURFS.map(t => (
                 <div key={t.id} style={{ ...glass(), borderRadius: 18, padding: 20, transition: "transform 0.2s, box-shadow 0.2s" }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 16px 40px rgba(14,165,233,0.15)"; }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 16px 40px rgba(212,255,79,0.12)"; }}
                   onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                     <div>
-                      <div style={{ color: "#fff", fontWeight: 700, fontSize: 16, fontFamily: font }}>{t.name}</div>
-                      <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12.5, marginTop: 2 }}>{t.city}</div>
+                      <div style={{ color: V.chalk, fontWeight: 700, fontSize: 16, fontFamily: font }}>{t.name}</div>
+                      <div style={{ color: V.chalkFaint, fontSize: 12.5, marginTop: 2 }}>{t.city}</div>
                     </div>
                     <Pill color={t.status === "live" ? COLORS.pitchGreen : COLORS.energyOrange}>{t.status}</Pill>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                    <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }}>Occupancy</span>
+                    <span style={{ color: V.chalkDim, fontSize: 12 }}>Occupancy</span>
                     <span style={{ color: COLORS.electricBlue, fontSize: 12, fontWeight: 700 }}>{t.occupancy}%</span>
                   </div>
-                  <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 3, marginBottom: 16 }}>
-                    <div style={{ height: "100%", width: `${t.occupancy}%`, background: `linear-gradient(90deg, ${COLORS.electricBlue}, ${COLORS.pitchGreen})`, borderRadius: 3 }} />
+                  <div style={{ height: 6, background: V.line, borderRadius: 3, marginBottom: 16 }}>
+                    <div style={{ height: "100%", width: `${t.occupancy}%`, background: V.flood, borderRadius: 3 }} />
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                    <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 10, padding: 10 }}>
-                      <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11 }}>Today</div>
-                      <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{t.todayBookings} bookings</div>
+                    <div style={{ background: V.pitchCardRaised, borderRadius: 10, padding: 10 }}>
+                      <div style={{ color: V.chalkFaint, fontSize: 11 }}>Today</div>
+                      <div style={{ color: V.chalk, fontWeight: 700, fontSize: 14 }}>{t.todayBookings} bookings</div>
                     </div>
-                    <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 10, padding: 10 }}>
-                      <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11 }}>Revenue</div>
-                      <div style={{ color: "#fff", fontWeight: 700, fontSize: 14, fontFamily: mono }}>₹{t.revenue.toLocaleString()}</div>
+                    <div style={{ background: V.pitchCardRaised, borderRadius: 10, padding: 10 }}>
+                      <div style={{ color: V.chalkFaint, fontSize: 11 }}>Revenue</div>
+                      <div style={{ color: V.chalk, fontWeight: 700, fontSize: 14, fontFamily: mono }}>₹{t.revenue.toLocaleString()}</div>
                     </div>
                   </div>
-                  <button onClick={() => showToast(`Slot manager for ${t.name} is coming soon.`, { type: "info" })} style={{ marginTop: 14, width: "100%", padding: "10px", borderRadius: 12, background: "rgba(14,165,233,0.1)", border: "1px solid rgba(14,165,233,0.3)", color: COLORS.electricBlue, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, transition: "background 0.2s" }}
-                    onMouseEnter={e => e.currentTarget.style.background = "rgba(14,165,233,0.2)"}
-                    onMouseLeave={e => e.currentTarget.style.background = "rgba(14,165,233,0.1)"}
+                  <button onClick={() => showToast(`Slot manager for ${t.name} is coming soon.`, { type: "info" })} style={{ marginTop: 14, width: "100%", padding: "10px", borderRadius: 12, background: V.line, border: `1px solid ${V.flood}4D`, color: V.flood, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, transition: "background 0.2s" }}
+                    onMouseEnter={e => e.currentTarget.style.background = V.line}
+                    onMouseLeave={e => e.currentTarget.style.background = V.line}
                   >
                     Manage Slots
                   </button>
@@ -315,19 +314,19 @@ export default function OwnerDashboardClient({ profile }) {
               <div style={{ display: "grid", gap: 12 }}>
                 {requests.map(r => (
                   <div key={r.id} style={{ ...glass(), borderRadius: 16, padding: 18, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, transition: "border-color 0.2s" }}
-                    onMouseEnter={e => e.currentTarget.style.borderColor = "rgba(14,165,233,0.35)"}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(14,165,233,0.15)"}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = V.line}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = V.line}
                   >
                     <div>
-                      <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{r.user} · {r.turf}</div>
-                      <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 12.5 }}>{r.date}, {r.time} · {r.note} · ₹{r.amount}</div>
+                      <div style={{ color: V.chalk, fontWeight: 700, fontSize: 14 }}>{r.user} · {r.turf}</div>
+                      <div style={{ color: V.chalkDim, fontSize: 12.5 }}>{r.date}, {r.time} · {r.note} · ₹{r.amount}</div>
                     </div>
                     <div style={{ display: "flex", gap: 8 }}>
-                      <button onClick={() => respond(r.id, "decline")} style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: COLORS.danger, borderRadius: 10, padding: "8px 14px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: font, transition: "background 0.2s" }}
-                        onMouseEnter={e => e.currentTarget.style.background = "rgba(239,68,68,0.2)"}
-                        onMouseLeave={e => e.currentTarget.style.background = "rgba(239,68,68,0.1)"}
+                      <button onClick={() => respond(r.id, "decline")} style={{ background: "rgba(240,85,74,0.12)", border: "1px solid rgba(240,85,74,0.35)", color: COLORS.danger, borderRadius: 10, padding: "8px 14px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: font, transition: "background 0.2s" }}
+                        onMouseEnter={e => e.currentTarget.style.background = "rgba(240,85,74,0.22)"}
+                        onMouseLeave={e => e.currentTarget.style.background = "rgba(240,85,74,0.12)"}
                       >Decline</button>
-                      <button onClick={() => respond(r.id, "accept")} style={{ background: `linear-gradient(135deg, ${COLORS.electricBlue}, ${COLORS.pitchGreen})`, border: "none", color: "#fff", borderRadius: 10, padding: "8px 14px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: font, transition: "opacity 0.2s" }}
+                      <button onClick={() => respond(r.id, "accept")} style={{ background: V.flood, border: "none", color: V.pitch, borderRadius: 10, padding: "8px 14px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: font, transition: "opacity 0.2s" }}
                         onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
                         onMouseLeave={e => e.currentTarget.style.opacity = "1"}
                       >Accept</button>
@@ -348,19 +347,19 @@ export default function OwnerDashboardClient({ profile }) {
               </div>
             ) : (
             <div style={{ ...glass(), borderRadius: 18, overflow: "hidden" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr 1fr 0.8fr", padding: "12px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr 1fr 0.8fr", padding: "12px 20px", borderBottom: `1px solid ${V.line}` }}>
                 {["Payout ID", "Period", "Amount", "Status"].map(h => (
-                  <span key={h} style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6 }}>{h}</span>
+                  <span key={h} style={{ color: V.chalkFaint, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6 }}>{h}</span>
                 ))}
               </div>
               {PAYOUTS.map((p, i) => (
-                <div key={p.id} style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr 1fr 0.8fr", alignItems: "center", padding: "16px 20px", borderBottom: i < PAYOUTS.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none", transition: "background 0.2s" }}
-                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.03)"}
+                <div key={p.id} style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr 1fr 0.8fr", alignItems: "center", padding: "16px 20px", borderBottom: i < PAYOUTS.length - 1 ? `1px solid ${V.line}` : "none", transition: "background 0.2s" }}
+                  onMouseEnter={e => e.currentTarget.style.background = V.pitchCardRaised}
                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                 >
-                  <span style={{ color: "rgba(255,255,255,0.5)", fontFamily: mono, fontSize: 13 }}>{p.id}</span>
-                  <span style={{ color: "#fff", fontSize: 13.5 }}>{p.period}</span>
-                  <span style={{ color: "#fff", fontFamily: mono, fontWeight: 700, fontSize: 13.5 }}>₹{p.amount.toLocaleString()}</span>
+                  <span style={{ color: V.chalkDim, fontFamily: mono, fontSize: 13 }}>{p.id}</span>
+                  <span style={{ color: V.chalk, fontSize: 13.5 }}>{p.period}</span>
+                  <span style={{ color: V.chalk, fontFamily: mono, fontWeight: 700, fontSize: 13.5 }}>₹{p.amount.toLocaleString()}</span>
                   <Pill color={p.status === "paid" ? COLORS.pitchGreen : COLORS.energyOrange}>{p.status}</Pill>
                 </div>
               ))}
@@ -382,16 +381,16 @@ export default function OwnerDashboardClient({ profile }) {
             <div style={{ display: "grid", gap: 14 }}>
               {OWNER_REVIEWS.map((r, i) => (
                 <div key={i} style={{ ...glass(), borderRadius: 16, padding: 18, transition: "border-color 0.2s" }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = "rgba(14,165,233,0.35)"}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(14,165,233,0.15)"}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = V.line}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = V.line}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                    <span style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{r.user} <span style={{ color: "rgba(255,255,255,0.4)", fontWeight: 400 }}>· {r.turf}</span></span>
+                    <span style={{ color: V.chalk, fontWeight: 700, fontSize: 14 }}>{r.user} <span style={{ color: V.chalkFaint, fontWeight: 400 }}>· {r.turf}</span></span>
                     <div style={{ display: "flex", gap: 2 }}>
-                      {[...Array(5)].map((_, j) => <Icon key={j} name="star" size={13} filled={j < r.rating} color={j < r.rating ? "#FBBF24" : "rgba(255,255,255,0.15)"} />)}
+                      {[...Array(5)].map((_, j) => <Icon key={j} name="star" size={13} filled={j < r.rating} color={j < r.rating ? V.flood : V.line} />)}
                     </div>
                   </div>
-                  <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 13.5, margin: 0 }}>{r.text}</p>
+                  <p style={{ color: V.chalkDim, fontSize: 13.5, margin: 0 }}>{r.text}</p>
                 </div>
               ))}
             </div>

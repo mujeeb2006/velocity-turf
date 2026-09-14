@@ -25,6 +25,16 @@ const font = FONT_BODY;
 const fontDisplay = FONT_DISPLAY;
 const mono = FONT_DATA;
 
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+function fmtTime(t) {
+  return t ? t.slice(0, 5) : t;
+}
+
+const SPORT_OPTIONS = ["Football", "Basketball", "Cricket", "Badminton", "Hockey"];
+const AMENITY_OPTIONS = ["Floodlights", "Parking", "Cafeteria", "Showers", "AC Hall", "Lockers", "WiFi", "Turf"];
+
 const Icon = ({ name, size = 18, color = "currentColor", filled = false }) => {
   const paths = {
     grid: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" />,
@@ -127,10 +137,6 @@ function TopBar({ title, sub, action }) {
 }
 
 // ---- Mock data (swap for real Supabase queries once turfs/bookings tables exist) ----
-const OWNER_TURFS = [
-  { id: 1, name: "Arena Nova", city: "Sector 18, Noida", status: "live", occupancy: 85, todayBookings: 6, revenue: 494400, rating: 4.9 },
-  { id: 2, name: "Arena Nova 2 (Indoor)", city: "Sector 62, Noida", status: "live", occupancy: 52, todayBookings: 3, revenue: 156800, rating: 4.6 },
-];
 const INITIAL_REQUESTS = [
   { id: 1, turf: "Arena Nova", user: "Rahul M.", date: "Today", time: "6:00 PM", amount: 1440, note: "Football, 10 players" },
   { id: 2, turf: "Arena Nova 2 (Indoor)", user: "Priya S.", date: "Tomorrow", time: "8:00 AM", amount: 960, note: "Basketball, 6 players" },
@@ -145,6 +151,257 @@ const OWNER_REVIEWS = [
   { user: "Sneha P.", turf: "Arena Nova 2", rating: 4, text: "Good, but parking was full at peak time." },
 ];
 
+// ============================================================
+// ADD TURF MODAL
+// ============================================================
+function AddTurfModal({ profile, supabase, onClose, onCreated, showToast }) {
+  const [form, setForm] = useState({
+    name: "", address: "", city: "", sports: [], amenities: [],
+    base_price: "", peak_price: "", open_time: "06:00", close_time: "22:00",
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  const toggle = (key, value) => {
+    setForm(f => ({
+      ...f,
+      [key]: f[key].includes(value) ? f[key].filter(v => v !== value) : [...f[key], value],
+    }));
+  };
+
+  const set = (key) => (e) => setForm(f => ({ ...f, [key]: e.target.value }));
+
+  const isValid = form.name.trim() && form.address.trim() && form.city.trim()
+    && form.sports.length > 0 && form.base_price && form.peak_price;
+
+  const handleSubmit = async () => {
+    if (!isValid || !profile?.id) return;
+    setSubmitting(true);
+    const { error } = await supabase.from("turfs").insert({
+      owner_id: profile.id,
+      name: form.name.trim(),
+      address: form.address.trim(),
+      city: form.city.trim(),
+      sports: form.sports,
+      amenities: form.amenities,
+      base_price: Number(form.base_price),
+      peak_price: Number(form.peak_price),
+      open_time: form.open_time,
+      close_time: form.close_time,
+      status: "pending",
+    });
+    setSubmitting(false);
+    if (error) {
+      showToast("Couldn't submit the turf. Please try again.", { type: "error" });
+      return;
+    }
+    showToast("Turf submitted — an admin will review it shortly.", { type: "success" });
+    onCreated();
+    onClose();
+  };
+
+  const inputStyle = {
+    width: "100%", padding: "10px 12px", borderRadius: 10, background: V.pitchCardRaised,
+    border: `1px solid ${V.line}`, color: V.chalk, fontSize: 13.5, fontFamily: font, outline: "none",
+  };
+  const labelStyle = { color: V.chalkDim, fontSize: 12.5, fontWeight: 600, marginBottom: 6, display: "block", fontFamily: font };
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(8px)",
+      display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 16,
+    }} onClick={onClose}>
+      <div style={{ ...panel(true), borderRadius: 18, width: "100%", maxWidth: 520, maxHeight: "88vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+        <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${V.line}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h2 style={{ color: V.chalk, margin: 0, fontSize: 22, fontFamily: fontDisplay, fontWeight: 400 }}>List a new turf</h2>
+          <button onClick={onClose} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 34, height: 34, cursor: "pointer", color: V.chalk, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            ×
+          </button>
+        </div>
+
+        <div style={{ padding: 24, display: "grid", gap: 16 }}>
+          <div>
+            <label style={labelStyle}>Turf name</label>
+            <input style={inputStyle} value={form.name} onChange={set("name")} placeholder="e.g. Arena Nova" />
+          </div>
+          <div>
+            <label style={labelStyle}>Address</label>
+            <input style={inputStyle} value={form.address} onChange={set("address")} placeholder="e.g. Sector 18, Noida" />
+          </div>
+          <div>
+            <label style={labelStyle}>City</label>
+            <input style={inputStyle} value={form.city} onChange={set("city")} placeholder="e.g. Noida" />
+          </div>
+
+          <div>
+            <label style={labelStyle}>Sports offered</label>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {SPORT_OPTIONS.map(s => (
+                <button key={s} type="button" onClick={() => toggle("sports", s)} style={{
+                  padding: "6px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: font,
+                  background: form.sports.includes(s) ? V.flood : "transparent",
+                  color: form.sports.includes(s) ? V.pitch : V.chalkDim,
+                  border: `1px solid ${form.sports.includes(s) ? V.flood : V.line}`,
+                }}>{s}</button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label style={labelStyle}>Amenities</label>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {AMENITY_OPTIONS.map(a => (
+                <button key={a} type="button" onClick={() => toggle("amenities", a)} style={{
+                  padding: "6px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: font,
+                  background: form.amenities.includes(a) ? V.floodDim : "transparent",
+                  color: form.amenities.includes(a) ? V.flood : V.chalkDim,
+                  border: `1px solid ${form.amenities.includes(a) ? V.flood + "55" : V.line}`,
+                }}>{a}</button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div>
+              <label style={labelStyle}>Base price / hour (₹)</label>
+              <input style={inputStyle} type="number" min="0" value={form.base_price} onChange={set("base_price")} placeholder="1200" />
+            </div>
+            <div>
+              <label style={labelStyle}>Peak price / hour (₹)</label>
+              <input style={inputStyle} type="number" min="0" value={form.peak_price} onChange={set("peak_price")} placeholder="1800" />
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div>
+              <label style={labelStyle}>Opens</label>
+              <input style={inputStyle} type="time" value={form.open_time} onChange={set("open_time")} />
+            </div>
+            <div>
+              <label style={labelStyle}>Closes</label>
+              <input style={inputStyle} type="time" value={form.close_time} onChange={set("close_time")} />
+            </div>
+          </div>
+
+          <button disabled={!isValid || submitting} onClick={handleSubmit} style={{
+            marginTop: 4, width: "100%", padding: "13px", borderRadius: 12,
+            background: isValid ? V.flood : V.line, color: isValid ? V.pitch : V.chalkFaint,
+            border: "none", fontWeight: 800, fontSize: 14, cursor: isValid ? "pointer" : "not-allowed",
+            fontFamily: font, opacity: submitting ? 0.7 : 1,
+          }}>
+            {submitting ? "Submitting…" : "Submit for review"}
+          </button>
+          <p style={{ color: V.chalkFaint, fontSize: 11.5, textAlign: "center", margin: 0, fontFamily: font }}>
+            New listings go live once an admin approves them.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// MANAGE SLOTS MODAL
+// ============================================================
+function ManageSlotsModal({ turf, supabase, onClose, showToast }) {
+  const [date, setDate] = useState(todayStr());
+  const [slots, setSlots] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [busySlot, setBusySlot] = useState(null);
+
+  const fetchSlots = async () => {
+    setLoading(true);
+    const { data, error } = await supabase.rpc("turf_slots", { p_turf_id: turf.id, p_date: date });
+    if (!error) setSlots((data || []).map(s => ({ time: fmtTime(s.slot_time), raw_time: s.slot_time, status: s.status })));
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchSlots(); /* eslint-disable-next-line */ }, [date]);
+
+  const toggleBlock = async (slot) => {
+    setBusySlot(slot.raw_time);
+    if (slot.status === "blocked") {
+      const { error } = await supabase.from("blocked_slots").delete()
+        .eq("turf_id", turf.id).eq("blocked_date", date).eq("start_time", slot.raw_time);
+      if (error) showToast("Couldn't unblock that slot.", { type: "error" });
+    } else if (slot.status === "available") {
+      const { error } = await supabase.from("blocked_slots").insert({
+        turf_id: turf.id, blocked_date: date, start_time: slot.raw_time,
+      });
+      if (error) showToast("Couldn't block that slot.", { type: "error" });
+    }
+    setBusySlot(null);
+    fetchSlots();
+  };
+
+  const STATUS_STYLE = {
+    available: { bg: "transparent", border: V.line, color: V.chalkDim, label: null },
+    blocked: { bg: "rgba(240,85,74,0.1)", border: V.danger + "55", color: V.danger, label: "Blocked" },
+    locked: { bg: "rgba(245,166,35,0.1)", border: V.pending + "55", color: V.pending, label: "Pending" },
+    booked: { bg: V.floodDim, border: V.flood + "40", color: V.flood, label: "Booked" },
+  };
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(8px)",
+      display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 16,
+    }} onClick={onClose}>
+      <div style={{ ...panel(true), borderRadius: 18, width: "100%", maxWidth: 560, maxHeight: "85vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+        <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${V.line}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <h2 style={{ color: V.chalk, margin: 0, fontSize: 22, fontFamily: fontDisplay, fontWeight: 400 }}>Manage slots</h2>
+            <p style={{ color: V.chalkFaint, margin: "4px 0 0", fontSize: 13, fontFamily: font }}>{turf.name}</p>
+          </div>
+          <button onClick={onClose} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 34, height: 34, cursor: "pointer", color: V.chalk }}>×</button>
+        </div>
+
+        <div style={{ padding: 24 }}>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ color: V.chalkDim, fontSize: 12.5, fontWeight: 600, marginBottom: 6, display: "block", fontFamily: font }}>Date</label>
+            <input type="date" value={date} min={todayStr()} onChange={e => setDate(e.target.value)} style={{
+              padding: "9px 12px", borderRadius: 10, background: V.pitchCardRaised, border: `1px solid ${V.line}`,
+              color: V.chalk, fontSize: 13.5, fontFamily: font, outline: "none",
+            }} />
+          </div>
+
+          <div style={{ display: "flex", gap: 14, marginBottom: 16, fontSize: 11.5, fontFamily: font, flexWrap: "wrap" }}>
+            <span style={{ color: V.chalkDim }}>○ Available (click to block)</span>
+            <span style={{ color: V.danger }}>● Blocked (click to unblock)</span>
+            <span style={{ color: V.pending }}>● Pending</span>
+            <span style={{ color: V.flood }}>● Booked</span>
+          </div>
+
+          {loading ? (
+            <SkeletonCard lines={3} />
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+              {slots.map((slot, i) => {
+                const s = STATUS_STYLE[slot.status] || STATUS_STYLE.available;
+                const clickable = slot.status === "available" || slot.status === "blocked";
+                return (
+                  <button
+                    key={i}
+                    disabled={!clickable || busySlot === slot.raw_time}
+                    onClick={() => clickable && toggleBlock(slot)}
+                    style={{
+                      padding: "10px 4px", borderRadius: 10, border: `1px solid ${s.border}`,
+                      background: s.bg, color: s.color, fontSize: 12, fontWeight: 600,
+                      cursor: clickable ? "pointer" : "not-allowed", fontFamily: mono,
+                      opacity: busySlot === slot.raw_time ? 0.5 : 1,
+                    }}
+                  >
+                    {slot.time}
+                    {s.label && <div style={{ fontSize: 9, marginTop: 2 }}>{s.label}</div>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function OwnerDashboardClient({ profile }) {
   const router = useRouter();
   const supabase = createClient();
@@ -153,13 +410,73 @@ export default function OwnerDashboardClient({ profile }) {
   const [requests, setRequests] = useState(INITIAL_REQUESTS);
   const [loadedTabs, setLoadedTabs] = useState(() => new Set(["overview"]));
 
+  const [turfs, setTurfs] = useState([]);
+  const [turfsLoading, setTurfsLoading] = useState(true);
+  const [showAddTurf, setShowAddTurf] = useState(false);
+  const [slotsTurf, setSlotsTurf] = useState(null);
+
+  async function fetchTurfs() {
+    if (!profile?.id) { setTurfsLoading(false); return; }
+    const { data, error } = await supabase
+      .from("turfs")
+      .select("*")
+      .eq("owner_id", profile.id)
+      .order("created_at", { ascending: false });
+    if (error) {
+      showToast("Couldn't load your turfs.", { type: "error" });
+      setTurfsLoading(false);
+      return;
+    }
+    const list = data || [];
+    const today = todayStr();
+
+    // Per-turf occupancy today, via the same RPC the Player app uses.
+    const withOccupancy = await Promise.all(list.map(async (t) => {
+      const { data: slots } = await supabase.rpc("turf_slots", { p_turf_id: t.id, p_date: today });
+      const slotList = slots || [];
+      const bookedCount = slotList.filter(s => s.status !== "available").length;
+      const occupancy = slotList.length ? Math.round((bookedCount / slotList.length) * 100) : 0;
+      return { ...t, occupancy };
+    }));
+
+    // Revenue + today's booking counts, one query for all this owner's turfs.
+    const turfIds = list.map(t => t.id);
+    let revenueByTurf = {}, todayCountByTurf = {};
+    if (turfIds.length) {
+      const { data: bookings } = await supabase
+        .from("bookings")
+        .select("turf_id, price, status, booking_date")
+        .in("turf_id", turfIds);
+      (bookings || []).forEach(b => {
+        if (["confirmed", "completed"].includes(b.status)) {
+          revenueByTurf[b.turf_id] = (revenueByTurf[b.turf_id] || 0) + Number(b.price);
+        }
+        if (b.booking_date === today && b.status !== "declined" && b.status !== "cancelled") {
+          todayCountByTurf[b.turf_id] = (todayCountByTurf[b.turf_id] || 0) + 1;
+        }
+      });
+    }
+
+    setTurfs(withOccupancy.map(t => ({
+      ...t,
+      revenue: revenueByTurf[t.id] || 0,
+      todayBookings: todayCountByTurf[t.id] || 0,
+    })));
+    setTurfsLoading(false);
+  }
+
+  useEffect(() => {
+    fetchTurfs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id]);
+
   useEffect(() => {
     if (loadedTabs.has(tab)) return;
     const t = setTimeout(() => setLoadedTabs(prev => new Set(prev).add(tab)), 500);
     return () => clearTimeout(t);
   }, [tab, loadedTabs]);
 
-  const isLoading = !loadedTabs.has(tab);
+  const isLoading = !loadedTabs.has(tab) || (tab === "overview" && turfsLoading) || (tab === "turfs" && turfsLoading);
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -185,7 +502,9 @@ export default function OwnerDashboardClient({ profile }) {
     { id: "payouts", label: "Payouts", icon: "wallet" },
     { id: "reviews", label: "Reviews", icon: "star" },
   ];
-  const totalRevenue = OWNER_TURFS.reduce((s, t) => s + t.revenue, 0);
+  const totalRevenue = turfs.reduce((s, t) => s + t.revenue, 0);
+  const avgOccupancy = turfs.length ? Math.round(turfs.reduce((s, t) => s + t.occupancy, 0) / turfs.length) : 0;
+  const avgRating = turfs.length ? (turfs.reduce((s, t) => s + Number(t.rating || 0), 0) / turfs.length).toFixed(1) : "—";
 
   return (
     <div style={{ display: "flex" }}>
@@ -197,7 +516,7 @@ export default function OwnerDashboardClient({ profile }) {
               <button style={{ background: V.flood, border: "none", color: V.pitch, borderRadius: 12, padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, display: "flex", alignItems: "center", gap: 6, transition: "opacity 0.2s" }}
                 onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
                 onMouseLeave={e => e.currentTarget.style.opacity = "1"}
-                onClick={() => showToast("Add Turf flow is coming soon.", { type: "info" })}
+                onClick={() => setShowAddTurf(true)}
               >
                 <Icon name="plus" size={14} /> Add New Turf
               </button>
@@ -209,9 +528,9 @@ export default function OwnerDashboardClient({ profile }) {
             ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px,1fr))", gap: 16, marginBottom: 32 }}>
               <StatCard label="Total Revenue" value={`₹${totalRevenue.toLocaleString()}`} icon="rupee" color={COLORS.electricBlue} sub="Lifetime, all turfs" />
-              <StatCard label="Today's Bookings" value={OWNER_TURFS.reduce((s, t) => s + t.todayBookings, 0)} icon="clock" color={COLORS.pitchGreen} />
-              <StatCard label="Avg. Occupancy" value="69%" icon="trending" color={COLORS.energyOrange} />
-              <StatCard label="Avg. Rating" value="4.8" icon="star" color={V.flood} />
+              <StatCard label="Today's Bookings" value={turfs.reduce((s, t) => s + t.todayBookings, 0)} icon="clock" color={COLORS.pitchGreen} />
+              <StatCard label="Avg. Occupancy" value={`${avgOccupancy}%`} icon="trending" color={COLORS.energyOrange} />
+              <StatCard label="Avg. Rating" value={avgRating} icon="star" color={V.flood} />
             </div>
             )}
 
@@ -252,18 +571,35 @@ export default function OwnerDashboardClient({ profile }) {
 
         {tab === "turfs" && (
           <>
-            <TopBar title="My Turfs" sub={`${OWNER_TURFS.length} listings`} />
+            <TopBar title="My Turfs" sub={`${turfs.length} listings`} action={
+              <button style={{ background: V.flood, border: "none", color: V.pitch, borderRadius: 12, padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, display: "flex", alignItems: "center", gap: 6, transition: "opacity 0.2s" }}
+                onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
+                onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+                onClick={() => setShowAddTurf(true)}
+              >
+                <Icon name="plus" size={14} /> Add New Turf
+              </button>
+            } />
             {isLoading ? (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>
                 {[...Array(2)].map((_, i) => <SkeletonCard key={i} lines={3} />)}
               </div>
+            ) : turfs.length === 0 ? (
+              <EmptyState icon="🏟️" title="No turfs listed yet" subtitle="Add your first turf to start taking bookings. New listings need admin approval before they go live." accent={V.flood} />
             ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>
-              {OWNER_TURFS.map(t => (
+              {turfs.map(t => (
                 <div key={t.id} style={{ ...glass(), borderRadius: 18, padding: 20, transition: "transform 0.2s, box-shadow 0.2s" }}
                   onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 16px 40px rgba(212,255,79,0.12)"; }}
                   onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
                 >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                    <div>
+                      <div style={{ color: V.chalk, fontWeight: 700, fontSize: 16, fontFamily: font }}>{t.name}</div>
+                      <div style={{ color: V.chalkFaint, fontSize: 12.5, marginTop: 2 }}>{t.city}</div>
+                    </div>
+                    <Pill color={t.status === "live" ? COLORS.pitchGreen : t.status === "pending" ? COLORS.energyOrange : COLORS.danger}>{t.status}</Pill>
+                  </div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                     <div>
                       <div style={{ color: V.chalk, fontWeight: 700, fontSize: 16, fontFamily: font }}>{t.name}</div>
@@ -288,7 +624,7 @@ export default function OwnerDashboardClient({ profile }) {
                       <div style={{ color: V.chalk, fontWeight: 700, fontSize: 14, fontFamily: mono }}>₹{t.revenue.toLocaleString()}</div>
                     </div>
                   </div>
-                  <button onClick={() => showToast(`Slot manager for ${t.name} is coming soon.`, { type: "info" })} style={{ marginTop: 14, width: "100%", padding: "10px", borderRadius: 12, background: V.line, border: `1px solid ${V.flood}4D`, color: V.flood, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, transition: "background 0.2s" }}
+                  <button onClick={() => setSlotsTurf(t)} style={{ marginTop: 14, width: "100%", padding: "10px", borderRadius: 12, background: V.line, border: `1px solid ${V.flood}4D`, color: V.flood, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, transition: "background 0.2s" }}
                     onMouseEnter={e => e.currentTarget.style.background = V.line}
                     onMouseLeave={e => e.currentTarget.style.background = V.line}
                   >
@@ -398,6 +734,24 @@ export default function OwnerDashboardClient({ profile }) {
           </>
         )}
       </div>
+
+      {showAddTurf && (
+        <AddTurfModal
+          profile={profile}
+          supabase={supabase}
+          onClose={() => setShowAddTurf(false)}
+          onCreated={fetchTurfs}
+          showToast={showToast}
+        />
+      )}
+      {slotsTurf && (
+        <ManageSlotsModal
+          turf={slotsTurf}
+          supabase={supabase}
+          onClose={() => setSlotsTurf(null)}
+          showToast={showToast}
+        />
+      )}
     </div>
   );
 }

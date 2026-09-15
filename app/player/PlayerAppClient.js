@@ -7,7 +7,7 @@ import { useToast } from "@/components/ui/toast";
 import { SkeletonGrid, SkeletonCard, Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { RankBadge } from "@/components/ui/rank-badge";
-import { COLORS as V, FONT_DISPLAY, FONT_BODY, FONT_DATA, panel, floodGlow } from "@/lib/design-tokens";
+import { COLORS as V, FONT_DISPLAY, FONT_BODY, FONT_DATA, panel, floodGlow, buttonStyle } from "@/lib/design-tokens";
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
@@ -211,20 +211,13 @@ function TurfCard({ turf, onBook, onMatch }) {
 
         {/* Actions */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-          <button onClick={() => onBook(turf)} style={{
-            background: V.flood,
-            color: V.pitch, border: "none", borderRadius: 10, padding: "12px", fontWeight: 800, fontSize: 13, cursor: "pointer",
-            fontFamily: FONT_BODY, transition: "opacity 0.2s",
-          }}
+          <button onClick={() => onBook(turf)} style={buttonStyle("primary", "md")}
             onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
             onMouseLeave={e => e.currentTarget.style.opacity = "1"}
           >
             Book now
           </button>
-          <button onClick={() => onMatch(turf)} style={{
-            background: "transparent", color: V.chalk, border: `1px solid ${V.line}`, borderRadius: 10, padding: "12px", fontWeight: 700, fontSize: 13, cursor: "pointer",
-            fontFamily: FONT_BODY, transition: "border-color 0.2s",
-          }}
+          <button onClick={() => onMatch(turf)} style={buttonStyle("secondary", "md")}
             onMouseEnter={e => { e.currentTarget.style.borderColor = V.lineStrong; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = V.line; }}
           >
@@ -441,8 +434,8 @@ function HeroSection({ onExplore }) {
   const [searchVal, setSearchVal] = useState("");
 
   return (
-    <div style={{
-      minHeight: "88vh",
+    <div className="vt-hero" style={{
+      minHeight: "min(88vh, 720px)",
       display: "flex",
       flexDirection: "column",
       justifyContent: "center",
@@ -471,7 +464,7 @@ function HeroSection({ onExplore }) {
       <div style={{ position: "relative", zIndex: 1, maxWidth: 800, margin: "0 auto", textAlign: "center" }}>
         {/* Headline */}
         <h1 style={{
-          fontSize: "clamp(56px, 9vw, 104px)",
+          fontSize: "clamp(48px, 8vw, 84px)",
           lineHeight: 0.95,
           margin: "0 0 24px",
           fontFamily: FONT_DISPLAY,
@@ -487,7 +480,7 @@ function HeroSection({ onExplore }) {
         </p>
 
         {/* Search */}
-        <div style={{ display: "flex", gap: 8, maxWidth: 520, margin: "0 auto 48px", background: V.pitchCard, borderRadius: 14, padding: 8, border: `1px solid ${V.line}` }}>
+        <div style={{ display: "flex", gap: 8, maxWidth: 520, margin: "0 auto 48px", background: V.pitchCard, borderRadius: 14, padding: 10, border: `1px solid ${V.line}`, alignItems: "center" }}>
           <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, paddingLeft: 12 }}>
             <Icon name="search" size={18} color={V.chalkFaint} />
             <input
@@ -500,12 +493,7 @@ function HeroSection({ onExplore }) {
               }}
             />
           </div>
-          <button onClick={onExplore} style={{
-            background: V.flood,
-            border: "none", borderRadius: 10, padding: "12px 26px",
-            color: V.pitch, fontWeight: 800, cursor: "pointer", fontSize: 14,
-            fontFamily: FONT_BODY, whiteSpace: "nowrap",
-          }}>
+          <button onClick={onExplore} style={{ ...buttonStyle("primary", "lg"), whiteSpace: "nowrap" }}>
             Find turfs
           </button>
         </div>
@@ -532,6 +520,9 @@ function HeroSection({ onExplore }) {
         @keyframes heroFloodlight {
           from { opacity: 0; }
           to { opacity: 1; }
+        }
+        @media (max-height: 820px) {
+          .vt-hero h1 { font-size: clamp(40px, 7vw, 64px) !important; }
         }
       `}</style>
     </div>

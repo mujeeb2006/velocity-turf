@@ -433,6 +433,8 @@ function HeroSection({ onExplore }) {
   const [stats] = useState({ turfs: 240, cities: 18, bookings: 52000, players: 91000 });
   const [searchVal, setSearchVal] = useState("");
 
+  const submitSearch = () => onExplore(searchVal);
+
   return (
     <div className="vt-hero" style={{
       minHeight: "min(88vh, 720px)",
@@ -486,6 +488,7 @@ function HeroSection({ onExplore }) {
             <input
               value={searchVal}
               onChange={e => setSearchVal(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && submitSearch()}
               placeholder="Search turfs, sports, locations…"
               style={{
                 flex: 1, background: "none", border: "none", outline: "none",
@@ -493,7 +496,7 @@ function HeroSection({ onExplore }) {
               }}
             />
           </div>
-          <button onClick={onExplore} style={{ ...buttonStyle("primary", "lg"), whiteSpace: "nowrap" }}>
+          <button onClick={submitSearch} style={{ ...buttonStyle("primary", "lg"), whiteSpace: "nowrap" }}>
             Find turfs
           </button>
         </div>
@@ -532,16 +535,22 @@ function HeroSection({ onExplore }) {
 // ============================================================
 // DISCOVER / TURF LIST
 // ============================================================
-function DiscoverSection({ turfs, onBook, onMatch, isLoading }) {
+function DiscoverSection({ turfs, onBook, onMatch, isLoading, initialSearch = "" }) {
   const [filter, setFilter] = useState("All");
+  const [search, setSearch] = useState(initialSearch);
   const sports = ["All", "Football", "Basketball", "Cricket"];
 
-  const filtered = filter === "All" ? turfs : turfs.filter(t => t.sports.includes(filter));
+  useEffect(() => { setSearch(initialSearch); }, [initialSearch]);
+
+  const q = search.trim().toLowerCase();
+  const filtered = turfs
+    .filter(t => filter === "All" || t.sports.includes(filter))
+    .filter(t => !q || t.name.toLowerCase().includes(q) || t.location.toLowerCase().includes(q) || t.sports.some(s => s.toLowerCase().includes(q)));
 
   return (
     <div style={{ padding: "60px 24px" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32, flexWrap: "wrap", gap: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 16 }}>
           <div>
             <h2 style={{ color: V.chalk, fontFamily: FONT_DISPLAY, fontSize: 38, fontWeight: 400, margin: 0 }}>
               Nearby turfs
@@ -563,13 +572,27 @@ function DiscoverSection({ turfs, onBook, onMatch, isLoading }) {
             ))}
           </div>
         </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 10, background: V.pitchCard, border: `1px solid ${V.line}`, borderRadius: 12, padding: "10px 14px", marginBottom: 32, maxWidth: 420 }}>
+          <Icon name="search" size={16} color={V.chalkFaint} />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search by name, area, or sport…"
+            style={{ flex: 1, background: "none", border: "none", outline: "none", color: V.chalk, fontSize: 13.5, fontFamily: FONT_BODY }}
+          />
+          {search && (
+            <button onClick={() => setSearch("")} style={{ background: "none", border: "none", color: V.chalkFaint, cursor: "pointer", fontSize: 15, padding: 0 }}>×</button>
+          )}
+        </div>
+
         {isLoading ? (
           <SkeletonGrid count={3} minColWidth={320} cardHeight={160} />
         ) : filtered.length === 0 ? (
           <EmptyState
             icon="🔍"
-            title="No turfs match that filter"
-            subtitle="Try a different sport, or check back later as new turfs come online."
+            title={q ? `No turfs match "${search}"` : "No turfs match that filter"}
+            subtitle={q ? "Try a different name, area, or sport." : "Try a different sport, or check back later as new turfs come online."}
           />
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 24 }}>
@@ -586,7 +609,7 @@ function DiscoverSection({ turfs, onBook, onMatch, isLoading }) {
 // ============================================================
 // MATCHMAKING SECTION
 // ============================================================
-function MatchmakingSection({ matches, onJoin, isLoading }) {
+function MatchmakingSection({ matches, onJoin, onLeave, isLoading, joinedMatchIds }) {
   return (
     <div style={{ padding: "60px 24px" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
@@ -659,14 +682,23 @@ function MatchmakingSection({ matches, onJoin, isLoading }) {
                     }} />
                   </div>
                 </div>
-                <button disabled={fill >= 1} onClick={() => onJoin(m)} style={{
-                  background: fill >= 1 ? "transparent" : V.flood,
-                  border: fill >= 1 ? `1px solid ${V.line}` : "none", borderRadius: 10, padding: "12px 24px", color: fill >= 1 ? V.chalkFaint : V.pitch, fontWeight: 800,
-                  cursor: fill >= 1 ? "not-allowed" : "pointer", fontSize: 14, fontFamily: FONT_BODY,
-                  whiteSpace: "nowrap",
-                }}>
-                  {fill >= 1 ? "Full" : "Join →"}
-                </button>
+                {joinedMatchIds?.has(m.id) ? (
+                  <button onClick={() => onLeave(m)} style={{
+                    background: "transparent", border: `1px solid ${V.danger}55`, borderRadius: 10, padding: "12px 24px",
+                    color: V.danger, fontWeight: 800, cursor: "pointer", fontSize: 14, fontFamily: FONT_BODY, whiteSpace: "nowrap",
+                  }}>
+                    Leave
+                  </button>
+                ) : (
+                  <button disabled={fill >= 1} onClick={() => onJoin(m)} style={{
+                    background: fill >= 1 ? "transparent" : V.flood,
+                    border: fill >= 1 ? `1px solid ${V.line}` : "none", borderRadius: 10, padding: "12px 24px", color: fill >= 1 ? V.chalkFaint : V.pitch, fontWeight: 800,
+                    cursor: fill >= 1 ? "not-allowed" : "pointer", fontSize: 14, fontFamily: FONT_BODY,
+                    whiteSpace: "nowrap",
+                  }}>
+                    {fill >= 1 ? "Full" : "Join →"}
+                  </button>
+                )}
               </div>
             );
           })}
@@ -771,7 +803,7 @@ function LoyaltySection({ isLoading, leaderboard, myPoints }) {
 // ============================================================
 // DASHBOARD
 // ============================================================
-function DashboardSection({ isLoading, bookings, matchesJoined }) {
+function DashboardSection({ isLoading, bookings, matchesJoined, onCancel }) {
   const upcoming = bookings.filter(b => ["pending", "confirmed"].includes(b.status));
   const totalSpent = bookings.filter(b => ["confirmed", "completed"].includes(b.status)).reduce((sum, b) => sum + b.price, 0);
   const hoursPlayed = bookings.filter(b => b.status === "completed").length;
@@ -856,6 +888,12 @@ function DashboardSection({ isLoading, bookings, matchesJoined }) {
                 >
                   View QR
                 </button>
+                <button onClick={() => { if (window.confirm(`Cancel your booking at ${b.turf}?`)) onCancel(b.id); }} style={{ background: "transparent", border: `1px solid ${V.danger}55`, borderRadius: 8, padding: "8px 14px", color: V.danger, cursor: "pointer", fontSize: 13, fontFamily: FONT_BODY, transition: "background 0.2s" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(240,85,74,0.1)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
+                  Cancel
+                </button>
               </div>
             </div>
           ))}
@@ -887,6 +925,10 @@ export default function PlayerAppClient({ profile }) {
   const [myBookings, setMyBookings] = useState([]);
   const [myBookingsLoading, setMyBookingsLoading] = useState(true);
   const [matchesJoinedCount, setMatchesJoinedCount] = useState(0);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [joinedMatchIds, setJoinedMatchIds] = useState(new Set());
 
   async function fetchTurfs() {
     const { data, error } = await supabase
@@ -982,14 +1024,73 @@ export default function PlayerAppClient({ profile }) {
     setMatchesJoinedCount(count || 0);
   }
 
+  async function fetchNotifications() {
+    if (!profile?.id) return;
+    const { data, error } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", profile.id)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    if (!error) setNotifications(data || []);
+  }
+
+  async function fetchJoinedMatches() {
+    if (!profile?.id) return;
+    const { data, error } = await supabase
+      .from("match_participants")
+      .select("match_id")
+      .eq("player_id", profile.id);
+    if (!error) setJoinedMatchIds(new Set((data || []).map(r => r.match_id)));
+  }
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const toggleNotifications = async () => {
+    const opening = !showNotifications;
+    setShowNotifications(opening);
+    if (opening && unreadCount > 0) {
+      const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+      await supabase.from("notifications").update({ read: true }).in("id", unreadIds);
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    }
+  };
+
+  const handleCancelBooking = async (bookingId) => {
+    const { error } = await supabase.from("bookings").update({ status: "cancelled" }).eq("id", bookingId);
+    if (error) {
+      showToast("Couldn't cancel that booking.", { type: "error" });
+      return;
+    }
+    showToast("Booking cancelled.", { type: "info" });
+    fetchMyBookings();
+    fetchTurfs();
+  };
+
+  const handleLeaveMatch = async (match) => {
+    if (!profile?.id) return;
+    const { error } = await supabase.from("match_participants").delete()
+      .eq("match_id", match.id).eq("player_id", profile.id);
+    if (error) {
+      showToast("Couldn't leave the match.", { type: "error" });
+      return;
+    }
+    showToast(`Left "${match.sport} Match" at ${match.turf}.`, { type: "info" });
+    fetchMatches();
+    fetchJoinedMatches();
+  };
+
   useEffect(() => {
     fetchTurfs();
     fetchMatches();
     fetchLeaderboard();
     fetchMyBookings();
+    fetchNotifications();
+    fetchJoinedMatches();
 
-    // Live slot/match updates: when anyone books a slot or joins a match,
-    // refresh so every open tab reflects it without a manual reload.
+    // Live slot/match/notification updates: when anyone books a slot,
+    // joins a match, or a new notification arrives, refresh so every open
+    // tab reflects it without a manual reload.
     const channel = supabase
       .channel("player-live-updates")
       .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => {
@@ -997,7 +1098,8 @@ export default function PlayerAppClient({ profile }) {
         fetchMyBookings();
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, () => fetchMatches())
-      .on("postgres_changes", { event: "*", schema: "public", table: "match_participants" }, () => fetchMatches())
+      .on("postgres_changes", { event: "*", schema: "public", table: "match_participants" }, () => { fetchMatches(); fetchJoinedMatches(); })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, () => fetchNotifications())
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -1028,6 +1130,7 @@ export default function PlayerAppClient({ profile }) {
     }
     showToast(`Joined "${match.sport} Match" at ${match.turf}! 🎉`, { type: "success" });
     fetchMatches();
+    fetchJoinedMatches();
   };
 
   const handleBookingConfirmed = () => {
@@ -1108,9 +1211,9 @@ export default function PlayerAppClient({ profile }) {
             <span style={{ fontWeight: 800, fontSize: 13, letterSpacing: 0.3, color: V.chalk }}>VELOCITY TURF</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <button onClick={() => showToast("Real-time slot updates active", { type: "info" })} aria-label="Notifications" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: V.chalk, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+            <button onClick={toggleNotifications} aria-label="Notifications" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: V.chalk, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
               <Icon name="notification" size={15} />
-              <span style={{ position: "absolute", top: 6, right: 6, width: 5, height: 5, borderRadius: "50%", background: V.flood }} />
+              {unreadCount > 0 && <span style={{ position: "absolute", top: 6, right: 6, width: 5, height: 5, borderRadius: "50%", background: V.flood }} />}
             </button>
             <button onClick={handleSignOut} aria-label="Sign out" title="Sign out" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: V.chalkDim, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Icon name="logout" size={15} />
@@ -1156,25 +1259,51 @@ export default function PlayerAppClient({ profile }) {
           </div>
 
           {/* Right side */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <button onClick={() => showToast("Real-time slot updates active", { type: "info" })} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 36, height: 36, cursor: "pointer", color: V.chalk, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, position: "relative" }}>
+            <button onClick={toggleNotifications} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 36, height: 36, cursor: "pointer", color: V.chalk, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
               <Icon name="notification" size={16} />
-              <span style={{ position: "absolute", top: 7, right: 7, width: 6, height: 6, borderRadius: "50%", background: V.flood }} />
+              {unreadCount > 0 && <span style={{ position: "absolute", top: 7, right: 7, width: 6, height: 6, borderRadius: "50%", background: V.flood }} />}
             </button>
             <button onClick={handleSignOut} title="Sign out" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 36, height: 36, cursor: "pointer", color: V.chalkDim, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Icon name="logout" size={16} />
             </button>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: V.flood, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, color: V.pitch, cursor: "pointer", fontFamily: FONT_BODY }}>
-              {initial}
-            </div>
           </div>
         </nav>
+        {showNotifications && (
+          <>
+            <div onClick={() => setShowNotifications(false)} style={{ position: "fixed", inset: 0, zIndex: 899 }} />
+            <div style={{
+              position: "fixed", top: 70, right: 16, width: "min(320px, calc(100vw - 32px))", maxHeight: 420, overflowY: "auto",
+              background: V.pitchCard, border: `1px solid ${V.line}`, borderRadius: 14,
+              boxShadow: "0 20px 60px rgba(0,0,0,0.5)", zIndex: 1000,
+            }}>
+              <div style={{ padding: "14px 16px", borderBottom: `1px solid ${V.line}`, fontWeight: 700, fontSize: 13, color: V.chalk, fontFamily: FONT_BODY }}>
+                Notifications
+              </div>
+              {notifications.length === 0 ? (
+                <div style={{ padding: "28px 16px", textAlign: "center", color: V.chalkFaint, fontSize: 13, fontFamily: FONT_BODY }}>
+                  Nothing yet — booking updates will show up here.
+                </div>
+              ) : (
+                notifications.map(n => (
+                  <div key={n.id} style={{ padding: "12px 16px", borderBottom: `1px solid ${V.line}`, background: n.read ? "transparent" : V.floodDim }}>
+                    <div style={{ color: V.chalk, fontWeight: 700, fontSize: 13, fontFamily: FONT_BODY, marginBottom: 3 }}>{n.title}</div>
+                    {n.body && <div style={{ color: V.chalkDim, fontSize: 12.5, fontFamily: FONT_BODY, lineHeight: 1.4 }}>{n.body}</div>}
+                    <div style={{ color: V.chalkFaint, fontSize: 10.5, marginTop: 4, fontFamily: FONT_BODY }}>
+                      {new Date(n.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </>
+        )}
 
         {/* MAIN CONTENT */}
         <main className="vt-main-content" style={{ paddingTop: 64, paddingBottom: 80 }}>
           {activeTab === "home" && (
             <>
-              <HeroSection onExplore={() => setActiveTab("discover")} />
+              <HeroSection onExplore={(query) => { setSearchQuery(query || ""); setActiveTab("discover"); }} />
               {/* Smart suggestion banner */}
               <div style={{ padding: "0 24px 60px" }}>
                 <div style={{ maxWidth: 1100, margin: "0 auto" }}>
@@ -1201,10 +1330,10 @@ export default function PlayerAppClient({ profile }) {
               </div>
             </>
           )}
-          {activeTab === "discover" && <DiscoverSection turfs={turfs} onBook={handleBook} onMatch={(turf) => { setActiveTab("matches"); showToast(`Showing open matches — look for ones at ${turf.name}.`, { type: "info" }); }} isLoading={isTabLoading("discover")} />}
-          {activeTab === "matches" && <MatchmakingSection onJoin={handleJoin} isLoading={isTabLoading("matches")} matches={matches} />}
+          {activeTab === "discover" && <DiscoverSection turfs={turfs} onBook={handleBook} onMatch={(turf) => { setActiveTab("matches"); showToast(`Showing open matches — look for ones at ${turf.name}.`, { type: "info" }); }} isLoading={isTabLoading("discover")} initialSearch={searchQuery} />}
+          {activeTab === "matches" && <MatchmakingSection onJoin={handleJoin} onLeave={handleLeaveMatch} isLoading={isTabLoading("matches")} matches={matches} joinedMatchIds={joinedMatchIds} />}
           {activeTab === "loyalty" && <LoyaltySection isLoading={isTabLoading("loyalty")} leaderboard={leaderboard} myPoints={leaderboard.find(p => p.isYou)?.points ?? 0} />}
-          {activeTab === "dashboard" && <DashboardSection isLoading={isTabLoading("dashboard")} bookings={myBookings} matchesJoined={matchesJoinedCount} />}
+          {activeTab === "dashboard" && <DashboardSection isLoading={isTabLoading("dashboard")} bookings={myBookings} matchesJoined={matchesJoinedCount} onCancel={handleCancelBooking} />}
         </main>
 
         {/* BOTTOM TAB BAR (Mobile feel) */}

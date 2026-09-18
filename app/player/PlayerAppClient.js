@@ -1077,10 +1077,12 @@ export default function PlayerAppClient({ profile }) {
         /* Exactly one nav renders at a time: top bar on desktop, tab bar on mobile. */
         .vt-top-nav { display: flex; }
         .vt-bottom-nav { display: none; }
+        .vt-mobile-topbar { display: none; }
         @media (max-width: 767px) {
           .vt-top-nav { display: none !important; }
           .vt-bottom-nav { display: flex !important; }
-          .vt-main-content { padding-top: 0 !important; padding-bottom: 80px !important; }
+          .vt-mobile-topbar { display: flex !important; }
+          .vt-main-content { padding-top: 56px !important; padding-bottom: 80px !important; }
         }
       `}</style>
 
@@ -1091,6 +1093,31 @@ export default function PlayerAppClient({ profile }) {
         fontFamily: FONT_BODY,
         position: "relative",
       }}>
+        {/* SLIM TOP BAR (Mobile only) — the bottom tab bar is all navigation,
+            so account actions (notifications, sign out) live here instead. */}
+        <div className="vt-mobile-topbar" style={{
+          position: "fixed", top: 0, left: 0, right: 0, zIndex: 900,
+          background: "rgba(7,13,10,0.94)",
+          backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+          borderBottom: `1px solid ${V.line}`,
+          padding: "0 16px", height: 56,
+          alignItems: "center", justifyContent: "space-between",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 26, height: 26, borderRadius: 7, background: V.flood, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT_DISPLAY, fontSize: 15, color: V.pitch }}>V</div>
+            <span style={{ fontWeight: 800, fontSize: 13, letterSpacing: 0.3, color: V.chalk }}>VELOCITY TURF</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button onClick={() => showToast("Real-time slot updates active", { type: "info" })} aria-label="Notifications" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: V.chalk, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+              <Icon name="notification" size={15} />
+              <span style={{ position: "absolute", top: 6, right: 6, width: 5, height: 5, borderRadius: "50%", background: V.flood }} />
+            </button>
+            <button onClick={handleSignOut} aria-label="Sign out" title="Sign out" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: V.chalkDim, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Icon name="logout" size={15} />
+            </button>
+          </div>
+        </div>
+
         {/* TOP NAV (Desktop) */}
         <nav className="vt-top-nav" style={{
           position: "fixed", top: 0, left: 0, right: 0, zIndex: 900,

@@ -46,6 +46,7 @@ const Icon = ({ name, size = 18, color = "currentColor", filled = false }) => {
     wallet: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12V7H5a2 2 0 010-4h14v4M3 5v14a2 2 0 002 2h16v-5M18 12a1 1 0 100 2 1 1 0 000-2z" />,
     plus: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m-8-8h16" />,
     logout: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 5v1a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h5a2 2 0 012 2v1" />,
+    notification: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2a2 2 0 01-.6 1.4L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />,
   };
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? color : "none"} stroke={color} xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
@@ -78,14 +79,20 @@ function Pill({ children, color }) {
   );
 }
 
-function SideNav({ items, active, onSelect, userEmail, onSignOut }) {
+function SideNav({ items, active, onSelect, userEmail, onSignOut, unreadCount, onBell }) {
   return (
     <div style={{ width: 232, flexShrink: 0, minHeight: "100vh", position: "sticky", top: 0, ...glass({ background: "rgba(7,13,10,0.92)" }), borderRight: `1px solid ${V.line}`, borderRadius: 0, padding: "24px 16px", display: "flex", flexDirection: "column" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 8px", marginBottom: 20 }}>
-        <div style={{ width: 34, height: 34, borderRadius: 10, background: V.flood, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>⚡</div>
-        <span style={{ fontWeight: 900, fontSize: 17, fontFamily: font }}>
-          <span style={{ color: V.chalk }}>VELOCITY</span> <span style={{ color: COLORS.electricBlue }}>TURF</span>
-        </span>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 8px", marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 34, height: 34, borderRadius: 10, background: V.flood, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>⚡</div>
+          <span style={{ fontWeight: 900, fontSize: 17, fontFamily: font }}>
+            <span style={{ color: V.chalk }}>VELOCITY</span> <span style={{ color: COLORS.electricBlue }}>TURF</span>
+          </span>
+        </div>
+        <button onClick={onBell} aria-label="Notifications" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 30, height: 30, cursor: "pointer", color: V.chalk, display: "flex", alignItems: "center", justifyContent: "center", position: "relative", flexShrink: 0 }}>
+          <Icon name="notification" size={14} />
+          {unreadCount > 0 && <span style={{ position: "absolute", top: 5, right: 5, width: 5, height: 5, borderRadius: "50%", background: V.flood }} />}
+        </button>
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8, background: V.floodDim, border: `1px solid ${COLORS.electricBlue}30`, borderRadius: 12, padding: "8px 12px", marginBottom: 8 }}>
@@ -414,6 +421,31 @@ export default function OwnerDashboardClient({ profile }) {
   const [turfsLoading, setTurfsLoading] = useState(true);
   const [showAddTurf, setShowAddTurf] = useState(false);
   const [slotsTurf, setSlotsTurf] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  async function fetchNotifications() {
+    if (!profile?.id) return;
+    const { data, error } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", profile.id)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    if (!error) setNotifications(data || []);
+  }
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const toggleNotifications = async () => {
+    const opening = !showNotifications;
+    setShowNotifications(opening);
+    if (opening && unreadCount > 0) {
+      const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+      await supabase.from("notifications").update({ read: true }).in("id", unreadIds);
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    }
+  };
 
   async function fetchTurfs() {
     if (!profile?.id) { setTurfsLoading(false); return; }
@@ -467,6 +499,14 @@ export default function OwnerDashboardClient({ profile }) {
 
   useEffect(() => {
     fetchTurfs();
+    fetchNotifications();
+
+    const channel = supabase
+      .channel("owner-notifications")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${profile?.id}` }, () => fetchNotifications())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.id]);
 
@@ -507,8 +547,39 @@ export default function OwnerDashboardClient({ profile }) {
   const avgRating = turfs.length ? (turfs.reduce((s, t) => s + Number(t.rating || 0), 0) / turfs.length).toFixed(1) : "—";
 
   return (
-    <div style={{ display: "flex" }}>
-      <SideNav items={items} active={tab} onSelect={setTab} userEmail={profile?.email} onSignOut={handleSignOut} />
+    <div style={{ display: "flex", position: "relative" }}>
+      <SideNav items={items} active={tab} onSelect={setTab} userEmail={profile?.email} onSignOut={handleSignOut} unreadCount={unreadCount} onBell={toggleNotifications} />
+
+      {showNotifications && (
+        <>
+          <div onClick={() => setShowNotifications(false)} style={{ position: "fixed", inset: 0, zIndex: 899 }} />
+          <div style={{
+            position: "fixed", top: 70, left: 16, width: "min(320px, calc(100vw - 32px))", maxHeight: 420, overflowY: "auto",
+            background: V.pitchCard, border: `1px solid ${V.line}`, borderRadius: 14,
+            boxShadow: "0 20px 60px rgba(0,0,0,0.5)", zIndex: 1000,
+          }}>
+            <div style={{ padding: "14px 16px", borderBottom: `1px solid ${V.line}`, fontWeight: 700, fontSize: 13, color: V.chalk, fontFamily: font }}>
+              Notifications
+            </div>
+            {notifications.length === 0 ? (
+              <div style={{ padding: "28px 16px", textAlign: "center", color: V.chalkFaint, fontSize: 13, fontFamily: font }}>
+                Nothing yet — booking requests and turf approvals will show up here.
+              </div>
+            ) : (
+              notifications.map(n => (
+                <div key={n.id} style={{ padding: "12px 16px", borderBottom: `1px solid ${V.line}`, background: n.read ? "transparent" : V.floodDim }}>
+                  <div style={{ color: V.chalk, fontWeight: 700, fontSize: 13, fontFamily: font, marginBottom: 3 }}>{n.title}</div>
+                  {n.body && <div style={{ color: V.chalkDim, fontSize: 12.5, fontFamily: font, lineHeight: 1.4 }}>{n.body}</div>}
+                  <div style={{ color: V.chalkFaint, fontSize: 10.5, marginTop: 4, fontFamily: font }}>
+                    {new Date(n.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </>
+      )}
+
       <div style={{ flex: 1, padding: "32px 36px" }}>
         {tab === "overview" && (
           <>

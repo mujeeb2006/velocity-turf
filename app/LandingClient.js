@@ -107,7 +107,7 @@ export default function LandingClient() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Link href="/login" style={{ ...buttonStyle("secondary", "sm"), textDecoration: "none", display: "inline-block" }}>Log in</Link>
-          <Link href="/signup" style={{ ...buttonStyle("primary", "sm"), textDecoration: "none", display: "inline-block" }}>Get started</Link>
+          <Link href="/player" style={{ ...buttonStyle("primary", "sm"), textDecoration: "none", display: "inline-block" }}>Browse turfs</Link>
         </div>
       </nav>
 
@@ -130,8 +130,8 @@ export default function LandingClient() {
             See what's actually open, lock a slot in seconds, and walk in with a QR code. No calls to the front desk, no "let me check and get back to you."
           </p>
           <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginBottom: 56 }}>
-            <Link href="/signup" style={{ ...buttonStyle("primary", "lg"), textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}>
-              Get started free <Icon name="arrow" size={16} />
+            <Link href="/player" style={{ ...buttonStyle("primary", "lg"), textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}>
+              Browse turfs <Icon name="arrow" size={16} />
             </Link>
             <Link href="/login" style={{ ...buttonStyle("secondary", "lg"), textDecoration: "none", display: "inline-block" }}>
               I have an account
@@ -219,9 +219,9 @@ export default function LandingClient() {
         <h2 style={{ color: V.chalk, fontFamily: FONT_DISPLAY, fontSize: "clamp(36px, 6vw, 56px)", fontWeight: 400, margin: "0 0 16px" }}>
           Ready to play?
         </h2>
-        <p style={{ color: V.chalkDim, fontSize: 16, margin: "0 0 32px" }}>Free to join. Takes under a minute.</p>
-        <Link href="/signup" style={{ ...buttonStyle("primary", "lg"), textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}>
-          Get started free <Icon name="arrow" size={16} />
+        <p style={{ color: V.chalkDim, fontSize: 16, margin: "0 0 32px" }}>No account needed to look around — you'll only need one when you're ready to book.</p>
+        <Link href="/player" style={{ ...buttonStyle("primary", "lg"), textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}>
+          Browse turfs <Icon name="arrow" size={16} />
         </Link>
       </section>
 

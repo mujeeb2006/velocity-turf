@@ -6,26 +6,25 @@ import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
 import { SkeletonCard, SkeletonRow } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { COLORS as V, FONT_DISPLAY, FONT_BODY, FONT_DATA, panel } from "@/lib/design-tokens";
 
+// Old palette names aliased into the new design-tokens palette so every
+// existing COLORS.electricBlue etc. call site picks up the "floodlit
+// night match" identity without a full rewrite.
 const COLORS = {
-  electricBlue: "#0EA5E9",
-  pitchGreen: "#22C55E",
-  energyOrange: "#F97316",
-  danger: "#EF4444",
-  purple: "#A855F7",
-  dark: "#050A14",
+  electricBlue: V.flood,
+  pitchGreen: V.confirmed,
+  energyOrange: V.pending,
+  danger: V.danger,
+  purple: V.flood,
+  dark: V.pitch,
 };
 
-const glass = (extra = {}) => ({
-  background: "rgba(13, 21, 38, 0.75)",
-  backdropFilter: "blur(20px)",
-  WebkitBackdropFilter: "blur(20px)",
-  border: "1px solid rgba(14,165,233,0.15)",
-  ...extra,
-});
+const glass = (extra = {}) => ({ ...panel(), ...extra });
 
-const font = "'Exo 2', sans-serif";
-const mono = "'Space Mono', monospace";
+const font = FONT_BODY;
+const fontDisplay = FONT_DISPLAY;
+const mono = FONT_DATA;
 
 const Icon = ({ name, size = 18, color = "currentColor", filled = false }) => {
   const paths = {
@@ -42,6 +41,7 @@ const Icon = ({ name, size = 18, color = "currentColor", filled = false }) => {
     logout: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 5v1a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h5a2 2 0 012 2v1" />,
     search: <><circle cx="11" cy="11" r="8" strokeWidth={2} /><path strokeLinecap="round" strokeWidth={2} d="M21 21l-4.35-4.35" /></>,
     shield: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z" />,
+    notification: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2a2 2 0 01-.6 1.4L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />,
   };
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? color : "none"} stroke={color} xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
@@ -53,14 +53,14 @@ const Icon = ({ name, size = 18, color = "currentColor", filled = false }) => {
 function StatCard({ label, value, icon, color, sub }) {
   return (
     <div style={{ ...glass(), borderRadius: 18, padding: "18px 20px", transition: "transform 0.2s, box-shadow 0.2s" }}
-      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 12px 32px rgba(14,165,233,0.15)"; }}
+      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 12px 32px rgba(212,255,79,0.12)"; }}
       onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
     >
       <div style={{ background: color + "18", borderRadius: 10, padding: 8, display: "inline-flex", marginBottom: 12 }}>
         <Icon name={icon} size={17} color={color} />
       </div>
-      <div style={{ color: "#fff", fontWeight: 800, fontSize: 24, fontFamily: mono }}>{value}</div>
-      <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginTop: 4 }}>{label}</div>
+      <div style={{ color: V.chalk, fontWeight: 800, fontSize: 24, fontFamily: mono }}>{value}</div>
+      <div style={{ color: V.chalkDim, fontSize: 12, marginTop: 4 }}>{label}</div>
       {sub && <div style={{ color, fontSize: 11, marginTop: 6, fontWeight: 600 }}>{sub}</div>}
     </div>
   );
@@ -76,11 +76,11 @@ function Pill({ children, color }) {
 
 function SideNav({ items, active, onSelect, roleLabel, roleColor, userEmail, onSignOut }) {
   return (
-    <div style={{ width: 232, flexShrink: 0, minHeight: "100vh", position: "sticky", top: 0, ...glass({ background: "rgba(5,10,20,0.9)" }), borderRight: "1px solid rgba(14,165,233,0.1)", borderRadius: 0, padding: "24px 16px", display: "flex", flexDirection: "column" }}>
+    <div style={{ width: 232, flexShrink: 0, minHeight: "100vh", position: "sticky", top: 0, ...glass({ background: "rgba(7,13,10,0.92)" }), borderRight: `1px solid ${V.line}`, borderRadius: 0, padding: "24px 16px", display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 8px", marginBottom: 20 }}>
-        <div style={{ width: 34, height: 34, borderRadius: 10, background: `linear-gradient(135deg, ${COLORS.electricBlue}, ${COLORS.pitchGreen})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>⚡</div>
+        <div style={{ width: 34, height: 34, borderRadius: 10, background: V.flood, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>⚡</div>
         <span style={{ fontWeight: 900, fontSize: 17, fontFamily: font }}>
-          <span style={{ color: "#fff" }}>VELOCITY</span> <span style={{ color: COLORS.electricBlue }}>TURF</span>
+          <span style={{ color: V.chalk }}>VELOCITY</span> <span style={{ color: COLORS.electricBlue }}>TURF</span>
         </span>
       </div>
 
@@ -89,29 +89,29 @@ function SideNav({ items, active, onSelect, roleLabel, roleColor, userEmail, onS
         <span style={{ color: roleColor, fontSize: 12, fontWeight: 700, fontFamily: mono }}>{roleLabel}</span>
       </div>
       {userEmail && (
-        <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11.5, padding: "0 4px", marginBottom: 20, wordBreak: "break-all" }}>{userEmail}</div>
+        <div style={{ color: V.chalkFaint, fontSize: 11.5, padding: "0 4px", marginBottom: 20, wordBreak: "break-all" }}>{userEmail}</div>
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
         {items.map(it => (
           <button key={it.id} onClick={() => onSelect(it.id)} style={{
             display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 12,
-            background: active === it.id ? "rgba(14,165,233,0.12)" : "transparent",
-            border: active === it.id ? "1px solid rgba(14,165,233,0.25)" : "1px solid transparent",
-            color: active === it.id ? "#fff" : "rgba(255,255,255,0.5)",
+            background: active === it.id ? V.line : "transparent",
+            border: active === it.id ? `1px solid ${V.flood}40` : "1px solid transparent",
+            color: active === it.id ? V.chalk : V.chalkDim,
             cursor: "pointer", fontSize: 13.5, fontWeight: 600, fontFamily: font, textAlign: "left",
           }}>
-            <Icon name={it.icon} size={16} color={active === it.id ? COLORS.electricBlue : "rgba(255,255,255,0.4)"} />
+            <Icon name={it.icon} size={16} color={active === it.id ? COLORS.electricBlue : V.chalkDim} />
             {it.label}
-            {it.badge ? <span style={{ marginLeft: "auto", background: COLORS.energyOrange, color: "#fff", fontSize: 10, fontWeight: 800, padding: "1px 6px", borderRadius: 10 }}>{it.badge}</span> : null}
+            {it.badge ? <span style={{ marginLeft: "auto", background: COLORS.energyOrange, color: V.chalk, fontSize: 10, fontWeight: 800, padding: "1px 6px", borderRadius: 10 }}>{it.badge}</span> : null}
           </button>
         ))}
       </div>
 
       <button onClick={onSignOut} style={{
         display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 12,
-        background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-        color: "rgba(255,255,255,0.6)", cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: font,
+        background: V.pitchCardRaised, border: `1px solid ${V.line}`,
+        color: V.chalkDim, cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: font,
       }}>
         <Icon name="logout" size={15} />
         Sign out
@@ -124,48 +124,103 @@ function TopBar({ title, sub, action }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28, flexWrap: "wrap", gap: 12 }}>
       <div>
-        <h1 style={{ color: "#fff", fontFamily: font, fontSize: 26, fontWeight: 800, margin: 0 }}>{title}</h1>
-        {sub && <p style={{ color: "rgba(255,255,255,0.4)", margin: "4px 0 0", fontSize: 13.5 }}>{sub}</p>}
+        <h1 style={{ color: V.chalk, fontFamily: font, fontSize: 26, fontWeight: 800, margin: 0 }}>{title}</h1>
+        {sub && <p style={{ color: V.chalkDim, margin: "4px 0 0", fontSize: 13.5 }}>{sub}</p>}
       </div>
       {action}
     </div>
   );
 }
 
-
-const ALL_TURFS_ADMIN = [
-  { id: 1, name: "Arena Nova", owner: "Vikram Singh", city: "Noida", status: "live", revenue: 494400, rating: 4.9 },
-  { id: 2, name: "Zen Court", owner: "Meera Iyer", city: "Bengaluru", status: "live", revenue: 214400, rating: 4.7 },
-  { id: 3, name: "Apex Field", owner: "Karan Mehta", city: "Mumbai", status: "flagged", revenue: 283500, rating: 4.8 },
-  { id: 4, name: "Riverside Courts", owner: "Sana Sheikh", city: "Chennai", status: "paused", revenue: 91200, rating: 4.4 },
-];
-const USERS = [
-  { id: 1, name: "Rahul M.", role: "Player", joined: "Jan 2026", bookings: 34, status: "active" },
-  { id: 2, name: "Priya S.", role: "Player", joined: "Nov 2025", bookings: 29, status: "active" },
-  { id: 3, name: "Vikram Singh", role: "Turf Owner", joined: "Aug 2025", bookings: 0, status: "active" },
-  { id: 4, name: "D. Fernandes", role: "Player", joined: "Mar 2026", bookings: 3, status: "suspended" },
-];
-const DISPUTES = [
-  { id: "TKT-2291", user: "Arjun K.", turf: "Apex Field", issue: "Charged after slot cancellation", amount: 1500, status: "open" },
-  { id: "TKT-2287", user: "Sneha P.", turf: "Zen Court", issue: "Turf closed, no refund yet", amount: 800, status: "open" },
-  { id: "TKT-2280", user: "Rahul M.", turf: "Arena Nova", issue: "Duplicate charge", amount: 1200, status: "resolved" },
-];
-const CITY_BREAKDOWN = [
-  { city: "Bengaluru", turfs: 62, revenue: 1840000, growth: 12 },
-  { city: "Mumbai", turfs: 54, revenue: 2210000, growth: 8 },
-  { city: "Noida/Delhi NCR", turfs: 48, revenue: 1560000, growth: 18 },
-  { city: "Hyderabad", turfs: 34, revenue: 980000, growth: 22 },
-];
-
+// ---- Mock data (swap for real Supabase queries once turfs/bookings tables exist) ----
 export default function AdminDashboardClient({ profile }) {
   const router = useRouter();
   const supabase = createClient();
   const { showToast } = useToast();
   const [tab, setTab] = useState("overview");
   const [pendingTurfs, setPendingTurfs] = useState([]);
-  const [pendingTurfsLoading, setPendingTurfsLoading] = useState(true);
-  const [disputes, setDisputes] = useState(DISPUTES);
+  const [allTurfs, setAllTurfs] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [disputes, setDisputes] = useState([]);
+  const [cityBreakdown, setCityBreakdown] = useState([]);
+  const [stats, setStats] = useState({ revenue: 0, activeTurfs: 0, totalUsers: 0 });
+  const [dataLoading, setDataLoading] = useState(true);
   const [loadedTabs, setLoadedTabs] = useState(() => new Set(["overview"]));
+
+  async function fetchAll() {
+    setDataLoading(true);
+    const [turfsRes, usersRes, disputesRes, bookingsRes] = await Promise.all([
+      supabase.from("turfs").select("*, owner:profiles(full_name)").order("created_at", { ascending: false }),
+      supabase.from("profiles").select("id, full_name, role, created_at"),
+      supabase.from("disputes").select("*, turf:turfs(name), player:profiles!disputes_raised_by_fkey(full_name)").order("created_at", { ascending: false }),
+      supabase.from("bookings").select("turf_id, price, status, created_at"),
+    ]);
+
+    const turfs = turfsRes.data || [];
+    const bookings = bookingsRes.data || [];
+
+    // Revenue + booking counts per turf, for the "All Turfs" table and city rollup.
+    const revenueByTurf = {};
+    let grossRevenue = 0;
+    const thisMonth = new Date().toISOString().slice(0, 7);
+    bookings.forEach(b => {
+      if (["confirmed", "completed"].includes(b.status)) {
+        revenueByTurf[b.turf_id] = (revenueByTurf[b.turf_id] || 0) + Number(b.price);
+        if ((b.created_at || "").slice(0, 7) === thisMonth) grossRevenue += Number(b.price);
+      }
+    });
+
+    setPendingTurfs(turfs.filter(t => t.status === "pending").map(t => ({
+      id: t.id, name: t.name, owner: t.owner?.full_name || "Unknown", city: t.city,
+      submitted: new Date(t.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+      docs: t.doc_count || 0,
+    })));
+
+    setAllTurfs(turfs.map(t => ({
+      id: t.id, name: t.name, owner: t.owner?.full_name || "Unknown", city: t.city,
+      status: t.status, revenue: revenueByTurf[t.id] || 0, rating: t.rating || 0,
+    })));
+
+    // City rollup: turf count + revenue per city.
+    const cityMap = {};
+    turfs.forEach(t => {
+      if (!cityMap[t.city]) cityMap[t.city] = { city: t.city, turfs: 0, revenue: 0 };
+      cityMap[t.city].turfs += 1;
+      cityMap[t.city].revenue += revenueByTurf[t.id] || 0;
+    });
+    setCityBreakdown(Object.values(cityMap).sort((a, b) => b.revenue - a.revenue));
+
+    setUsers((usersRes.data || []).map(u => ({
+      id: u.id, name: u.full_name || "—",
+      role: u.role === "owner" ? "Turf Owner" : u.role === "admin" ? "Admin" : "Player",
+      joined: new Date(u.created_at).toLocaleDateString(undefined, { month: "short", year: "numeric" }),
+      status: "active",
+    })));
+
+    setDisputes((disputesRes.data || []).map(d => ({
+      id: d.ticket_number, dbId: d.id, user: d.player?.full_name || "Unknown", turf: d.turf?.name || "Unknown",
+      issue: d.issue, amount: Number(d.amount), status: d.status,
+    })));
+
+    setStats({
+      revenue: grossRevenue,
+      activeTurfs: turfs.filter(t => t.status === "live").length,
+      totalUsers: (usersRes.data || []).length,
+    });
+
+    setDataLoading(false);
+  }
+
+  useEffect(() => {
+    fetchAll();
+    const channel = supabase
+      .channel("admin-live-updates")
+      .on("postgres_changes", { event: "*", schema: "public", table: "turfs" }, () => fetchAll())
+      .on("postgres_changes", { event: "*", schema: "public", table: "disputes" }, () => fetchAll())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id]);
 
   useEffect(() => {
     if (loadedTabs.has(tab)) return;
@@ -173,109 +228,43 @@ export default function AdminDashboardClient({ profile }) {
     return () => clearTimeout(t);
   }, [tab, loadedTabs]);
 
-  const isLoading = !loadedTabs.has(tab);
+  const isLoading = !loadedTabs.has(tab) || dataLoading;
 
   async function handleSignOut() {
     await supabase.auth.signOut();
     router.push("/login");
     router.refresh();
   }
-    async function loadPendingTurfs() {
-  setPendingTurfsLoading(true);
 
-  const { data, error } = await supabase
-    .from("turfs")
-    .select(`
-      id,
-      name,
-      city,
-      doc_count,
-      created_at,
-      owner:profiles!turfs_owner_id_fkey (
-        full_name,
-        email
-      )
-    `)
-    .eq("status", "pending")
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("Could not load pending turfs:", error);
-    showToast("Could not load pending turfs", { type: "error" });
-    setPendingTurfs([]);
-  } else {
-    const formattedTurfs = (data || []).map((turf) => ({
-      id: turf.id,
-      name: turf.name,
-      city: turf.city,
-      owner:
-        turf.owner?.full_name ||
-        turf.owner?.email ||
-        "Unknown owner",
-      submitted: new Date(turf.created_at).toLocaleDateString(),
-      docs: turf.doc_count || 0,
-    }));
-
-    setPendingTurfs(formattedTurfs);
-  }
-
-  setPendingTurfsLoading(false);
-}
-
-useEffect(() => {
-    loadPendingTurfs();
-  }, []);
-
-
-async function decideTurf(id, decision) {
-  const turf = pendingTurfs.find((item) => item.id === id);
-
-  if (!turf) return;
-
-  const isApproved = decision === "approve";
-
-  const updateData = {
-    status: isApproved ? "live" : "rejected",
-    approved_at: isApproved
-      ? new Date().toISOString()
-      : null,
-    rejected_reason: isApproved
-      ? null
-      : "Rejected by admin",
+  const decideTurf = async (id, decision) => {
+    const t = pendingTurfs.find(t => t.id === id);
+    const { error } = await supabase.from("turfs")
+      .update({ status: decision === "approve" ? "live" : "rejected", approved_at: decision === "approve" ? new Date().toISOString() : null })
+      .eq("id", id);
+    if (error) {
+      showToast("Couldn't update that turf. Try again.", { type: "error" });
+      return;
+    }
+    if (t) {
+      showToast(
+        decision === "approve" ? `Approved "${t.name}" — now live on the platform` : `Rejected "${t.name}"`,
+        { type: decision === "approve" ? "success" : "info" }
+      );
+    }
+    fetchAll();
   };
 
-  const { error } = await supabase
-    .from("turfs")
-    .update(updateData)
-    .eq("id", id)
-    .eq("status", "pending");
-
-  if (error) {
-    console.error("Could not update turf:", error);
-    showToast("Could not update this turf", {
-      type: "error",
-    });
-    return;
-  }
-
-  setPendingTurfs((currentTurfs) =>
-    currentTurfs.filter((item) => item.id !== id)
-  );
-
-  showToast(
-    isApproved
-      ? `Approved "${turf.name}" — now live on the platform`
-      : `Rejected "${turf.name}"`,
-    {
-      type: isApproved ? "success" : "info",
+  const issueRefund = async (dbId) => {
+    const d = disputes.find(d => d.dbId === dbId);
+    const { error } = await supabase.from("disputes")
+      .update({ status: "resolved", resolved_at: new Date().toISOString() })
+      .eq("id", dbId);
+    if (error) {
+      showToast("Couldn't resolve that dispute. Try again.", { type: "error" });
+      return;
     }
-  );
-}
-
-  const issueRefund = (id) => {
-    const d = disputes.find(d => d.id === id);
-    setDisputes(prev => prev.map(d => d.id === id ? { ...d, status: "resolved" } : d));
     if (d) showToast(`Refund issued for ${d.id} · ₹${d.amount}`, { type: "success" });
+    fetchAll();
   };
 
   const openCount = disputes.filter(d => d.status === "open").length;
@@ -301,37 +290,42 @@ async function decideTurf(id, decision) {
               </div>
             ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px,1fr))", gap: 16, marginBottom: 32 }}>
-              <StatCard label="Gross Revenue (MTD)" value="₹68.4L" icon="rupee" color={COLORS.electricBlue} sub="+14% vs last month" />
-              <StatCard label="Active Turfs" value="198" icon="building" color={COLORS.pitchGreen} sub="12 pending approval" />
-              <StatCard label="Total Users" value="91,240" icon="users" color={COLORS.energyOrange} sub="+2,140 this week" />
+              <StatCard label="Gross Revenue (Month)" value={`₹${stats.revenue.toLocaleString()}`} icon="rupee" color={COLORS.electricBlue} sub="From confirmed bookings" />
+              <StatCard label="Active Turfs" value={stats.activeTurfs} icon="building" color={COLORS.pitchGreen} sub={`${pendingTurfs.length} pending approval`} />
+              <StatCard label="Total Users" value={stats.totalUsers.toLocaleString()} icon="users" color={COLORS.energyOrange} sub="Players + owners" />
               <StatCard label="Open Disputes" value={openCount} icon="alert" color={COLORS.danger} sub="Avg resolve: 1.8 days" />
             </div>
             )}
 
-            <h3 style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.2, margin: "0 0 14px" }}>Revenue by City</h3>
+            <h3 style={{ color: V.chalkDim, fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.2, margin: "0 0 14px" }}>Revenue by City</h3>
             {isLoading ? (
               <div style={{ ...glass(), borderRadius: 18, overflow: "hidden", marginBottom: 32 }}>
                 {[...Array(4)].map((_, i) => <SkeletonRow key={i} columns={4} />)}
               </div>
+            ) : cityBreakdown.length === 0 ? (
+              <EmptyState icon="🏙️" title="No cities yet" subtitle="City breakdown appears once turfs are listed." accent={V.flood} />
             ) : (
             <div style={{ ...glass(), borderRadius: 18, padding: 8, marginBottom: 32 }}>
-              {CITY_BREAKDOWN.map((c, i) => (
-                <div key={c.city} style={{ display: "grid", gridTemplateColumns: "1.2fr 0.6fr 1fr 0.6fr", alignItems: "center", gap: 12, padding: "14px 16px", borderBottom: i < CITY_BREAKDOWN.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none", transition: "background 0.2s", borderRadius: 10 }}
-                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.03)"}
-                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                >
-                  <span style={{ color: "#fff", fontWeight: 600, fontSize: 14 }}>{c.city}</span>
-                  <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12.5 }}>{c.turfs} turfs</span>
-                  <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 3 }}>
-                    <div style={{ height: "100%", width: `${Math.min(100, (c.revenue / 2210000) * 100)}%`, background: `linear-gradient(90deg, ${COLORS.electricBlue}, ${COLORS.pitchGreen})`, borderRadius: 3 }} />
+              {(() => {
+                const maxRevenue = Math.max(1, ...cityBreakdown.map(c => c.revenue));
+                return cityBreakdown.map((c, i) => (
+                  <div key={c.city} style={{ display: "grid", gridTemplateColumns: "1.2fr 0.6fr 1fr 0.9fr", alignItems: "center", gap: 12, padding: "14px 16px", borderBottom: i < cityBreakdown.length - 1 ? `1px solid ${V.line}` : "none", transition: "background 0.2s", borderRadius: 10 }}
+                    onMouseEnter={e => e.currentTarget.style.background = V.pitchCardRaised}
+                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                  >
+                    <span style={{ color: V.chalk, fontWeight: 600, fontSize: 14 }}>{c.city}</span>
+                    <span style={{ color: V.chalkDim, fontSize: 12.5 }}>{c.turfs} turfs</span>
+                    <div style={{ height: 6, background: V.line, borderRadius: 3 }}>
+                      <div style={{ height: "100%", width: `${Math.round((c.revenue / maxRevenue) * 100)}%`, background: V.flood, borderRadius: 3 }} />
+                    </div>
+                    <span style={{ color: V.chalk, fontFamily: mono, fontSize: 12.5, fontWeight: 700, textAlign: "right" }}>₹{c.revenue.toLocaleString()}</span>
                   </div>
-                  <span style={{ color: COLORS.pitchGreen, fontFamily: mono, fontSize: 12.5, fontWeight: 700 }}>+{c.growth}%</span>
-                </div>
-              ))}
+                ));
+              })()}
             </div>
             )}
 
-            <h3 style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.2, margin: "0 0 14px" }}>Recent Disputes</h3>
+            <h3 style={{ color: V.chalkDim, fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.2, margin: "0 0 14px" }}>Recent Disputes</h3>
             {isLoading ? (
               <div style={{ ...glass(), borderRadius: 18, overflow: "hidden" }}>
                 {[...Array(3)].map((_, i) => <SkeletonRow key={i} columns={3} />)}
@@ -341,13 +335,13 @@ async function decideTurf(id, decision) {
             ) : (
             <div style={{ ...glass(), borderRadius: 18, padding: 8 }}>
               {disputes.slice(0, 3).map((d, i) => (
-                <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px", borderBottom: i < Math.min(3, disputes.length) - 1 ? "1px solid rgba(255,255,255,0.05)" : "none", gap: 12, flexWrap: "wrap", transition: "background 0.2s", borderRadius: 10 }}
-                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.03)"}
+                <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px", borderBottom: i < Math.min(3, disputes.length) - 1 ? `1px solid ${V.line}` : "none", gap: 12, flexWrap: "wrap", transition: "background 0.2s", borderRadius: 10 }}
+                  onMouseEnter={e => e.currentTarget.style.background = V.pitchCardRaised}
                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                 >
                   <div>
-                    <div style={{ color: "#fff", fontWeight: 600, fontSize: 14 }}>{d.issue}</div>
-                    <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>{d.user} · {d.turf} · {d.id}</div>
+                    <div style={{ color: V.chalk, fontWeight: 600, fontSize: 14 }}>{d.issue}</div>
+                    <div style={{ color: V.chalkDim, fontSize: 12 }}>{d.user} · {d.turf} · {d.id}</div>
                   </div>
                   <Pill color={d.status === "open" ? COLORS.energyOrange : COLORS.pitchGreen}>{d.status === "open" ? "Open" : "Resolved"}</Pill>
                 </div>
@@ -359,42 +353,33 @@ async function decideTurf(id, decision) {
 
         {tab === "approvals" && (
           <>
-    <TopBar 
-      title="Turf Approvals" 
-      sub={`${pendingTurfs.length} listings awaiting review`}      
-    />
-    {isLoading || pendingTurfsLoading ? (
-      <div style={{ display: "grid", gap: 14 }}>
-        {[...Array(2)].map((_, i) => (
-          <SkeletonCard key={i} lines={2} /> 
- 	))}
-      </div>
-    ) : pendingTurfs.length === 0 ? (
-      <EmptyState 
-        icon="✅" 
-        title="No turfs awaiting review" 
-        subtitle="New owner submissions will appear here for approval."  		accent={COLORS.pitchGreen} 
-      />
-    ) : (
-      <div style={{ display: "grid", gap: 14 }}>
+            <TopBar title="Turf Approvals" sub={`${pendingTurfs.length} listings awaiting review`} />
+            {isLoading ? (
+              <div style={{ display: "grid", gap: 14 }}>
+                {[...Array(2)].map((_, i) => <SkeletonCard key={i} lines={2} />)}
+              </div>
+            ) : pendingTurfs.length === 0 ? (
+              <EmptyState icon="✅" title="No turfs awaiting review" subtitle="New owner submissions will appear here for approval." accent={COLORS.pitchGreen} />
+            ) : (
+            <div style={{ display: "grid", gap: 14 }}>
               {pendingTurfs.map(t => (
                 <div key={t.id} style={{ ...glass(), borderRadius: 18, padding: 20, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 14, transition: "border-color 0.2s" }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = "rgba(14,165,233,0.35)"}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(14,165,233,0.15)"}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = V.lineStrong}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = V.line}
                 >
                   <div>
-                    <div style={{ color: "#fff", fontWeight: 700, fontSize: 16, fontFamily: font }}>{t.name}</div>
-                    <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 13, marginTop: 4 }}>Owner: {t.owner} · {t.city} · Submitted {t.submitted}</div>
-                    <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, marginTop: 4 }}>{t.docs} documents uploaded</div>
+                    <div style={{ color: V.chalk, fontWeight: 700, fontSize: 16, fontFamily: font }}>{t.name}</div>
+                    <div style={{ color: V.chalkDim, fontSize: 13, marginTop: 4 }}>Owner: {t.owner} · {t.city} · Submitted {t.submitted}</div>
+                    <div style={{ color: V.chalkFaint, fontSize: 12, marginTop: 4 }}>{t.docs} documents uploaded</div>
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
-                    <button onClick={() => decideTurf(t.id, "reject")} style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: COLORS.danger, borderRadius: 12, padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, display: "flex", alignItems: "center", gap: 6, transition: "background 0.2s" }}
-                      onMouseEnter={e => e.currentTarget.style.background = "rgba(239,68,68,0.2)"}
-                      onMouseLeave={e => e.currentTarget.style.background = "rgba(239,68,68,0.1)"}
+                    <button onClick={() => decideTurf(t.id, "reject")} style={{ background: "rgba(240,85,74,0.12)", border: "1px solid rgba(240,85,74,0.35)", color: COLORS.danger, borderRadius: 12, padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, display: "flex", alignItems: "center", gap: 6, transition: "background 0.2s" }}
+                      onMouseEnter={e => e.currentTarget.style.background = "rgba(240,85,74,0.22)"}
+                      onMouseLeave={e => e.currentTarget.style.background = "rgba(240,85,74,0.12)"}
                     >
                       <Icon name="x" size={14} /> Reject
                     </button>
-                    <button onClick={() => decideTurf(t.id, "approve")} style={{ background: `linear-gradient(135deg, ${COLORS.electricBlue}, ${COLORS.pitchGreen})`, border: "none", color: "#fff", borderRadius: 12, padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, display: "flex", alignItems: "center", gap: 6, transition: "opacity 0.2s" }}
+                    <button onClick={() => decideTurf(t.id, "approve")} style={{ background: V.flood, border: "none", color: V.pitch, borderRadius: 12, padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, display: "flex", alignItems: "center", gap: 6, transition: "opacity 0.2s" }}
                       onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
                       onMouseLeave={e => e.currentTarget.style.opacity = "1"}
                     >
@@ -410,31 +395,31 @@ async function decideTurf(id, decision) {
 
         {tab === "turfs" && (
           <>
-            <TopBar title="All Turfs" sub={`${ALL_TURFS_ADMIN.length} listings on the platform`} />
+            <TopBar title="All Turfs" sub={`${allTurfs.length} listings on the platform`} />
             {isLoading ? (
               <div style={{ ...glass(), borderRadius: 18, overflow: "hidden" }}>
                 {[...Array(4)].map((_, i) => <SkeletonRow key={i} columns={6} />)}
               </div>
             ) : (
             <div style={{ ...glass(), borderRadius: 18, overflow: "hidden" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1.2fr 1fr 0.8fr 1fr 0.8fr", padding: "12px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1.2fr 1fr 0.8fr 1fr 0.8fr", padding: "12px 20px", borderBottom: `1px solid ${V.line}` }}>
                 {["Turf", "Owner", "City", "Status", "Revenue", "Rating"].map(h => (
-                  <span key={h} style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6 }}>{h}</span>
+                  <span key={h} style={{ color: V.chalkFaint, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6 }}>{h}</span>
                 ))}
               </div>
-              {ALL_TURFS_ADMIN.map((t, i) => (
-                <div key={t.id} style={{ display: "grid", gridTemplateColumns: "1.6fr 1.2fr 1fr 0.8fr 1fr 0.8fr", alignItems: "center", padding: "16px 20px", borderBottom: i < ALL_TURFS_ADMIN.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none", transition: "background 0.2s" }}
-                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.03)"}
+              {allTurfs.map((t, i) => (
+                <div key={t.id} style={{ display: "grid", gridTemplateColumns: "1.6fr 1.2fr 1fr 0.8fr 1fr 0.8fr", alignItems: "center", padding: "16px 20px", borderBottom: i < allTurfs.length - 1 ? `1px solid ${V.line}` : "none", transition: "background 0.2s" }}
+                  onMouseEnter={e => e.currentTarget.style.background = V.pitchCardRaised}
                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                 >
-                  <span style={{ color: "#fff", fontWeight: 600, fontSize: 14 }}>{t.name}</span>
-                  <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>{t.owner}</span>
-                  <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>{t.city}</span>
+                  <span style={{ color: V.chalk, fontWeight: 600, fontSize: 14 }}>{t.name}</span>
+                  <span style={{ color: V.chalkDim, fontSize: 13 }}>{t.owner}</span>
+                  <span style={{ color: V.chalkDim, fontSize: 13 }}>{t.city}</span>
                   <Pill color={t.status === "live" ? COLORS.pitchGreen : t.status === "flagged" ? COLORS.danger : COLORS.energyOrange}>{t.status}</Pill>
-                  <span style={{ color: "#fff", fontFamily: mono, fontSize: 13, fontWeight: 700 }}>₹{t.revenue.toLocaleString()}</span>
+                  <span style={{ color: V.chalk, fontFamily: mono, fontSize: 13, fontWeight: 700 }}>₹{t.revenue.toLocaleString()}</span>
                   <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <Icon name="star" size={13} filled color="#FBBF24" />
-                    <span style={{ color: "#FBBF24", fontSize: 13, fontWeight: 700 }}>{t.rating}</span>
+                    <Icon name="star" size={13} filled color={V.flood} />
+                    <span style={{ color: V.flood, fontSize: 13, fontWeight: 700 }}>{t.rating}</span>
                   </div>
                 </div>
               ))}
@@ -445,34 +430,34 @@ async function decideTurf(id, decision) {
 
         {tab === "users" && (
           <>
-            <TopBar title="Users" sub={`${USERS.length.toLocaleString()} accounts shown`} action={
-              <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "8px 14px" }}>
-                <Icon name="search" size={14} color="rgba(255,255,255,0.4)" />
-                <input placeholder="Search users..." style={{ background: "none", border: "none", outline: "none", color: "#fff", fontSize: 13, fontFamily: font }} />
+            <TopBar title="Users" sub={`${users.length.toLocaleString()} accounts shown`} action={
+              <div style={{ display: "flex", alignItems: "center", gap: 8, background: V.pitchCardRaised, border: `1px solid ${V.line}`, borderRadius: 12, padding: "8px 14px" }}>
+                <Icon name="search" size={14} color={V.chalkDim} />
+                <input placeholder="Search users..." style={{ background: "none", border: "none", outline: "none", color: V.chalk, fontSize: 13, fontFamily: font }} />
               </div>
             } />
             {isLoading ? (
               <div style={{ ...glass(), borderRadius: 18, overflow: "hidden" }}>
                 {[...Array(4)].map((_, i) => <SkeletonRow key={i} columns={5} />)}
               </div>
-            ) : USERS.length === 0 ? (
+            ) : users.length === 0 ? (
               <EmptyState icon="🔍" title="No users found" subtitle="Try a different search term." />
             ) : (
             <div style={{ ...glass(), borderRadius: 18, overflow: "hidden" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr 0.8fr 0.8fr", padding: "12px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr 0.8fr 0.8fr", padding: "12px 20px", borderBottom: `1px solid ${V.line}` }}>
                 {["Name", "Role", "Joined", "Bookings", "Status"].map(h => (
-                  <span key={h} style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6 }}>{h}</span>
+                  <span key={h} style={{ color: V.chalkFaint, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6 }}>{h}</span>
                 ))}
               </div>
-              {USERS.map((u, i) => (
-                <div key={u.id} style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr 0.8fr 0.8fr", alignItems: "center", padding: "16px 20px", borderBottom: i < USERS.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none", transition: "background 0.2s" }}
-                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.03)"}
+              {users.map((u, i) => (
+                <div key={u.id} style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr 0.8fr 0.8fr", alignItems: "center", padding: "16px 20px", borderBottom: i < users.length - 1 ? `1px solid ${V.line}` : "none", transition: "background 0.2s" }}
+                  onMouseEnter={e => e.currentTarget.style.background = V.pitchCardRaised}
                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                 >
-                  <span style={{ color: "#fff", fontWeight: 600, fontSize: 14 }}>{u.name}</span>
-                  <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>{u.role}</span>
-                  <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>{u.joined}</span>
-                  <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, fontFamily: mono }}>{u.bookings}</span>
+                  <span style={{ color: V.chalk, fontWeight: 600, fontSize: 14 }}>{u.name}</span>
+                  <span style={{ color: V.chalkDim, fontSize: 13 }}>{u.role}</span>
+                  <span style={{ color: V.chalkDim, fontSize: 13 }}>{u.joined}</span>
+                  <span style={{ color: V.chalkDim, fontSize: 13, fontFamily: mono }}>{u.bookings}</span>
                   <Pill color={u.status === "active" ? COLORS.pitchGreen : COLORS.danger}>{u.status}</Pill>
                 </div>
               ))}
@@ -494,26 +479,26 @@ async function decideTurf(id, decision) {
             <div style={{ display: "grid", gap: 14 }}>
               {disputes.map(d => (
                 <div key={d.id} style={{ ...glass(), borderRadius: 18, padding: 20, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 14, transition: "border-color 0.2s" }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = "rgba(14,165,233,0.35)"}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(14,165,233,0.15)"}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = V.lineStrong}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = V.line}
                 >
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-                      <span style={{ color: "rgba(255,255,255,0.35)", fontFamily: mono, fontSize: 12 }}>{d.id}</span>
+                      <span style={{ color: V.chalkFaint, fontFamily: mono, fontSize: 12 }}>{d.id}</span>
                       <Pill color={d.status === "open" ? COLORS.energyOrange : COLORS.pitchGreen}>{d.status}</Pill>
                     </div>
-                    <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>{d.issue}</div>
-                    <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 13, marginTop: 2 }}>{d.user} · {d.turf} · ₹{d.amount}</div>
+                    <div style={{ color: V.chalk, fontWeight: 700, fontSize: 15 }}>{d.issue}</div>
+                    <div style={{ color: V.chalkDim, fontSize: 13, marginTop: 2 }}>{d.user} · {d.turf} · ₹{d.amount}</div>
                   </div>
                   {d.status === "open" && (
                     <div style={{ display: "flex", gap: 8 }}>
-                      <button onClick={() => showToast(`Viewing details for ${d.id}`, { type: "info" })} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)", borderRadius: 12, padding: "10px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: font, transition: "background 0.2s" }}
-                        onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.12)"}
-                        onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+                      <button onClick={() => showToast(`Viewing details for ${d.id}`, { type: "info" })} style={{ background: V.pitchCardRaised, border: `1px solid ${V.line}`, color: V.chalkDim, borderRadius: 12, padding: "10px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: font, transition: "background 0.2s" }}
+                        onMouseEnter={e => e.currentTarget.style.background = V.line}
+                        onMouseLeave={e => e.currentTarget.style.background = V.line}
                       >
                         View Details
                       </button>
-                      <button onClick={() => issueRefund(d.id)} style={{ background: `linear-gradient(135deg, ${COLORS.electricBlue}, ${COLORS.pitchGreen})`, border: "none", color: "#fff", borderRadius: 12, padding: "10px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, transition: "opacity 0.2s" }}
+                      <button onClick={() => issueRefund(d.dbId)} style={{ background: V.flood, border: "none", color: V.pitch, borderRadius: 12, padding: "10px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, transition: "opacity 0.2s" }}
                         onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
                         onMouseLeave={e => e.currentTarget.style.opacity = "1"}
                       >

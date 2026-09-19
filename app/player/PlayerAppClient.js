@@ -909,6 +909,25 @@ function DashboardSection({ isLoading, bookings, matchesJoined, onCancel }) {
 // ============================================================
 // MAIN APP
 // ============================================================
+// ============================================================
+// GUEST PROMPT — shown on tabs that need an account (Dashboard, Loyalty)
+// ============================================================
+function GuestPrompt({ icon, title, body, router }) {
+  return (
+    <div style={{ padding: "60px 24px" }}>
+      <div style={{ maxWidth: 480, margin: "0 auto", textAlign: "center", ...panel(), borderRadius: 18, padding: "48px 32px" }}>
+        <div style={{ fontSize: 40, marginBottom: 16 }}>{icon}</div>
+        <h2 style={{ color: V.chalk, fontFamily: FONT_DISPLAY, fontSize: 28, fontWeight: 400, margin: "0 0 10px" }}>{title}</h2>
+        <p style={{ color: V.chalkDim, fontSize: 14.5, lineHeight: 1.6, margin: "0 0 28px" }}>{body}</p>
+        <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+          <button onClick={() => router.push("/signup")} style={buttonStyle("primary", "md")}>Sign up free</button>
+          <button onClick={() => router.push("/login")} style={buttonStyle("secondary", "md")}>Log in</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function PlayerAppClient({ profile }) {
   const router = useRouter();
   const supabase = createClient();
@@ -1083,7 +1102,7 @@ export default function PlayerAppClient({ profile }) {
   useEffect(() => {
     fetchTurfs();
     fetchMatches();
-    fetchLeaderboard();
+    if (profile?.id) fetchLeaderboard(); else setLeaderboardLoading(false);
     fetchMyBookings();
     fetchNotifications();
     fetchJoinedMatches();
@@ -1114,11 +1133,14 @@ export default function PlayerAppClient({ profile }) {
     return false;
   };
 
-  const handleBook = (turf) => setBookingTurf(turf);
+  const handleBook = (turf) => {
+    if (!profile?.id) { router.push("/signup"); return; }
+    setBookingTurf(turf);
+  };
   const handleBookingClose = () => setBookingTurf(null);
 
   const handleJoin = async (match) => {
-    if (!profile?.id) return;
+    if (!profile?.id) { router.push("/signup"); return; }
     const { error } = await supabase.from("match_participants").insert({ match_id: match.id, player_id: profile.id });
     if (error) {
       if (error.code === "23505") {
@@ -1211,13 +1233,26 @@ export default function PlayerAppClient({ profile }) {
             <span style={{ fontWeight: 800, fontSize: 13, letterSpacing: 0.3, color: V.chalk }}>VELOCITY TURF</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <button onClick={toggleNotifications} aria-label="Notifications" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: V.chalk, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
-              <Icon name="notification" size={15} />
-              {unreadCount > 0 && <span style={{ position: "absolute", top: 6, right: 6, width: 5, height: 5, borderRadius: "50%", background: V.flood }} />}
-            </button>
-            <button onClick={handleSignOut} aria-label="Sign out" title="Sign out" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: V.chalkDim, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Icon name="logout" size={15} />
-            </button>
+            {profile?.id ? (
+              <>
+                <button onClick={toggleNotifications} aria-label="Notifications" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: V.chalk, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+                  <Icon name="notification" size={15} />
+                  {unreadCount > 0 && <span style={{ position: "absolute", top: 6, right: 6, width: 5, height: 5, borderRadius: "50%", background: V.flood }} />}
+                </button>
+                <button onClick={handleSignOut} aria-label="Sign out" title="Sign out" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: V.chalkDim, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Icon name="logout" size={15} />
+                </button>
+              </>
+            ) : (
+              <>
+                <button onClick={() => router.push("/login")} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: V.chalk, fontSize: 12.5, fontWeight: 700, fontFamily: FONT_BODY }}>
+                  Log in
+                </button>
+                <button onClick={() => router.push("/signup")} style={{ background: V.flood, border: "none", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: V.pitch, fontSize: 12.5, fontWeight: 800, fontFamily: FONT_BODY }}>
+                  Sign up
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -1260,13 +1295,29 @@ export default function PlayerAppClient({ profile }) {
 
           {/* Right side */}
           <div style={{ display: "flex", alignItems: "center", gap: 12, position: "relative" }}>
-            <button onClick={toggleNotifications} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 36, height: 36, cursor: "pointer", color: V.chalk, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
-              <Icon name="notification" size={16} />
-              {unreadCount > 0 && <span style={{ position: "absolute", top: 7, right: 7, width: 6, height: 6, borderRadius: "50%", background: V.flood }} />}
-            </button>
-            <button onClick={handleSignOut} title="Sign out" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 36, height: 36, cursor: "pointer", color: V.chalkDim, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Icon name="logout" size={16} />
-            </button>
+            {profile?.id ? (
+              <>
+                <button onClick={toggleNotifications} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 36, height: 36, cursor: "pointer", color: V.chalk, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+                  <Icon name="notification" size={16} />
+                  {unreadCount > 0 && <span style={{ position: "absolute", top: 7, right: 7, width: 6, height: 6, borderRadius: "50%", background: V.flood }} />}
+                </button>
+                <button onClick={handleSignOut} title="Sign out" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 36, height: 36, cursor: "pointer", color: V.chalkDim, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Icon name="logout" size={16} />
+                </button>
+                <div title={profile?.full_name || profile?.email} style={{ width: 36, height: 36, borderRadius: 8, background: V.flood, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, color: V.pitch, fontFamily: FONT_BODY }}>
+                  {initial}
+                </div>
+              </>
+            ) : (
+              <>
+                <button onClick={() => router.push("/login")} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 10, padding: "9px 16px", cursor: "pointer", color: V.chalk, fontSize: 13.5, fontWeight: 700, fontFamily: FONT_BODY }}>
+                  Log in
+                </button>
+                <button onClick={() => router.push("/signup")} style={{ background: V.flood, border: "none", borderRadius: 10, padding: "9px 16px", cursor: "pointer", color: V.pitch, fontSize: 13.5, fontWeight: 800, fontFamily: FONT_BODY }}>
+                  Sign up
+                </button>
+              </>
+            )}
           </div>
         </nav>
         {showNotifications && (
@@ -1332,8 +1383,14 @@ export default function PlayerAppClient({ profile }) {
           )}
           {activeTab === "discover" && <DiscoverSection turfs={turfs} onBook={handleBook} onMatch={(turf) => { setActiveTab("matches"); showToast(`Showing open matches — look for ones at ${turf.name}.`, { type: "info" }); }} isLoading={isTabLoading("discover")} initialSearch={searchQuery} />}
           {activeTab === "matches" && <MatchmakingSection onJoin={handleJoin} onLeave={handleLeaveMatch} isLoading={isTabLoading("matches")} matches={matches} joinedMatchIds={joinedMatchIds} />}
-          {activeTab === "loyalty" && <LoyaltySection isLoading={isTabLoading("loyalty")} leaderboard={leaderboard} myPoints={leaderboard.find(p => p.isYou)?.points ?? 0} />}
-          {activeTab === "dashboard" && <DashboardSection isLoading={isTabLoading("dashboard")} bookings={myBookings} matchesJoined={matchesJoinedCount} onCancel={handleCancelBooking} />}
+          {activeTab === "loyalty" && (profile?.id
+            ? <LoyaltySection isLoading={isTabLoading("loyalty")} leaderboard={leaderboard} myPoints={leaderboard.find(p => p.isYou)?.points ?? 0} />
+            : <GuestPrompt icon="🏆" title="Track your rewards" body="Sign up to earn loyalty points on every booking and see where you rank." router={router} />
+          )}
+          {activeTab === "dashboard" && (profile?.id
+            ? <DashboardSection isLoading={isTabLoading("dashboard")} bookings={myBookings} matchesJoined={matchesJoinedCount} onCancel={handleCancelBooking} />
+            : <GuestPrompt icon="📅" title="Your dashboard lives here" body="Sign up to see your bookings, track spend, and manage upcoming games." router={router} />
+          )}
         </main>
 
         {/* BOTTOM TAB BAR (Mobile feel) */}

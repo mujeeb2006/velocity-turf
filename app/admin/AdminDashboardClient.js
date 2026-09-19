@@ -74,14 +74,20 @@ function Pill({ children, color }) {
   );
 }
 
-function SideNav({ items, active, onSelect, roleLabel, roleColor, userEmail, onSignOut }) {
+function SideNav({ items, active, onSelect, roleLabel, roleColor, userEmail, onSignOut, unreadCount, onBell }) {
   return (
     <div style={{ width: 232, flexShrink: 0, minHeight: "100vh", position: "sticky", top: 0, ...glass({ background: "rgba(7,13,10,0.92)" }), borderRight: `1px solid ${V.line}`, borderRadius: 0, padding: "24px 16px", display: "flex", flexDirection: "column" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 8px", marginBottom: 20 }}>
-        <div style={{ width: 34, height: 34, borderRadius: 10, background: V.flood, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>⚡</div>
-        <span style={{ fontWeight: 900, fontSize: 17, fontFamily: font }}>
-          <span style={{ color: V.chalk }}>VELOCITY</span> <span style={{ color: COLORS.electricBlue }}>TURF</span>
-        </span>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 8px", marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 34, height: 34, borderRadius: 10, background: V.flood, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>⚡</div>
+          <span style={{ fontWeight: 900, fontSize: 17, fontFamily: font }}>
+            <span style={{ color: V.chalk }}>VELOCITY</span> <span style={{ color: COLORS.electricBlue }}>TURF</span>
+          </span>
+        </div>
+        <button onClick={onBell} aria-label="Notifications" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 30, height: 30, cursor: "pointer", color: V.chalk, display: "flex", alignItems: "center", justifyContent: "center", position: "relative", flexShrink: 0 }}>
+          <Icon name="notification" size={14} />
+          {unreadCount > 0 && <span style={{ position: "absolute", top: 5, right: 5, width: 5, height: 5, borderRadius: "50%", background: V.flood }} />}
+        </button>
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8, background: roleColor + "12", border: `1px solid ${roleColor}30`, borderRadius: 12, padding: "8px 12px", marginBottom: 8 }}>
@@ -145,6 +151,31 @@ export default function AdminDashboardClient({ profile }) {
   const [cityBreakdown, setCityBreakdown] = useState([]);
   const [stats, setStats] = useState({ revenue: 0, activeTurfs: 0, totalUsers: 0 });
   const [dataLoading, setDataLoading] = useState(true);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  async function fetchNotifications() {
+    if (!profile?.id) return;
+    const { data, error } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", profile.id)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    if (!error) setNotifications(data || []);
+  }
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const toggleNotifications = async () => {
+    const opening = !showNotifications;
+    setShowNotifications(opening);
+    if (opening && unreadCount > 0) {
+      const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+      await supabase.from("notifications").update({ read: true }).in("id", unreadIds);
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    }
+  };
   const [loadedTabs, setLoadedTabs] = useState(() => new Set(["overview"]));
 
   async function fetchAll() {
@@ -213,10 +244,12 @@ export default function AdminDashboardClient({ profile }) {
 
   useEffect(() => {
     fetchAll();
+    fetchNotifications();
     const channel = supabase
       .channel("admin-live-updates")
       .on("postgres_changes", { event: "*", schema: "public", table: "turfs" }, () => fetchAll())
       .on("postgres_changes", { event: "*", schema: "public", table: "disputes" }, () => fetchAll())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${profile?.id}` }, () => fetchNotifications())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -278,8 +311,39 @@ export default function AdminDashboardClient({ profile }) {
   ];
 
   return (
-    <div style={{ display: "flex" }}>
-      <SideNav items={items} active={tab} onSelect={setTab} roleLabel="ADMIN CONSOLE" roleColor={COLORS.purple} userEmail={profile?.email} onSignOut={handleSignOut} />
+    <div style={{ display: "flex", position: "relative" }}>
+      <SideNav items={items} active={tab} onSelect={setTab} roleLabel="ADMIN CONSOLE" roleColor={COLORS.purple} userEmail={profile?.email} onSignOut={handleSignOut} unreadCount={unreadCount} onBell={toggleNotifications} />
+
+      {showNotifications && (
+        <>
+          <div onClick={() => setShowNotifications(false)} style={{ position: "fixed", inset: 0, zIndex: 899 }} />
+          <div style={{
+            position: "fixed", top: 70, left: 16, width: "min(320px, calc(100vw - 32px))", maxHeight: 420, overflowY: "auto",
+            background: V.pitchCard, border: `1px solid ${V.line}`, borderRadius: 14,
+            boxShadow: "0 20px 60px rgba(0,0,0,0.5)", zIndex: 1000,
+          }}>
+            <div style={{ padding: "14px 16px", borderBottom: `1px solid ${V.line}`, fontWeight: 700, fontSize: 13, color: V.chalk, fontFamily: font }}>
+              Notifications
+            </div>
+            {notifications.length === 0 ? (
+              <div style={{ padding: "28px 16px", textAlign: "center", color: V.chalkFaint, fontSize: 13, fontFamily: font }}>
+                Nothing yet — new turf submissions and disputes will show up here.
+              </div>
+            ) : (
+              notifications.map(n => (
+                <div key={n.id} style={{ padding: "12px 16px", borderBottom: `1px solid ${V.line}`, background: n.read ? "transparent" : V.floodDim }}>
+                  <div style={{ color: V.chalk, fontWeight: 700, fontSize: 13, fontFamily: font, marginBottom: 3 }}>{n.title}</div>
+                  {n.body && <div style={{ color: V.chalkDim, fontSize: 12.5, fontFamily: font, lineHeight: 1.4 }}>{n.body}</div>}
+                  <div style={{ color: V.chalkFaint, fontSize: 10.5, marginTop: 4, fontFamily: font }}>
+                    {new Date(n.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </>
+      )}
+
       <div style={{ flex: 1, padding: "32px 36px" }}>
         {tab === "overview" && (
           <>

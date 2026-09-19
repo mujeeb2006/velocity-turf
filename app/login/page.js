@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import AuthShell from "../auth-shell";
-import { buttonStyle, errorStyle } from "../auth-styles";
+import { inputStyle, buttonStyle, errorStyle, linkStyle } from "../auth-styles";
 
 export default function LoginPage() {
   const supabase = createClient();
@@ -24,8 +24,10 @@ export default function LoginPage() {
     if (error) {
       setError(error.message);
     } else {
-      router.push("/");
-      router.refresh();
+      // A hard navigation (not router.push) forces a brand-new request,
+      // so the server is guaranteed to see the freshly-set session cookie
+      // instead of racing a stale client-side route cache.
+      window.location.href = "/";
     }
   }
 
@@ -51,29 +53,16 @@ export default function LoginPage() {
           style={inputStyle}
         />
         <button type="submit" disabled={loading} style={buttonStyle}>
-          {loading ? "Signing in..." : "Sign In"}
+          {loading ? "Signing in…" : "Sign in"}
         </button>
       </form>
 
-      <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13.5, marginTop: 20, textAlign: "center" }}>
+      <p style={{ color: "rgba(245,247,242,0.4)", fontSize: 13.5, marginTop: 22, textAlign: "center", fontFamily: "'Manrope', sans-serif" }}>
         Don't have an account?{" "}
-        <Link href="/signup" style={{ color: "#0EA5E9", fontWeight: 600 }}>
+        <Link href="/signup" style={linkStyle}>
           Sign up
         </Link>
       </p>
     </AuthShell>
   );
 }
-
-const inputStyle = {
-  width: "100%",
-  padding: "13px",
-  borderRadius: 12,
-  background: "rgba(255,255,255,0.05)",
-  border: "1px solid rgba(255,255,255,0.1)",
-  color: "#fff",
-  fontSize: 14.5,
-  marginBottom: 14,
-  fontFamily: "'Exo 2', sans-serif",
-  boxSizing: "border-box",
-};

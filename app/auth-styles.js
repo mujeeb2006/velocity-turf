@@ -1,11 +1,13 @@
+import { COLORS as V, FONT_BODY } from "@/lib/design-tokens";
+
 export const inputStyle = {
-  background: "rgba(255,255,255,0.04)",
-  border: "1px solid rgba(255,255,255,0.1)",
+  background: V.pitchCardRaised,
+  border: `1px solid ${V.line}`,
   borderRadius: 12,
   padding: "12px 14px",
-  color: "#fff",
+  color: V.chalk,
   fontSize: 14,
-  fontFamily: "'Exo 2', sans-serif",
+  fontFamily: FONT_BODY,
   outline: "none",
 };
 
@@ -14,30 +16,59 @@ export const selectStyle = { ...inputStyle };
 export const buttonStyle = {
   marginTop: 6,
   padding: "13px",
-  borderRadius: 14,
-  background: "linear-gradient(135deg, #0EA5E9, #22C55E)",
+  borderRadius: 12,
+  background: V.flood,
   border: "none",
-  color: "#fff",
-  fontWeight: 700,
+  color: V.pitch,
+  fontWeight: 800,
   fontSize: 15,
   cursor: "pointer",
-  fontFamily: "'Exo 2', sans-serif",
+  fontFamily: FONT_BODY,
 };
 
 export const errorStyle = {
-  background: "rgba(239,68,68,0.1)",
-  border: "1px solid rgba(239,68,68,0.3)",
-  color: "#EF4444",
+  background: "rgba(240,85,74,0.1)",
+  border: `1px solid ${V.danger}55`,
+  color: V.danger,
   borderRadius: 10,
   padding: "10px 14px",
   fontSize: 13,
+  fontFamily: FONT_BODY,
 };
 
 export const successStyle = {
-  background: "rgba(34,197,94,0.1)",
-  border: "1px solid rgba(34,197,94,0.3)",
-  color: "#22C55E",
+  background: V.floodDim,
+  border: `1px solid ${V.flood}55`,
+  color: V.flood,
   borderRadius: 10,
   padding: "10px 14px",
   fontSize: 13,
+  fontFamily: FONT_BODY,
+};
+
+export const linkStyle = {
+  color: V.flood,
+  fontWeight: 700,
+  textDecoration: "none",
+};
+
+export const roleStyle = {
+  flex: 1,
+  padding: "11px",
+  borderRadius: 10,
+  background: "transparent",
+  border: `1px solid ${V.line}`,
+  color: V.chalkDim,
+  fontWeight: 700,
+  fontSize: 13.5,
+  cursor: "pointer",
+  fontFamily: FONT_BODY,
+  transition: "border-color 0.2s, color 0.2s",
+};
+
+export const roleActiveStyle = {
+  ...roleStyle,
+  background: V.floodDim,
+  border: `1px solid ${V.flood}`,
+  color: V.flood,
 };

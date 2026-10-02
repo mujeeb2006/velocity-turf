@@ -7,7 +7,8 @@ import { useToast } from "@/components/ui/toast";
 import { SkeletonGrid, SkeletonCard, Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { RankBadge } from "@/components/ui/rank-badge";
-import { COLORS as V, FONT_DISPLAY, FONT_BODY, FONT_DATA, panel, floodGlow, buttonStyle } from "@/lib/design-tokens";
+import { COLORS as V, NAV_ACCENTS, FONT_DISPLAY, FONT_BODY, FONT_DATA, panel, floodGlow, buttonStyle } from "@/lib/design-tokens";
+import StadiumScene from "@/components/StadiumScene";
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
@@ -186,8 +187,8 @@ function TurfCard({ turf, onBook, onMatch }) {
 
         {/* Sports */}
         <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
-          {turf.sports.map(s => (
-            <span key={s} style={{ background: V.floodDim, border: `1px solid ${V.flood}33`, color: V.flood, padding: "3px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600, fontFamily: FONT_BODY }}>
+          {turf.sports.map((s, index) => (
+            <span key={s} style={{ background: `${NAV_ACCENTS[index % NAV_ACCENTS.length]}18`, border: `1px solid ${NAV_ACCENTS[index % NAV_ACCENTS.length]}40`, color: NAV_ACCENTS[index % NAV_ACCENTS.length], padding: "3px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600, fontFamily: FONT_BODY }}>
               {s}
             </span>
           ))}
@@ -436,39 +437,27 @@ function HeroSection({ onExplore }) {
   const submitSearch = () => onExplore(searchVal);
 
   return (
-    <div className="vt-hero" style={{
-      minHeight: "min(88vh, 720px)",
+    <div className="vt-hero vt-player-hero" style={{
+      minHeight: "min(82vh, 680px)",
       display: "flex",
       flexDirection: "column",
       justifyContent: "center",
+      alignItems: "flex-start",
       position: "relative",
       overflow: "hidden",
-      padding: "80px 24px 60px",
+      padding: "80px max(24px, calc((100vw - 1120px) / 2)) 60px",
     }}>
-      {/* One orchestrated moment: a single floodlight glow, not a field of orbs */}
-      <div style={{ position: "absolute", inset: 0, overflow: "hidden", zIndex: 0 }}>
-        <div style={{
-          position: "absolute", inset: 0,
-          backgroundImage: `linear-gradient(${V.line} 1px, transparent 1px), linear-gradient(90deg, ${V.line} 1px, transparent 1px)`,
-          backgroundSize: "60px 60px",
-          maskImage: "radial-gradient(ellipse at 50% 30%, black 0%, transparent 70%)",
-        }} />
-        <div style={{
-          position: "absolute", left: "50%", top: "0%",
-          width: 700, height: 500,
-          background: `radial-gradient(ellipse at top, ${V.flood}18 0%, transparent 65%)`,
-          transform: "translate(-50%, -20%)",
-          animation: "heroFloodlight 3s ease-out",
-        }} />
-      </div>
+      <StadiumScene className="vt-player-scene" />
+      <div className="vt-player-hero-shade" />
 
       {/* Content */}
-      <div style={{ position: "relative", zIndex: 1, maxWidth: 800, margin: "0 auto", textAlign: "center" }}>
+      <div className="vt-player-hero-copy" style={{ position: "relative", zIndex: 1, maxWidth: 800, margin: 0, textAlign: "left" }}>
+        <div className="vt-player-hero-kicker">YOUR NEXT MATCH STARTS HERE</div>
         {/* Headline */}
         <h1 style={{
-          fontSize: "clamp(48px, 8vw, 84px)",
-          lineHeight: 0.95,
-          margin: "0 0 24px",
+          fontSize: 76,
+          lineHeight: 0.9,
+          margin: "0 0 18px",
           fontFamily: FONT_DISPLAY,
           letterSpacing: 0.5,
         }}>
@@ -477,12 +466,12 @@ function HeroSection({ onExplore }) {
           <span style={{ color: V.flood }}>your terms</span>
         </h1>
 
-        <p style={{ color: V.chalkDim, fontSize: 18, maxWidth: 500, margin: "0 auto 40px", lineHeight: 1.6, fontFamily: FONT_BODY }}>
+        <p style={{ color: V.chalkDim, fontSize: 15, maxWidth: 460, margin: "0 0 28px", lineHeight: 1.7, fontFamily: FONT_BODY }}>
           Real turf availability, honest pricing, and a QR code the moment you book. No guesswork.
         </p>
 
         {/* Search */}
-        <div style={{ display: "flex", gap: 8, maxWidth: 520, margin: "0 auto 48px", background: V.pitchCard, borderRadius: 14, padding: 10, border: `1px solid ${V.line}`, alignItems: "center" }}>
+        <div className="vt-player-search" style={{ display: "flex", gap: 8, maxWidth: 520, margin: "0 0 34px", background: V.pitchCard, borderRadius: 12, padding: 9, border: `1px solid ${V.line}`, alignItems: "center" }}>
           <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, paddingLeft: 12 }}>
             <Icon name="search" size={18} color={V.chalkFaint} />
             <input
@@ -502,7 +491,7 @@ function HeroSection({ onExplore }) {
         </div>
 
         {/* Stats */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, maxWidth: 600, margin: "0 auto" }}>
+        <div className="vt-player-hero-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 22, maxWidth: 600, margin: 0 }}>
           {[
             { value: stats.turfs, label: "Premium turfs", suffix: "+" },
             { value: stats.cities, label: "Cities", suffix: "" },
@@ -520,12 +509,8 @@ function HeroSection({ onExplore }) {
       </div>
 
       <style>{`
-        @keyframes heroFloodlight {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
         @media (max-height: 820px) {
-          .vt-hero h1 { font-size: clamp(40px, 7vw, 64px) !important; }
+          .vt-hero h1 { font-size: 64px !important; }
         }
       `}</style>
     </div>
@@ -1367,7 +1352,7 @@ export default function PlayerAppClient({ profile }) {
           alignItems: "center", justifyContent: "space-between",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 26, height: 26, borderRadius: 7, background: V.flood, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT_DISPLAY, fontSize: 15, color: V.pitch }}>V</div>
+            <div style={{ width: 26, height: 26, borderRadius: 7, background: V.flood, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: V.pitch }}>⚡</div>
             <span style={{ fontWeight: 800, fontSize: 13, letterSpacing: 0.3, color: V.chalk }}>VELOCITY TURF</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1410,7 +1395,7 @@ export default function PlayerAppClient({ profile }) {
         }}>
           {/* Logo */}
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: V.flood, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT_DISPLAY, fontSize: 18, color: V.pitch }}>V</div>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: V.flood, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: V.pitch }}>⚡</div>
             <span style={{ fontWeight: 800, fontSize: 16, letterSpacing: 0.3, fontFamily: FONT_BODY }}>
               <span style={{ color: V.chalk }}>VELOCITY</span>
               <span style={{ color: V.flood }}> TURF</span>
@@ -1419,13 +1404,13 @@ export default function PlayerAppClient({ profile }) {
 
           {/* Desktop Nav */}
           <div style={{ display: "flex", gap: 4 }}>
-            {TABS.map(tab => (
+            {TABS.map((tab, index) => (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
                 padding: "8px 16px", borderRadius: 8,
                 background: "transparent",
                 border: "none",
-                borderBottom: activeTab === tab.id ? `2px solid ${V.flood}` : "2px solid transparent",
-                color: activeTab === tab.id ? V.chalk : V.chalkDim,
+                borderBottom: activeTab === tab.id ? `2px solid ${NAV_ACCENTS[index % NAV_ACCENTS.length]}` : "2px solid transparent",
+                color: activeTab === tab.id ? NAV_ACCENTS[index % NAV_ACCENTS.length] : V.chalkDim,
                 cursor: "pointer", fontSize: 14, fontWeight: 600,
                 transition: "color 0.2s, border-color 0.2s", fontFamily: FONT_BODY,
               }}>
@@ -1542,18 +1527,18 @@ export default function PlayerAppClient({ profile }) {
           borderTop: `1px solid ${V.line}`,
           justifyContent: "space-around", padding: "8px 0 12px",
         }}>
-          {TABS.map(tab => (
+          {TABS.map((tab, index) => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
               display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
               background: "none", border: "none", cursor: "pointer",
               padding: "6px 16px", borderRadius: 12,
-              color: activeTab === tab.id ? V.flood : V.chalkFaint,
+              color: activeTab === tab.id ? NAV_ACCENTS[index % NAV_ACCENTS.length] : V.chalkFaint,
               transition: "color 0.2s",
             }}>
-              <Icon name={tab.icon} size={20} color={activeTab === tab.id ? V.flood : V.chalkFaint} />
+              <Icon name={tab.icon} size={20} color={activeTab === tab.id ? NAV_ACCENTS[index % NAV_ACCENTS.length] : V.chalkFaint} />
               <span style={{ fontSize: 10, fontWeight: 600, fontFamily: FONT_BODY }}>{tab.label}</span>
               {activeTab === tab.id && (
-                <div style={{ width: 4, height: 4, borderRadius: "50%", background: V.flood }} />
+                <div style={{ width: 4, height: 4, borderRadius: "50%", background: NAV_ACCENTS[index % NAV_ACCENTS.length] }} />
               )}
             </button>
           ))}

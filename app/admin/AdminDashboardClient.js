@@ -12,11 +12,11 @@ import { COLORS as V, FONT_DISPLAY, FONT_BODY, FONT_DATA, panel } from "@/lib/de
 // existing COLORS.electricBlue etc. call site picks up the "floodlit
 // night match" identity without a full rewrite.
 const COLORS = {
-  electricBlue: V.flood,
+  electricBlue: V.sky,
   pitchGreen: V.confirmed,
   energyOrange: V.pending,
   danger: V.danger,
-  purple: V.flood,
+  purple: V.violet,
   dark: V.pitch,
 };
 
@@ -102,8 +102,8 @@ function SideNav({ items, active, onSelect, roleLabel, roleColor, userEmail, onS
         {items.map(it => (
           <button key={it.id} onClick={() => onSelect(it.id)} style={{
             display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 12,
-            background: active === it.id ? V.line : "transparent",
-            border: active === it.id ? `1px solid ${V.flood}40` : "1px solid transparent",
+            background: active === it.id ? `${COLORS.electricBlue}18` : "transparent",
+            border: active === it.id ? `1px solid ${COLORS.electricBlue}55` : "1px solid transparent",
             color: active === it.id ? V.chalk : V.chalkDim,
             cursor: "pointer", fontSize: 13.5, fontWeight: 600, fontFamily: font, textAlign: "left",
           }}>
@@ -412,7 +412,7 @@ export default function AdminDashboardClient({ profile }) {
                     <span style={{ color: V.chalk, fontWeight: 600, fontSize: 14 }}>{c.city}</span>
                     <span style={{ color: V.chalkDim, fontSize: 12.5 }}>{c.turfs} turfs</span>
                     <div style={{ height: 6, background: V.line, borderRadius: 3 }}>
-                      <div style={{ height: "100%", width: `${Math.round((c.revenue / maxRevenue) * 100)}%`, background: V.flood, borderRadius: 3 }} />
+                      <div style={{ height: "100%", width: `${Math.round((c.revenue / maxRevenue) * 100)}%`, background: COLORS.electricBlue, borderRadius: 3 }} />
                     </div>
                     <span style={{ color: V.chalk, fontFamily: mono, fontSize: 12.5, fontWeight: 700, textAlign: "right" }}>₹{c.revenue.toLocaleString()}</span>
                   </div>

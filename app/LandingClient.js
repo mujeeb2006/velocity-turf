@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { COLORS as V, FONT_DISPLAY, FONT_BODY, FONT_DATA, buttonStyle } from "@/lib/design-tokens";
+import StadiumScene from "@/components/StadiumScene";
 
 function AnimatedCounter({ value, suffix = "" }) {
   const [display, setDisplay] = useState(0);
@@ -82,17 +83,13 @@ export default function LandingClient() {
         * { box-sizing: border-box; }
         html { scroll-behavior: smooth; }
         a:focus-visible, button:focus-visible { outline: 2px solid ${V.flood}; outline-offset: 2px; }
-        @keyframes floodlightsOn {
-          from { opacity: 0; transform: translateX(-50%) translateY(-30px); }
-          to { opacity: 1; transform: translateX(-50%) translateY(0); }
-        }
         @media (prefers-reduced-motion: reduce) {
           * { animation-duration: 0.01ms !important; }
         }
       `}</style>
 
       {/* NAV */}
-      <nav style={{
+      <nav className="vt-landing-nav" style={{
         position: "sticky", top: 0, zIndex: 50,
         background: "rgba(7,13,10,0.85)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
         borderBottom: `1px solid ${V.line}`,
@@ -100,45 +97,36 @@ export default function LandingClient() {
         display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: V.flood, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT_DISPLAY, fontSize: 19, color: V.pitch }}>V</div>
+          <div className="vt-landing-brand-mark" aria-hidden="true">⚡</div>
           <span style={{ fontWeight: 800, fontSize: 15, letterSpacing: 0.3 }}>
             <span style={{ color: V.chalk }}>VELOCITY</span> <span style={{ color: V.flood }}>TURF</span>
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Link href="/login" style={{ ...buttonStyle("secondary", "sm"), textDecoration: "none", display: "inline-block" }}>Log in</Link>
-          <Link href="/player" style={{ ...buttonStyle("primary", "sm"), textDecoration: "none", display: "inline-block" }}>Browse turfs</Link>
+          <Link href="/login" style={{ ...buttonStyle("secondary", "sm"), textDecoration: "none", display: "inline-block" }}>Sign in</Link>
+          <Link href="/signup" style={{ ...buttonStyle("primary", "sm"), textDecoration: "none", display: "inline-block" }}>Join to play</Link>
         </div>
       </nav>
 
       {/* HERO */}
-      <section style={{ position: "relative", overflow: "hidden", padding: "96px 24px 80px", textAlign: "center" }}>
-        <div style={{ position: "absolute", inset: 0, overflow: "hidden", zIndex: 0 }}>
-          <div style={{
-            position: "absolute", left: "50%", top: "-10%", width: 900, height: 500,
-            background: `radial-gradient(ellipse at top, ${V.flood}20 0%, transparent 65%)`,
-            transform: "translateX(-50%)", animation: "floodlightsOn 2.2s ease-out",
-          }} />
-        </div>
-
-        <div style={{ position: "relative", zIndex: 1, maxWidth: 780, margin: "0 auto" }}>
-          <h1 style={{ fontSize: "clamp(44px, 7.5vw, 80px)", lineHeight: 0.95, margin: "0 0 22px", fontFamily: FONT_DISPLAY, letterSpacing: 0.5 }}>
-            <span style={{ color: V.chalk }}>Book the turf.</span><br />
-            <span style={{ color: V.flood }}>Not the runaround.</span>
-          </h1>
-          <p style={{ color: V.chalkDim, fontSize: 18, maxWidth: 520, margin: "0 auto 36px", lineHeight: 1.6 }}>
-            See what's actually open, lock a slot in seconds, and walk in with a QR code. No calls to the front desk, no "let me check and get back to you."
+      <section className="vt-landing-hero">
+        <StadiumScene className="vt-landing-scene" />
+        <div className="vt-landing-copy">
+          <div className="vt-landing-kicker">YOUR CITY. YOUR PITCH. YOUR GAME.</div>
+          <h1 className="vt-landing-title">MAKE ROOM<br />FOR <em>GAME NIGHT.</em></h1>
+          <p className="vt-landing-description">
+            Find a pitch that is actually available, bring your crew, and lock in a time. Your next game is closer than you think.
           </p>
-          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginBottom: 56 }}>
-            <Link href="/player" style={{ ...buttonStyle("primary", "lg"), textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}>
-              Browse turfs <Icon name="arrow" size={16} />
+          <div className="vt-landing-actions">
+            <Link href="/signup" style={{ ...buttonStyle("primary", "lg"), textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}>
+              Create player account <Icon name="arrow" size={16} />
             </Link>
             <Link href="/login" style={{ ...buttonStyle("secondary", "lg"), textDecoration: "none", display: "inline-block" }}>
-              I have an account
+              Sign in
             </Link>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, maxWidth: 560, margin: "0 auto" }}>
+          <div className="vt-landing-stats">
             {[
               { value: 240, label: "Turfs", suffix: "+" },
               { value: 18, label: "Cities", suffix: "" },
@@ -146,10 +134,10 @@ export default function LandingClient() {
               { value: 91000, label: "Players", suffix: "+" },
             ].map(s => (
               <div key={s.label}>
-                <div style={{ color: V.chalk, fontSize: 26, fontFamily: FONT_DATA, fontWeight: 700 }}>
+                <div className="vt-landing-stat-value">
                   <AnimatedCounter value={s.value} suffix={s.suffix} />
                 </div>
-                <div style={{ color: V.chalkFaint, fontSize: 11, marginTop: 4 }}>{s.label}</div>
+                <div className="vt-landing-stat-label">{s.label}</div>
               </div>
             ))}
           </div>
@@ -196,20 +184,20 @@ export default function LandingClient() {
         </div>
       </section>
 
-      {/* OWNER BAND */}
+      {/* PLAYER BAND */}
       <section style={{ padding: "56px 24px", background: V.pitchCard, borderTop: `1px solid ${V.line}`, borderBottom: `1px solid ${V.line}` }}>
         <div style={{ maxWidth: 880, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
             <div style={{ width: 48, height: 48, borderRadius: 10, background: V.floodDim, border: `1px solid ${V.flood}40`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <Icon name="building" size={22} color={V.flood} />
+              <span aria-hidden="true" style={{ color: V.flood, fontSize: 22 }}>⚡</span>
             </div>
             <div>
-              <h3 style={{ color: V.chalk, fontSize: 20, fontWeight: 700, margin: "0 0 4px", fontFamily: FONT_BODY }}>Own a turf?</h3>
-              <p style={{ color: V.chalkDim, fontSize: 14, margin: 0 }}>List it, set your hours and pricing, and start taking real bookings.</p>
+              <h3 style={{ color: V.chalk, fontSize: 20, fontWeight: 700, margin: "0 0 4px", fontFamily: FONT_BODY }}>Got a game in mind?</h3>
+              <p style={{ color: V.chalkDim, fontSize: 14, margin: 0 }}>Get your people together and make the next match happen.</p>
             </div>
           </div>
           <Link href="/signup" style={{ ...buttonStyle("primary", "md"), textDecoration: "none", display: "inline-block", whiteSpace: "nowrap" }}>
-            List your turf
+            Sign up to play
           </Link>
         </div>
       </section>
@@ -219,16 +207,16 @@ export default function LandingClient() {
         <h2 style={{ color: V.chalk, fontFamily: FONT_DISPLAY, fontSize: "clamp(36px, 6vw, 56px)", fontWeight: 400, margin: "0 0 16px" }}>
           Ready to play?
         </h2>
-        <p style={{ color: V.chalkDim, fontSize: 16, margin: "0 0 32px" }}>No account needed to look around — you'll only need one when you're ready to book.</p>
-        <Link href="/player" style={{ ...buttonStyle("primary", "lg"), textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}>
-          Browse turfs <Icon name="arrow" size={16} />
+        <p style={{ color: V.chalkDim, fontSize: 16, margin: "0 0 32px" }}>Your next game is one good plan away.</p>
+        <Link href="/signup" style={{ ...buttonStyle("primary", "lg"), textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}>
+          Join Velocity Turf <Icon name="arrow" size={16} />
         </Link>
       </section>
 
       {/* FOOTER */}
       <footer style={{ padding: "32px 24px", borderTop: `1px solid ${V.line}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 22, height: 22, borderRadius: 5, background: V.flood, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT_DISPLAY, fontSize: 13, color: V.pitch }}>V</div>
+          <div className="vt-landing-brand-mark" style={{ width: 22, height: 22, borderRadius: 5, fontSize: 12 }}>⚡</div>
           <span style={{ color: V.chalkFaint, fontSize: 12.5 }}>© {new Date().getFullYear()} Velocity Turf</span>
         </div>
         <div style={{ display: "flex", gap: 20 }}>

@@ -1,87 +1,40 @@
+import Link from "next/link";
+import StadiumScene from "@/components/StadiumScene";
+
 export default function AuthShell({ title, subtitle, children }) {
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 24,
-        background: "#050A14",
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          top: "15%",
-          left: "10%",
-          width: 400,
-          height: 400,
-          borderRadius: "50%",
-          background: "#0EA5E9",
-          filter: "blur(120px)",
-          opacity: 0.08,
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          bottom: "10%",
-          right: "10%",
-          width: 350,
-          height: 350,
-          borderRadius: "50%",
-          background: "#22C55E",
-          filter: "blur(120px)",
-          opacity: 0.07,
-        }}
-      />
-
-      <div
-        style={{
-          position: "relative",
-          zIndex: 1,
-          width: "100%",
-          maxWidth: 420,
-          background: "rgba(13,21,38,0.75)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          border: "1px solid rgba(14,165,233,0.15)",
-          borderRadius: 24,
-          padding: "36px 32px",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28, justifyContent: "center" }}>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 10,
-              background: "linear-gradient(135deg, #0EA5E9, #22C55E)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 18,
-            }}
-          >
-            ⚡
+    <main className="vt-auth-page">
+      <div className="vt-auth-frame">
+        <section className="vt-auth-art" aria-label="Velocity Turf matchday">
+          <StadiumScene className="vt-auth-art-scene" />
+          <Link href="/" className="vt-auth-brand" aria-label="Velocity Turf home">
+            <span className="vt-auth-brand-mark" aria-hidden="true">⚡</span>
+            <span>VELOCITY <b>TURF</b></span>
+          </Link>
+          <div className="vt-auth-art-copy">
+            <span className="vt-auth-eyebrow"><span /> THE GAME STARTS HERE</span>
+            <p className="vt-auth-art-title">Your next<br /><em>great game.</em></p>
+            <p className="vt-auth-art-description">Find the pitch. Bring your people. Make it a night worth remembering.</p>
           </div>
-          <span style={{ fontWeight: 900, fontSize: 19, fontFamily: "'Exo 2', sans-serif" }}>
-            <span style={{ color: "#fff" }}>VELOCITY</span> <span style={{ color: "#0EA5E9" }}>TURF</span>
-          </span>
-        </div>
+          <div className="vt-auth-art-footer">
+            <span>01 — FIND YOUR PITCH</span>
+            <span>02 — GET IN THE GAME</span>
+          </div>
+        </section>
 
-        <h1 style={{ color: "#fff", fontSize: 22, fontWeight: 800, textAlign: "center", marginBottom: 6 }}>
-          {title}
-        </h1>
-        <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13.5, textAlign: "center", marginBottom: 26 }}>
-          {subtitle}
-        </p>
-
-        {children}
+        <section className="vt-auth-panel">
+          <div className="vt-auth-mobile-brand">
+            <span className="vt-auth-brand-mark" aria-hidden="true">⚡</span>
+            <span>VELOCITY <b>TURF</b></span>
+          </div>
+          <header className="vt-auth-heading">
+            <h1>{title}</h1>
+            <p>{subtitle}</p>
+          </header>
+          <div className="vt-auth-content">{children}</div>
+          <div className="vt-auth-panel-footer">MADE FOR THE LOVE OF THE GAME</div>
+        </section>
       </div>
-    </div>
+    </main>
   );
 }

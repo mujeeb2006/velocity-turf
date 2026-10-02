@@ -4,19 +4,33 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
-import { COLORS as V, FONT_DISPLAY, FONT_BODY, panel, buttonStyle } from "@/lib/design-tokens";
+import { COLORS as V, FONT_BODY, buttonStyle } from "@/lib/design-tokens";
 
 const inputStyle = {
-  width: "100%", padding: "11px 12px", borderRadius: 8, background: V.pitchCardRaised,
-  border: `1px solid ${V.line}`, color: V.chalk, fontSize: 14, fontFamily: FONT_BODY,
+  width: "100%", minHeight: 46, padding: "11px 13px", borderRadius: 9, background: V.pitchCardRaised,
+  border: `1px solid ${V.lineStrong}`, color: V.chalk, fontSize: 14, fontFamily: FONT_BODY,
 };
 
 function Field({ label, ...props }) {
   return (
-    <label style={{ display: "grid", gap: 7, color: V.chalkDim, fontSize: 13, fontWeight: 600, fontFamily: FONT_BODY }}>
+    <label className="vt-settings-field">
       {label}
       <input {...props} style={inputStyle} />
     </label>
+  );
+}
+
+function SettingIcon({ name }) {
+  const icons = {
+    profile: <><circle cx="12" cy="8" r="3.4" /><path d="M5.5 20a6.5 6.5 0 0 1 13 0" /></>,
+    email: <><rect x="3.5" y="5" width="17" height="14" rx="2" /><path d="m4.5 7 7.5 6 7.5-6" /></>,
+    password: <><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 4v3" /></>,
+    shield: <><path d="M12 3 19 6v5c0 5-3.5 8.3-7 10-3.5-1.7-7-5-7-10V6z" /><path d="m9 12 2 2 4-4" /></>,
+  };
+  return (
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {icons[name]}
+    </svg>
   );
 }
 
@@ -85,41 +99,91 @@ export default function AccountSettingsClient({ profile }) {
   }
 
   const homePath = profile.role === "admin" ? "/admin" : profile.role === "owner" ? "/owner" : "/player";
+  const roleLabels = { admin: "Administrator", owner: "Turf owner", player: "Player" };
+  const displayName = profile.full_name || profile.email?.split("@")[0] || "Velocity player";
+  const initial = displayName.slice(0, 1).toUpperCase();
 
   return (
-    <main style={{ minHeight: "100vh", background: V.pitch, color: V.chalk, padding: "32px 20px", fontFamily: FONT_BODY }}>
-      <div style={{ maxWidth: 720, margin: "0 auto" }}>
-        <button onClick={() => router.push(homePath)} style={{ ...buttonStyle("secondary", "sm"), marginBottom: 28 }}>
-          Back to dashboard
+    <main className="vt-settings-page">
+      <header className="vt-settings-topbar">
+        <a className="vt-settings-brand" href={homePath}>
+          <span className="vt-settings-brand-mark" aria-hidden="true">⚡</span>
+          <span>VELOCITY <b>TURF</b></span>
+        </a>
+        <button onClick={() => router.push(homePath)} className="vt-settings-back" style={buttonStyle("secondary", "sm")}>
+          <span aria-hidden="true">←</span> Back to dashboard
         </button>
-        <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 38, fontWeight: 400, margin: "0 0 6px" }}>Account settings</h1>
-        <p style={{ color: V.chalkDim, fontSize: 14, margin: "0 0 24px" }}>Manage your profile and sign-in details.</p>
+      </header>
 
-        <section style={{ ...panel(), padding: 22, marginBottom: 16 }}>
-          <h2 style={{ fontSize: 17, margin: "0 0 18px" }}>Profile</h2>
-          <form onSubmit={saveName} style={{ display: "grid", gap: 16 }}>
-            <Field label="Full name" autoComplete="name" value={fullName} onChange={e => setFullName(e.target.value)} />
-            <div><button type="submit" disabled={saving} style={buttonStyle("primary", "sm")}>{saving ? "Saving..." : "Save name"}</button></div>
-          </form>
-        </section>
+      <div className="vt-settings-layout">
+        <aside className="vt-settings-aside">
+          <div className="vt-settings-identity">
+            <div className="vt-settings-avatar">{initial}</div>
+            <div className="vt-settings-identity-copy">
+              <span className="vt-settings-overline">SIGNED-IN ACCOUNT</span>
+              <strong>{displayName}</strong>
+              <span>{profile.email}</span>
+            </div>
+            <div className="vt-settings-role"><SettingIcon name="shield" />{roleLabels[profile.role] || "Account"}</div>
+          </div>
 
-        <section style={{ ...panel(), padding: 22, marginBottom: 16 }}>
-          <h2 style={{ fontSize: 17, margin: "0 0 8px" }}>Email address</h2>
-          <p style={{ color: V.chalkFaint, fontSize: 12.5, margin: "0 0 16px" }}>Supabase will email a confirmation link before the new address takes effect.</p>
-          <form onSubmit={changeEmail} style={{ display: "grid", gap: 16 }}>
-            <Field label="Email" type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required />
-            <div><button type="submit" disabled={saving || email.trim() === profile.email} style={buttonStyle("secondary", "sm")}>{saving ? "Saving..." : "Change email"}</button></div>
-          </form>
-        </section>
+          <nav className="vt-settings-nav" aria-label="Settings sections">
+            <span className="vt-settings-overline">YOUR ACCOUNT</span>
+            <a href="#profile"><SettingIcon name="profile" /><span>Profile details</span><i /></a>
+            <a href="#email"><SettingIcon name="email" /><span>Email address</span><i /></a>
+            <a href="#password"><SettingIcon name="password" /><span>Password</span><i /></a>
+          </nav>
 
-        <section style={{ ...panel(), padding: 22 }}>
-          <h2 style={{ fontSize: 17, margin: "0 0 18px" }}>Password</h2>
-          <form onSubmit={changePassword} style={{ display: "grid", gap: 16 }}>
-            <Field label="New password" type="password" autoComplete="new-password" minLength={8} value={newPassword} onChange={e => setNewPassword(e.target.value)} required />
-            <Field label="Confirm new password" type="password" autoComplete="new-password" minLength={8} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
-            <div><button type="submit" disabled={saving} style={buttonStyle("primary", "sm")}>{saving ? "Saving..." : "Update password"}</button></div>
-          </form>
-        </section>
+          <div className="vt-settings-private-note">
+            <SettingIcon name="shield" />
+            <span><strong>Your account, protected.</strong> Your sign-in details are managed securely.</span>
+          </div>
+        </aside>
+
+        <div className="vt-settings-content">
+          <div className="vt-settings-page-heading">
+            <span className="vt-settings-overline">ACCOUNT CONTROL</span>
+            <h1>Account settings</h1>
+            <p>Manage your profile and sign-in details.</p>
+          </div>
+
+          <div className="vt-settings-sections">
+            <section className="vt-settings-card" id="profile" style={{ "--settings-accent": V.aqua }}>
+              <div className="vt-settings-card-heading">
+                <span className="vt-settings-icon"><SettingIcon name="profile" /></span>
+                <div><h2>Profile details</h2><p>How your name appears across Velocity Turf.</p></div>
+              </div>
+              <form onSubmit={saveName} className="vt-settings-form">
+                <Field label="Full name" autoComplete="name" value={fullName} onChange={e => setFullName(e.target.value)} />
+                <div className="vt-settings-form-action"><button type="submit" disabled={saving} style={buttonStyle("primary", "sm")}>{saving ? "Saving..." : "Save changes"}</button></div>
+              </form>
+            </section>
+
+            <section className="vt-settings-card" id="email" style={{ "--settings-accent": V.sky }}>
+              <div className="vt-settings-card-heading">
+                <span className="vt-settings-icon"><SettingIcon name="email" /></span>
+                <div><h2>Email address</h2><p>A confirmation link is sent before a new address takes effect.</p></div>
+              </div>
+              <form onSubmit={changeEmail} className="vt-settings-form">
+                <Field label="Email" type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required />
+                <div className="vt-settings-form-action"><button type="submit" disabled={saving || email.trim() === profile.email} style={buttonStyle("secondary", "sm")}>{saving ? "Saving..." : "Update email"}</button></div>
+              </form>
+            </section>
+
+            <section className="vt-settings-card" id="password" style={{ "--settings-accent": V.coral }}>
+              <div className="vt-settings-card-heading">
+                <span className="vt-settings-icon"><SettingIcon name="password" /></span>
+                <div><h2>Password</h2><p>Choose a strong password with at least 8 characters.</p></div>
+              </div>
+              <form onSubmit={changePassword} className="vt-settings-form vt-settings-password-form">
+                <Field label="New password" type="password" autoComplete="new-password" minLength={8} value={newPassword} onChange={e => setNewPassword(e.target.value)} required />
+                <Field label="Confirm new password" type="password" autoComplete="new-password" minLength={8} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
+                <div className="vt-settings-form-action"><button type="submit" disabled={saving} style={buttonStyle("primary", "sm")}>{saving ? "Saving..." : "Update password"}</button></div>
+              </form>
+            </section>
+          </div>
+          <footer className="vt-settings-footer">VELOCITY TURF <span>·</span> ACCOUNT SECURITY</footer>
+        </div>
       </div>
     </main>
   );

@@ -12,7 +12,7 @@ import { COLORS as V, FONT_DISPLAY, FONT_BODY, FONT_DATA, panel } from "@/lib/de
 // every existing `COLORS.electricBlue` etc. call site below picks up the
 // "floodlit night match" identity without a full rewrite.
 const COLORS = {
-  electricBlue: V.flood,
+  electricBlue: V.aqua,
   pitchGreen: V.confirmed,
   energyOrange: V.pending,
   danger: V.danger,
@@ -95,7 +95,7 @@ function SideNav({ items, active, onSelect, userEmail, onSignOut, onSettings, un
         </button>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 8, background: V.floodDim, border: `1px solid ${COLORS.electricBlue}30`, borderRadius: 12, padding: "8px 12px", marginBottom: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, background: `${COLORS.electricBlue}18`, border: `1px solid ${COLORS.electricBlue}45`, borderRadius: 12, padding: "8px 12px", marginBottom: 8 }}>
         <Icon name="building" size={15} color={COLORS.electricBlue} />
         <span style={{ color: COLORS.electricBlue, fontSize: 12, fontWeight: 700, fontFamily: mono }}>OWNER PORTAL</span>
       </div>
@@ -107,8 +107,8 @@ function SideNav({ items, active, onSelect, userEmail, onSignOut, onSettings, un
         {items.map(it => (
           <button key={it.id} onClick={() => onSelect(it.id)} style={{
             display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 12,
-            background: active === it.id ? V.line : "transparent",
-            border: active === it.id ? `1px solid ${V.flood}40` : "1px solid transparent",
+            background: active === it.id ? `${COLORS.electricBlue}18` : "transparent",
+            border: active === it.id ? `1px solid ${COLORS.electricBlue}55` : "1px solid transparent",
             color: active === it.id ? V.chalk : V.chalkDim,
             cursor: "pointer", fontSize: 13.5, fontWeight: 600, fontFamily: font, textAlign: "left",
           }}>
@@ -779,7 +779,7 @@ export default function OwnerDashboardClient({ profile }) {
                       <div style={{ color: V.chalk, fontWeight: 700, fontSize: 14, fontFamily: mono }}>₹{t.revenue.toLocaleString()}</div>
                     </div>
                   </div>
-                  <button onClick={() => setSlotsTurf(t)} style={{ marginTop: 14, width: "100%", padding: "10px", borderRadius: 12, background: V.line, border: `1px solid ${V.flood}4D`, color: V.flood, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, transition: "background 0.2s" }}
+                  <button onClick={() => setSlotsTurf(t)} style={{ marginTop: 14, width: "100%", padding: "10px", borderRadius: 12, background: `${COLORS.electricBlue}12`, border: `1px solid ${COLORS.electricBlue}55`, color: COLORS.electricBlue, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: font, transition: "background 0.2s" }}
                     onMouseEnter={e => e.currentTarget.style.background = V.line}
                     onMouseLeave={e => e.currentTarget.style.background = V.line}
                   >

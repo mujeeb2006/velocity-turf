@@ -8,9 +8,10 @@ A turf-booking platform with three real, database-backed logins:
 
 Auth and accounts are handled by **Supabase** (free tier is enough). Hosting is on **Vercel** (free tier, one click from GitHub).
 
-> Turfs, bookings, payouts, disputes on the dashboards are currently mock data so
-> you can see the UI working end-to-end. Auth, roles, and routing are fully real.
-> Wiring real turf/booking tables is the natural next step (see bottom of this file).
+> Booking requests, owner payout/review records, player reviews, and disputes use
+> Supabase queries. Checkout is still a demo flow and does not process payments.
+> The checked-in `supabase/schema.sql` only bootstraps profiles and auth; the
+> marketplace tables and their RLS policies must also exist in your Supabase project.
 
 ---
 
@@ -94,17 +95,12 @@ supabase/schema.sql     → run this once in Supabase's SQL editor
 
 ## Next steps (optional)
 
-Right now turfs/bookings/payouts are mock arrays inside the dashboard components
-so the UI is fully functional to click through. To make it fully real:
+The browser app expects marketplace tables and policies in addition to the profile
+bootstrap in `supabase/schema.sql`. At minimum, the deployment schema must provide
+`turfs`, `bookings`, `payouts`, `reviews`, and `disputes`, with owner/player-scoped
+RLS policies. The booking flow is not connected to a payment provider.
 
-1. Add `turfs`, `bookings`, and `payouts` tables in Supabase (with RLS policies
-   scoped to the owning `owner_id` / `player_id`).
-2. Replace the mock arrays in `app/admin/AdminDashboardClient.js`,
-   `app/owner/OwnerDashboardClient.js`, and `app/player/PlayerAppClient.js`
-   with real Supabase queries (`createClient()` from `lib/supabase/client.js`
-   inside a `useEffect`, or fetch them server-side in the corresponding `page.js`
-   and pass down as props).
-3. For anything admin-only that needs to read *all* rows regardless of owner
+For anything admin-only that needs to read *all* rows regardless of owner
    (e.g. the Users table, All Turfs table), use `createAdminClient()` from
    `lib/supabase/admin.js` inside `app/admin/page.js` (a Server Component) —
    never import it into a Client Component, since it holds the service role key.

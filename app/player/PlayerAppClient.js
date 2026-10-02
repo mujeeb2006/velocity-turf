@@ -342,7 +342,7 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast }
               <div style={{ background: "rgba(245,166,35,0.1)", border: `1px solid ${V.pending}4D`, borderRadius: 12, padding: "12px 16px", marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
                   <div style={{ color: V.pending, fontWeight: 700, fontSize: 13, fontFamily: FONT_BODY }}>Slot locked for you</div>
-                  <div style={{ color: V.chalkDim, fontSize: 12, marginTop: 2, fontFamily: FONT_BODY }}>Complete payment to confirm</div>
+                  <div style={{ color: V.chalkDim, fontSize: 12, marginTop: 2, fontFamily: FONT_BODY }}>Demo checkout only. No payment will be processed.</div>
                 </div>
                 <div style={{ color: V.pending, fontWeight: 800, fontSize: 24, fontFamily: FONT_DATA }}>
                   {formatTimer(timer)}
@@ -382,7 +382,7 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast }
                   border: "none", color: V.pitch, fontWeight: 800, cursor: submitting ? "wait" : "pointer", fontFamily: FONT_BODY,
                   opacity: submitting ? 0.7 : 1,
                 }}>
-                  {submitting ? "Processing…" : `Pay ₹${price} →`}
+                  {submitting ? "Confirming..." : `Confirm demo booking · ₹${price}`}
                 </button>
               </div>
             </>
@@ -803,8 +803,9 @@ function LoyaltySection({ isLoading, leaderboard, myPoints }) {
 // ============================================================
 // DASHBOARD
 // ============================================================
-function DashboardSection({ isLoading, bookings, matchesJoined, onCancel }) {
+function DashboardSection({ isLoading, bookings, matchesJoined, onCancel, onReview, onDispute }) {
   const upcoming = bookings.filter(b => ["pending", "confirmed"].includes(b.status));
+  const pastBookings = bookings.filter(b => b.bookingDate < todayStr() && ["confirmed", "completed"].includes(b.status));
   const totalSpent = bookings.filter(b => ["confirmed", "completed"].includes(b.status)).reduce((sum, b) => sum + b.price, 0);
   const hoursPlayed = bookings.filter(b => b.status === "completed").length;
 
@@ -894,14 +895,147 @@ function DashboardSection({ isLoading, bookings, matchesJoined, onCancel }) {
                 >
                   Cancel
                 </button>
+                <button onClick={() => onDispute(b)} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, padding: "8px 14px", color: V.chalkDim, cursor: "pointer", fontSize: 13, fontFamily: FONT_BODY }}>
+                  Report issue
+                </button>
               </div>
             </div>
           ))}
         </div>
         )}
+
+        <h3 style={{ color: V.chalkDim, fontSize: 14, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.5, margin: "32px 0 16px", fontFamily: FONT_BODY }}>Past bookings</h3>
+        {pastBookings.length === 0 ? (
+          <EmptyState icon="📝" title="No completed bookings yet" subtitle="After your booking date, you can leave a review or report an issue here." />
+        ) : (
+          <div style={{ display: "grid", gap: 12 }}>
+            {pastBookings.map(b => (
+              <div key={b.id} style={{ ...panel(), borderRadius: 12, padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+                <div>
+                  <div style={{ color: V.chalk, fontWeight: 700, fontSize: 15, fontFamily: FONT_BODY }}>{b.turf}</div>
+                  <div style={{ color: V.chalkFaint, fontSize: 13, marginTop: 3, fontFamily: FONT_BODY }}>{b.date} · {b.time} · ₹{b.price}</div>
+                </div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button onClick={() => onReview(b)} style={{ background: V.flood, border: "none", borderRadius: 8, padding: "8px 14px", color: V.pitch, cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: FONT_BODY }}>Leave review</button>
+                  <button onClick={() => onDispute(b)} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, padding: "8px 14px", color: V.chalkDim, cursor: "pointer", fontSize: 13, fontFamily: FONT_BODY }}>Report issue</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
         </>
         )}
       </div>
+    </div>
+  );
+}
+
+function ReviewModal({ booking, profile, supabase, onClose, showToast }) {
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const submit = async (event) => {
+    event.preventDefault();
+    if (!comment.trim()) {
+      showToast("Add a few words about your visit.", { type: "error" });
+      return;
+    }
+    setSubmitting(true);
+    const { error } = await supabase.from("reviews").insert({
+      player_id: profile.id,
+      turf_id: booking.turfId,
+      booking_id: booking.id,
+      rating,
+      comment: comment.trim(),
+    });
+    setSubmitting(false);
+    if (error) {
+      showToast(error.code === "23505" ? "You've already reviewed this booking." : "Couldn't submit your review. Try again.", { type: "error" });
+      return;
+    }
+    showToast("Review submitted. Thanks for sharing your experience.", { type: "success" });
+    onClose();
+  };
+
+  return (
+    <div role="presentation" onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.8)", display: "grid", placeItems: "center", padding: 16 }}>
+      <form role="dialog" aria-modal="true" aria-labelledby="review-title" onSubmit={submit} onClick={e => e.stopPropagation()} style={{ ...panel(true), width: "100%", maxWidth: 460, padding: 24, display: "grid", gap: 16 }}>
+        <div>
+          <h2 id="review-title" style={{ color: V.chalk, fontSize: 22, fontFamily: FONT_DISPLAY, fontWeight: 400 }}>Review {booking.turf}</h2>
+          <p style={{ color: V.chalkFaint, fontSize: 13, marginTop: 4 }}>{booking.date} · {booking.time}</p>
+        </div>
+        <fieldset style={{ border: 0, padding: 0 }}>
+          <legend style={{ color: V.chalkDim, fontSize: 13, marginBottom: 8 }}>Your rating</legend>
+          <div style={{ display: "flex", gap: 8 }}>
+            {[1, 2, 3, 4, 5].map(value => <button key={value} type="button" aria-label={`${value} star${value === 1 ? "" : "s"}`} aria-pressed={rating === value} onClick={() => setRating(value)} style={{ border: 0, background: "transparent", color: value <= rating ? V.flood : V.chalkFaint, fontSize: 26, cursor: "pointer", padding: 2 }}>★</button>)}
+          </div>
+        </fieldset>
+        <label style={{ display: "grid", gap: 7, color: V.chalkDim, fontSize: 13 }}>
+          Your review
+          <textarea value={comment} onChange={e => setComment(e.target.value)} maxLength={1000} rows={4} required style={{ width: "100%", padding: 12, borderRadius: 8, background: V.pitchCardRaised, border: `1px solid ${V.line}`, color: V.chalk, font: `14px ${FONT_BODY}`, resize: "vertical" }} />
+        </label>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+          <button type="button" onClick={onClose} style={buttonStyle("secondary", "sm")}>Cancel</button>
+          <button type="submit" disabled={submitting} style={buttonStyle("primary", "sm")}>{submitting ? "Submitting..." : "Submit review"}</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function DisputeModal({ booking, profile, supabase, onClose, showToast }) {
+  const [category, setCategory] = useState("Facility issue");
+  const [details, setDetails] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const submit = async (event) => {
+    event.preventDefault();
+    if (!details.trim()) {
+      showToast("Describe the issue before submitting.", { type: "error" });
+      return;
+    }
+    setSubmitting(true);
+    const { error } = await supabase.from("disputes").insert({
+      raised_by: profile.id,
+      turf_id: booking.turfId,
+      booking_id: booking.id,
+      issue: `${category}: ${details.trim()}`,
+      amount: booking.price,
+      status: "open",
+    });
+    setSubmitting(false);
+    if (error) {
+      showToast("Couldn't submit your issue. Try again.", { type: "error" });
+      return;
+    }
+    showToast("Issue sent to support.", { type: "success" });
+    onClose();
+  };
+
+  return (
+    <div role="presentation" onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.8)", display: "grid", placeItems: "center", padding: 16 }}>
+      <form role="dialog" aria-modal="true" aria-labelledby="dispute-title" onSubmit={submit} onClick={e => e.stopPropagation()} style={{ ...panel(true), width: "100%", maxWidth: 460, padding: 24, display: "grid", gap: 16 }}>
+        <div>
+          <h2 id="dispute-title" style={{ color: V.chalk, fontSize: 22, fontFamily: FONT_DISPLAY, fontWeight: 400 }}>Report a booking issue</h2>
+          <p style={{ color: V.chalkFaint, fontSize: 13, marginTop: 4 }}>{booking.turf} · {booking.date}</p>
+        </div>
+        <label style={{ display: "grid", gap: 7, color: V.chalkDim, fontSize: 13 }}>
+          Issue type
+          <select value={category} onChange={e => setCategory(e.target.value)} style={{ width: "100%", padding: 12, borderRadius: 8, background: V.pitchCardRaised, border: `1px solid ${V.line}`, color: V.chalk, fontFamily: FONT_BODY }}>
+            {["Facility issue", "Booking or slot", "Payment", "Safety concern", "Other"].map(option => <option key={option}>{option}</option>)}
+          </select>
+        </label>
+        <label style={{ display: "grid", gap: 7, color: V.chalkDim, fontSize: 13 }}>
+          Details
+          <textarea value={details} onChange={e => setDetails(e.target.value)} maxLength={1000} rows={4} required style={{ width: "100%", padding: 12, borderRadius: 8, background: V.pitchCardRaised, border: `1px solid ${V.line}`, color: V.chalk, font: `14px ${FONT_BODY}`, resize: "vertical" }} />
+        </label>
+        <div style={{ color: V.chalkFaint, fontSize: 12 }}>Booking amount: ₹{booking.price}</div>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+          <button type="button" onClick={onClose} style={buttonStyle("secondary", "sm")}>Cancel</button>
+          <button type="submit" disabled={submitting} style={buttonStyle("primary", "sm")}>{submitting ? "Submitting..." : "Send to support"}</button>
+        </div>
+      </form>
     </div>
   );
 }
@@ -934,6 +1068,8 @@ export default function PlayerAppClient({ profile }) {
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState("home");
   const [bookingTurf, setBookingTurf] = useState(null);
+  const [reviewBooking, setReviewBooking] = useState(null);
+  const [disputeBooking, setDisputeBooking] = useState(null);
 
   const [turfs, setTurfs] = useState([]);
   const [turfsLoading, setTurfsLoading] = useState(true);
@@ -1027,8 +1163,10 @@ export default function PlayerAppClient({ profile }) {
     const today = todayStr();
     setMyBookings((data || []).map(b => ({
       id: b.id,
+      turfId: b.turf_id,
       turf: b.turf?.name || "Turf",
       date: b.booking_date === today ? "Today" : b.booking_date,
+      bookingDate: b.booking_date,
       time: fmtTime(b.start_time),
       sport: b.sport,
       price: Number(b.price),
@@ -1239,6 +1377,9 @@ export default function PlayerAppClient({ profile }) {
                   <Icon name="notification" size={15} />
                   {unreadCount > 0 && <span style={{ position: "absolute", top: 6, right: 6, width: 5, height: 5, borderRadius: "50%", background: V.flood }} />}
                 </button>
+                <button onClick={() => router.push("/settings")} aria-label="Account settings" title="Account settings" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, padding: "6px 9px", cursor: "pointer", color: V.chalk, fontSize: 11, fontWeight: 700, fontFamily: FONT_BODY }}>
+                  Account
+                </button>
                 <button onClick={handleSignOut} aria-label="Sign out" title="Sign out" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: V.chalkDim, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Icon name="logout" size={15} />
                 </button>
@@ -1304,9 +1445,9 @@ export default function PlayerAppClient({ profile }) {
                 <button onClick={handleSignOut} title="Sign out" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 36, height: 36, cursor: "pointer", color: V.chalkDim, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Icon name="logout" size={16} />
                 </button>
-                <div title={profile?.full_name || profile?.email} style={{ width: 36, height: 36, borderRadius: 8, background: V.flood, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, color: V.pitch, fontFamily: FONT_BODY }}>
+                <button onClick={() => router.push("/settings")} title="Account settings" aria-label="Account settings" style={{ width: 36, height: 36, borderRadius: 8, background: V.flood, border: "none", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, color: V.pitch, fontFamily: FONT_BODY, cursor: "pointer" }}>
                   {initial}
-                </div>
+                </button>
               </>
             ) : (
               <>
@@ -1388,7 +1529,7 @@ export default function PlayerAppClient({ profile }) {
             : <GuestPrompt icon="🏆" title="Track your rewards" body="Sign up to earn loyalty points on every booking and see where you rank." router={router} />
           )}
           {activeTab === "dashboard" && (profile?.id
-            ? <DashboardSection isLoading={isTabLoading("dashboard")} bookings={myBookings} matchesJoined={matchesJoinedCount} onCancel={handleCancelBooking} />
+            ? <DashboardSection isLoading={isTabLoading("dashboard")} bookings={myBookings} matchesJoined={matchesJoinedCount} onCancel={handleCancelBooking} onReview={setReviewBooking} onDispute={setDisputeBooking} />
             : <GuestPrompt icon="📅" title="Your dashboard lives here" body="Sign up to see your bookings, track spend, and manage upcoming games." router={router} />
           )}
         </main>
@@ -1422,6 +1563,8 @@ export default function PlayerAppClient({ profile }) {
         {bookingTurf && (
           <BookingModal turf={bookingTurf} profile={profile} supabase={supabase} onClose={handleBookingClose} onConfirm={handleBookingConfirmed} showToast={showToast} />
         )}
+        {reviewBooking && <ReviewModal booking={reviewBooking} profile={profile} supabase={supabase} onClose={() => setReviewBooking(null)} showToast={showToast} />}
+        {disputeBooking && <DisputeModal booking={disputeBooking} profile={profile} supabase={supabase} onClose={() => setDisputeBooking(null)} showToast={showToast} />}
 
         {/* Real-time indicator */}
         <div style={{

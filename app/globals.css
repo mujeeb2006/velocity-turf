@@ -26,6 +26,57 @@ input::placeholder {
   color: rgba(245, 247, 242, 0.32);
 }
 
+:focus-visible {
+  outline: 2px solid #d4ff4f;
+  outline-offset: 3px;
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .vt-dashboard-shell {
+    display: block !important;
+  }
+
+  .vt-dashboard-sidebar {
+    width: 100% !important;
+    min-height: auto !important;
+    position: static !important;
+    padding: 12px !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid rgba(245, 247, 242, 0.08) !important;
+  }
+
+  .vt-dashboard-links {
+    flex-direction: row !important;
+    overflow-x: auto;
+    flex: none !important;
+    padding: 4px 0;
+  }
+
+  .vt-dashboard-links button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .vt-dashboard-main {
+    padding: 22px 16px !important;
+  }
+}
+
 @keyframes slideUp {
   from {
     transform: translateY(40px);

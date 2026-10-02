@@ -74,9 +74,9 @@ function Pill({ children, color }) {
   );
 }
 
-function SideNav({ items, active, onSelect, roleLabel, roleColor, userEmail, onSignOut, unreadCount, onBell }) {
+function SideNav({ items, active, onSelect, roleLabel, roleColor, userEmail, onSignOut, onSettings, unreadCount, onBell }) {
   return (
-    <div style={{ width: 232, flexShrink: 0, minHeight: "100vh", position: "sticky", top: 0, ...glass({ background: "rgba(7,13,10,0.92)" }), borderRight: `1px solid ${V.line}`, borderRadius: 0, padding: "24px 16px", display: "flex", flexDirection: "column" }}>
+    <div className="vt-dashboard-sidebar" style={{ width: 232, flexShrink: 0, minHeight: "100vh", position: "sticky", top: 0, ...glass({ background: "rgba(7,13,10,0.92)" }), borderRight: `1px solid ${V.line}`, borderRadius: 0, padding: "24px 16px", display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 8px", marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 34, height: 34, borderRadius: 10, background: V.flood, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>⚡</div>
@@ -98,7 +98,7 @@ function SideNav({ items, active, onSelect, roleLabel, roleColor, userEmail, onS
         <div style={{ color: V.chalkFaint, fontSize: 11.5, padding: "0 4px", marginBottom: 20, wordBreak: "break-all" }}>{userEmail}</div>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+      <div className="vt-dashboard-links" style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
         {items.map(it => (
           <button key={it.id} onClick={() => onSelect(it.id)} style={{
             display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 12,
@@ -114,6 +114,11 @@ function SideNav({ items, active, onSelect, roleLabel, roleColor, userEmail, onS
         ))}
       </div>
 
+      <button onClick={onSettings} style={{
+        display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 12,
+        background: "transparent", border: `1px solid ${V.line}`,
+        color: V.chalkDim, cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: font, marginBottom: 8,
+      }}>Account settings</button>
       <button onClick={onSignOut} style={{
         display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 12,
         background: V.pitchCardRaised, border: `1px solid ${V.line}`,
@@ -311,8 +316,8 @@ export default function AdminDashboardClient({ profile }) {
   ];
 
   return (
-    <div style={{ display: "flex", position: "relative" }}>
-      <SideNav items={items} active={tab} onSelect={setTab} roleLabel="ADMIN CONSOLE" roleColor={COLORS.purple} userEmail={profile?.email} onSignOut={handleSignOut} unreadCount={unreadCount} onBell={toggleNotifications} />
+    <div className="vt-dashboard-shell" style={{ display: "flex", position: "relative" }}>
+      <SideNav items={items} active={tab} onSelect={setTab} roleLabel="ADMIN CONSOLE" roleColor={COLORS.purple} userEmail={profile?.email} onSignOut={handleSignOut} onSettings={() => router.push("/settings")} unreadCount={unreadCount} onBell={toggleNotifications} />
 
       {showNotifications && (
         <>
@@ -344,7 +349,7 @@ export default function AdminDashboardClient({ profile }) {
         </>
       )}
 
-      <div style={{ flex: 1, padding: "32px 36px" }}>
+      <div className="vt-dashboard-main" style={{ flex: 1, minWidth: 0, padding: "32px 36px" }}>
         {tab === "overview" && (
           <>
             <TopBar title={`Welcome, ${profile?.full_name || "Admin"}`} sub="Platform overview across all cities" />

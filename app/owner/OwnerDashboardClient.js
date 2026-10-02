@@ -79,9 +79,9 @@ function Pill({ children, color }) {
   );
 }
 
-function SideNav({ items, active, onSelect, userEmail, onSignOut, unreadCount, onBell }) {
+function SideNav({ items, active, onSelect, userEmail, onSignOut, onSettings, unreadCount, onBell }) {
   return (
-    <div style={{ width: 232, flexShrink: 0, minHeight: "100vh", position: "sticky", top: 0, ...glass({ background: "rgba(7,13,10,0.92)" }), borderRight: `1px solid ${V.line}`, borderRadius: 0, padding: "24px 16px", display: "flex", flexDirection: "column" }}>
+    <div className="vt-dashboard-sidebar" style={{ width: 232, flexShrink: 0, minHeight: "100vh", position: "sticky", top: 0, ...glass({ background: "rgba(7,13,10,0.92)" }), borderRight: `1px solid ${V.line}`, borderRadius: 0, padding: "24px 16px", display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 8px", marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 34, height: 34, borderRadius: 10, background: V.flood, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>⚡</div>
@@ -103,7 +103,7 @@ function SideNav({ items, active, onSelect, userEmail, onSignOut, unreadCount, o
         <div style={{ color: V.chalkFaint, fontSize: 11.5, padding: "0 4px", marginBottom: 20, wordBreak: "break-all" }}>{userEmail}</div>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+      <div className="vt-dashboard-links" style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
         {items.map(it => (
           <button key={it.id} onClick={() => onSelect(it.id)} style={{
             display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 12,
@@ -119,6 +119,11 @@ function SideNav({ items, active, onSelect, userEmail, onSignOut, unreadCount, o
         ))}
       </div>
 
+      <button onClick={onSettings} style={{
+        display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 12,
+        background: "transparent", border: `1px solid ${V.line}`,
+        color: V.chalkDim, cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: font, marginBottom: 8,
+      }}>Account settings</button>
       <button onClick={onSignOut} style={{
         display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 12,
         background: V.pitchCardRaised, border: `1px solid ${V.line}`,
@@ -142,21 +147,6 @@ function TopBar({ title, sub, action }) {
     </div>
   );
 }
-
-// ---- Mock data (swap for real Supabase queries once turfs/bookings tables exist) ----
-const INITIAL_REQUESTS = [
-  { id: 1, turf: "Arena Nova", user: "Rahul M.", date: "Today", time: "6:00 PM", amount: 1440, note: "Football, 10 players" },
-  { id: 2, turf: "Arena Nova 2 (Indoor)", user: "Priya S.", date: "Tomorrow", time: "8:00 AM", amount: 960, note: "Basketball, 6 players" },
-];
-const PAYOUTS = [
-  { id: "PO-1042", period: "16–22 Jul 2026", amount: 48200, status: "paid" },
-  { id: "PO-1035", period: "9–15 Jul 2026", amount: 41750, status: "paid" },
-  { id: "PO-1028", period: "23–29 Jul 2026", amount: 52640, status: "processing" },
-];
-const OWNER_REVIEWS = [
-  { user: "Rahul M.", turf: "Arena Nova", rating: 5, text: "Great lights, well maintained pitch." },
-  { user: "Sneha P.", turf: "Arena Nova 2", rating: 4, text: "Good, but parking was full at peak time." },
-];
 
 // ============================================================
 // ADD TURF MODAL
@@ -414,7 +404,12 @@ export default function OwnerDashboardClient({ profile }) {
   const supabase = createClient();
   const { showToast } = useToast();
   const [tab, setTab] = useState("overview");
-  const [requests, setRequests] = useState(INITIAL_REQUESTS);
+  const [requests, setRequests] = useState([]);
+  const [requestsLoading, setRequestsLoading] = useState(true);
+  const [respondingId, setRespondingId] = useState(null);
+  const [payouts, setPayouts] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [ownerRecordsLoading, setOwnerRecordsLoading] = useState(true);
   const [loadedTabs, setLoadedTabs] = useState(() => new Set(["overview"]));
 
   const [turfs, setTurfs] = useState([]);
@@ -497,13 +492,93 @@ export default function OwnerDashboardClient({ profile }) {
     setTurfsLoading(false);
   }
 
+  async function fetchRequests() {
+    if (!profile?.id) { setRequestsLoading(false); return; }
+    const { data: ownedTurfs, error: turfsError } = await supabase
+      .from("turfs")
+      .select("id")
+      .eq("owner_id", profile.id);
+    if (turfsError) {
+      showToast("Couldn't load booking requests.", { type: "error" });
+      setRequestsLoading(false);
+      return;
+    }
+
+    const turfIds = (ownedTurfs || []).map(t => t.id);
+    if (!turfIds.length) {
+      setRequests([]);
+      setRequestsLoading(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("bookings")
+      .select("id, turf_id, booking_date, start_time, sport, players_count, price, turf:turfs(name), player:profiles!bookings_player_id_fkey(full_name)")
+      .in("turf_id", turfIds)
+      .eq("status", "pending")
+      .order("booking_date", { ascending: true });
+    if (error) {
+      showToast("Couldn't load booking requests.", { type: "error" });
+      setRequestsLoading(false);
+      return;
+    }
+
+    const today = todayStr();
+    setRequests((data || []).map(b => ({
+      id: b.id,
+      turf: b.turf?.name || "Turf",
+      user: b.player?.full_name || "Player",
+      date: b.booking_date === today ? "Today" : new Date(`${b.booking_date}T00:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+      time: fmtTime(b.start_time),
+      amount: Number(b.price),
+      note: `${b.sport}${b.players_count ? `, ${b.players_count} players` : ""}`,
+    })));
+    setRequestsLoading(false);
+  }
+
+  async function fetchOwnerRecords() {
+    if (!profile?.id) { setOwnerRecordsLoading(false); return; }
+    const { data: ownedTurfs, error: turfsError } = await supabase
+      .from("turfs")
+      .select("id, name")
+      .eq("owner_id", profile.id);
+    if (turfsError) {
+      showToast("Couldn't load owner records.", { type: "error" });
+      setOwnerRecordsLoading(false);
+      return;
+    }
+
+    const turfIds = (ownedTurfs || []).map(t => t.id);
+    const [payoutsResult, reviewsResult] = await Promise.all([
+      supabase.from("payouts").select("*").eq("owner_id", profile.id),
+      turfIds.length
+        ? supabase.from("reviews").select("*").in("turf_id", turfIds)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
+    if (payoutsResult.error) showToast("Couldn't load payouts.", { type: "error" });
+    if (reviewsResult.error) showToast("Couldn't load reviews.", { type: "error" });
+
+    const turfNames = Object.fromEntries((ownedTurfs || []).map(t => [t.id, t.name]));
+    setPayouts((payoutsResult.data || []).slice().sort((a, b) => (b.created_at || "").localeCompare(a.created_at || "")));
+    setReviews((reviewsResult.data || []).map(review => ({
+      ...review,
+      turf: turfNames[review.turf_id] || "Turf",
+      user: "Player",
+      text: review.comment || review.review_text || review.text || "",
+    })).sort((a, b) => (b.created_at || "").localeCompare(a.created_at || "")));
+    setOwnerRecordsLoading(false);
+  }
+
   useEffect(() => {
     fetchTurfs();
+    fetchRequests();
+    fetchOwnerRecords();
     fetchNotifications();
 
     const channel = supabase
       .channel("owner-notifications")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${profile?.id}` }, () => fetchNotifications())
+      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => fetchRequests())
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -516,7 +591,7 @@ export default function OwnerDashboardClient({ profile }) {
     return () => clearTimeout(t);
   }, [tab, loadedTabs]);
 
-  const isLoading = !loadedTabs.has(tab) || (tab === "overview" && turfsLoading) || (tab === "turfs" && turfsLoading);
+  const isLoading = !loadedTabs.has(tab) || (tab === "overview" && (turfsLoading || requestsLoading)) || (tab === "turfs" && turfsLoading) || (tab === "requests" && requestsLoading) || (["payouts", "reviews"].includes(tab) && ownerRecordsLoading);
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -524,15 +599,24 @@ export default function OwnerDashboardClient({ profile }) {
     router.refresh();
   }
 
-  const respond = (id, action) => {
+  const respond = async (id, action) => {
     const req = requests.find(r => r.id === id);
-    setRequests(prev => prev.filter(r => r.id !== id));
-    if (req) {
-      showToast(
-        action === "accept" ? `Accepted ${req.user}'s booking for ${req.turf}` : `Declined ${req.user}'s booking for ${req.turf}`,
-        { type: action === "accept" ? "success" : "info" }
-      );
+    if (!req || respondingId) return;
+    setRespondingId(id);
+    const { error } = await supabase.from("bookings")
+      .update({ status: action === "accept" ? "confirmed" : "declined" })
+      .eq("id", id)
+      .eq("status", "pending");
+    setRespondingId(null);
+    if (error) {
+      showToast("Couldn't update that booking request. Try again.", { type: "error" });
+      return;
     }
+    setRequests(prev => prev.filter(r => r.id !== id));
+    showToast(
+      action === "accept" ? `Accepted ${req.user}'s booking for ${req.turf}` : `Declined ${req.user}'s booking for ${req.turf}`,
+      { type: action === "accept" ? "success" : "info" }
+    );
   };
 
   const items = [
@@ -547,8 +631,8 @@ export default function OwnerDashboardClient({ profile }) {
   const avgRating = turfs.length ? (turfs.reduce((s, t) => s + Number(t.rating || 0), 0) / turfs.length).toFixed(1) : "—";
 
   return (
-    <div style={{ display: "flex", position: "relative" }}>
-      <SideNav items={items} active={tab} onSelect={setTab} userEmail={profile?.email} onSignOut={handleSignOut} unreadCount={unreadCount} onBell={toggleNotifications} />
+    <div className="vt-dashboard-shell" style={{ display: "flex", position: "relative" }}>
+      <SideNav items={items} active={tab} onSelect={setTab} userEmail={profile?.email} onSignOut={handleSignOut} onSettings={() => router.push("/settings")} unreadCount={unreadCount} onBell={toggleNotifications} />
 
       {showNotifications && (
         <>
@@ -580,7 +664,7 @@ export default function OwnerDashboardClient({ profile }) {
         </>
       )}
 
-      <div style={{ flex: 1, padding: "32px 36px" }}>
+      <div className="vt-dashboard-main" style={{ flex: 1, minWidth: 0, padding: "32px 36px" }}>
         {tab === "overview" && (
           <>
             <TopBar title={`Welcome back, ${profile?.full_name || "Owner"}`} sub="Here's how your turfs are doing" action={
@@ -759,15 +843,17 @@ export default function OwnerDashboardClient({ profile }) {
                   <span key={h} style={{ color: V.chalkFaint, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6 }}>{h}</span>
                 ))}
               </div>
-              {PAYOUTS.map((p, i) => (
-                <div key={p.id} style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr 1fr 0.8fr", alignItems: "center", padding: "16px 20px", borderBottom: i < PAYOUTS.length - 1 ? `1px solid ${V.line}` : "none", transition: "background 0.2s" }}
+              {payouts.length === 0 ? (
+                <div style={{ padding: 28, textAlign: "center", color: V.chalkFaint, fontSize: 13 }}>No payout records yet.</div>
+              ) : payouts.map((p, i) => (
+                <div key={p.id || p.payout_id || i} style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr 1fr 0.8fr", alignItems: "center", padding: "16px 20px", borderBottom: i < payouts.length - 1 ? `1px solid ${V.line}` : "none", transition: "background 0.2s" }}
                   onMouseEnter={e => e.currentTarget.style.background = V.pitchCardRaised}
                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                 >
-                  <span style={{ color: V.chalkDim, fontFamily: mono, fontSize: 13 }}>{p.id}</span>
-                  <span style={{ color: V.chalk, fontSize: 13.5 }}>{p.period}</span>
-                  <span style={{ color: V.chalk, fontFamily: mono, fontWeight: 700, fontSize: 13.5 }}>₹{p.amount.toLocaleString()}</span>
-                  <Pill color={p.status === "paid" ? COLORS.pitchGreen : COLORS.energyOrange}>{p.status}</Pill>
+                  <span style={{ color: V.chalkDim, fontFamily: mono, fontSize: 13 }}>{p.payout_id || p.id || "—"}</span>
+                  <span style={{ color: V.chalk, fontSize: 13.5 }}>{p.period || [p.period_start, p.period_end].filter(Boolean).join(" – ") || "—"}</span>
+                  <span style={{ color: V.chalk, fontFamily: mono, fontWeight: 700, fontSize: 13.5 }}>₹{Number(p.amount || 0).toLocaleString()}</span>
+                  <Pill color={p.status === "paid" ? COLORS.pitchGreen : COLORS.energyOrange}>{p.status || "pending"}</Pill>
                 </div>
               ))}
             </div>
@@ -782,12 +868,12 @@ export default function OwnerDashboardClient({ profile }) {
               <div style={{ display: "grid", gap: 14 }}>
                 {[...Array(2)].map((_, i) => <SkeletonCard key={i} lines={2} />)}
               </div>
-            ) : OWNER_REVIEWS.length === 0 ? (
+            ) : reviews.length === 0 ? (
               <EmptyState icon="💬" title="No reviews yet" subtitle="Reviews from players will appear here after their first booking." />
             ) : (
             <div style={{ display: "grid", gap: 14 }}>
-              {OWNER_REVIEWS.map((r, i) => (
-                <div key={i} style={{ ...glass(), borderRadius: 16, padding: 18, transition: "border-color 0.2s" }}
+              {reviews.map((r, i) => (
+                <div key={r.id || i} style={{ ...glass(), borderRadius: 16, padding: 18, transition: "border-color 0.2s" }}
                   onMouseEnter={e => e.currentTarget.style.borderColor = V.line}
                   onMouseLeave={e => e.currentTarget.style.borderColor = V.line}
                 >

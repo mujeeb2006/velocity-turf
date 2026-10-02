@@ -11,17 +11,21 @@ create table if not exists public.profiles (
 
 alter table public.profiles enable row level security;
 
--- Anyone can read/update their own profile.
+-- Users can read their own profile and edit their name, but cannot change roles.
 create policy "Profiles are viewable by owner"
   on public.profiles for select
   using (auth.uid() = id);
 
+drop policy if exists "Profiles are editable by owner" on public.profiles;
 create policy "Profiles are editable by owner"
   on public.profiles for update
   using (auth.uid() = id);
 
+revoke update on public.profiles from authenticated;
+grant update (full_name) on public.profiles to authenticated;
+
 -- 2. Auto-create a profile row whenever someone signs up.
--- Reads full_name/role passed in from the signup form's options.data.
+-- Public signups always receive the player role; client metadata cannot assign roles.
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -33,7 +37,7 @@ begin
     new.id,
     new.email,
     coalesce(new.raw_user_meta_data->>'full_name', ''),
-    coalesce(new.raw_user_meta_data->>'role', 'player')
+    'player'
   );
   return new;
 end;
@@ -44,8 +48,7 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
--- 3. To create your first admin account:
---    a) Sign up normally through the app (as a player or owner).
---    b) Then run this, swapping in that user's email:
+-- 3. To provision the first admin account, sign up through the public form,
+--    then run this statement manually from the trusted Supabase SQL Editor:
 --
 -- update public.profiles set role = 'admin' where email = 'you@example.com';

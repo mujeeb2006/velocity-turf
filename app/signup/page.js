@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import AuthShell from "../auth-shell";
-import { inputStyle, buttonStyle, errorStyle, linkStyle, roleStyle, roleActiveStyle } from "../auth-styles";
+import { inputStyle, buttonStyle, errorStyle, linkStyle } from "../auth-styles";
 
 export default function SignupPage() {
   const supabase = createClient();
@@ -13,7 +13,7 @@ export default function SignupPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("player");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
@@ -21,6 +21,10 @@ export default function SignupPage() {
   async function handleSignup(e) {
     e.preventDefault();
     setError("");
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
     setLoading(true);
 
     const { data, error } = await supabase.auth.signUp({
@@ -35,13 +39,6 @@ export default function SignupPage() {
       setLoading(false);
       setError(error.message);
       return;
-    }
-
-    if (data?.user) {
-      await supabase
-        .from("profiles")
-        .update({ role, full_name: fullName })
-        .eq("id", data.user.id);
     }
 
     setLoading(false);
@@ -69,59 +66,59 @@ export default function SignupPage() {
   }
 
   return (
-    <AuthShell title="Create account" subtitle="Sign up for Velocity Turf">
-      {error && <div style={errorStyle}>{error}</div>}
+    <AuthShell title="Join as a player" subtitle="Create your player account to find and book a pitch">
+      {error && <div role="alert" style={{ ...errorStyle, marginBottom: 18 }}>{error}</div>}
 
-      <form onSubmit={handleSignup}>
+      <form onSubmit={handleSignup} style={{ display: "grid", gap: 14 }}>
         <input
           type="text"
+          aria-label="Full name"
           placeholder="Full name"
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
           required
-          style={inputStyle}
+          autoComplete="name"
+          style={{ ...inputStyle, width: "100%", minHeight: 48, borderRadius: 10, padding: "13px 15px" }}
         />
         <input
           type="email"
+          aria-label="Email"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          style={inputStyle}
+          autoComplete="email"
+          style={{ ...inputStyle, width: "100%", minHeight: 48, borderRadius: 10, padding: "13px 15px" }}
         />
         <input
           type="password"
-          placeholder="Password (min 6 characters)"
+          aria-label="Password"
+          placeholder="Password (at least 6 characters)"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
           minLength={6}
-          style={inputStyle}
+          autoComplete="new-password"
+          style={{ ...inputStyle, width: "100%", minHeight: 48, borderRadius: 10, padding: "13px 15px" }}
+        />
+        <input
+          type="password"
+          aria-label="Confirm password"
+          placeholder="Confirm password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          required
+          minLength={6}
+          autoComplete="new-password"
+          style={{ ...inputStyle, width: "100%", minHeight: 48, borderRadius: 10, padding: "13px 15px" }}
         />
 
-        <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-          <button
-            type="button"
-            onClick={() => setRole("player")}
-            style={role === "player" ? roleActiveStyle : roleStyle}
-          >
-            Player
-          </button>
-          <button
-            type="button"
-            onClick={() => setRole("owner")}
-            style={role === "owner" ? roleActiveStyle : roleStyle}
-          >
-            Turf owner
-          </button>
-        </div>
-
-        <button type="submit" disabled={loading} style={buttonStyle}>
-          {loading ? "Creating account…" : "Sign up"}
+        <button type="submit" disabled={loading} style={{ ...buttonStyle, width: "100%", minHeight: 50, marginTop: 4, borderRadius: 10, fontSize: 15 }}>
+          {loading ? "Creating account…" : "Sign Up"}
         </button>
       </form>
 
-      <p style={{ color: "rgba(245,247,242,0.4)", fontSize: 13.5, marginTop: 22, textAlign: "center", fontFamily: "'Manrope', sans-serif" }}>
+      <p style={{ color: "rgba(245,247,242,0.52)", fontSize: 13.5, lineHeight: 1.6, marginTop: 22, textAlign: "center", fontFamily: "'Manrope', sans-serif" }}>
         Already have an account?{" "}
         <Link href="/login" style={linkStyle}>
           Sign in

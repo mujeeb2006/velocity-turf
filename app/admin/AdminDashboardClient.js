@@ -158,6 +158,11 @@ export default function AdminDashboardClient({ profile }) {
   const [dataLoading, setDataLoading] = useState(true);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showOwnerForm, setShowOwnerForm] = useState(false);
+  const [ownerName, setOwnerName] = useState("");
+  const [ownerEmail, setOwnerEmail] = useState("");
+  const [ownerError, setOwnerError] = useState("");
+  const [creatingOwner, setCreatingOwner] = useState(false);
 
   async function fetchNotifications() {
     if (!profile?.id) return;
@@ -272,6 +277,28 @@ export default function AdminDashboardClient({ profile }) {
     await supabase.auth.signOut();
     router.push("/login");
     router.refresh();
+  }
+
+  async function handleCreateOwner(event) {
+    event.preventDefault();
+    setOwnerError("");
+    setCreatingOwner(true);
+    const response = await fetch("/api/admin/owners", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fullName: ownerName, email: ownerEmail }),
+    });
+    const result = await response.json();
+    setCreatingOwner(false);
+    if (!response.ok) {
+      setOwnerError(result.error || "Could not send the invitation.");
+      return;
+    }
+    setOwnerName("");
+    setOwnerEmail("");
+    setShowOwnerForm(false);
+    showToast("Owner invitation sent.", { type: "success" });
+    fetchAll();
   }
 
   const decideTurf = async (id, decision) => {
@@ -500,11 +527,33 @@ export default function AdminDashboardClient({ profile }) {
         {tab === "users" && (
           <>
             <TopBar title="Users" sub={`${users.length.toLocaleString()} accounts shown`} action={
-              <div style={{ display: "flex", alignItems: "center", gap: 8, background: V.pitchCardRaised, border: `1px solid ${V.line}`, borderRadius: 12, padding: "8px 14px" }}>
-                <Icon name="search" size={14} color={V.chalkDim} />
-                <input placeholder="Search users..." style={{ background: "none", border: "none", outline: "none", color: V.chalk, fontSize: 13, fontFamily: font }} />
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, background: V.pitchCardRaised, border: `1px solid ${V.line}`, borderRadius: 10, padding: "8px 14px" }}>
+                  <Icon name="search" size={14} color={V.chalkDim} />
+                  <input placeholder="Search users..." style={{ background: "none", border: "none", outline: "none", color: V.chalk, fontSize: 13, fontFamily: font }} />
+                </div>
+                <button type="button" onClick={() => { setShowOwnerForm(value => !value); setOwnerError(""); }} style={{ background: V.flood, color: V.pitch, border: 0, borderRadius: 9, padding: "10px 14px", fontSize: 12.5, fontWeight: 800, fontFamily: font, cursor: "pointer" }}>
+                  Invite owner
+                </button>
               </div>
             } />
+            {showOwnerForm && (
+              <form onSubmit={handleCreateOwner} style={{ ...glass(), borderRadius: 12, padding: 18, marginBottom: 18, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", alignItems: "end", gap: 12 }}>
+                <label style={{ color: V.chalkDim, fontSize: 12, display: "grid", gap: 7 }}>
+                  Full name
+                  <input required value={ownerName} onChange={event => setOwnerName(event.target.value)} autoComplete="name" style={{ background: V.pitchCardRaised, border: `1px solid ${V.line}`, borderRadius: 8, padding: "11px 12px", color: V.chalk, font: `13px ${font}`, minWidth: 0 }} />
+                </label>
+                <label style={{ color: V.chalkDim, fontSize: 12, display: "grid", gap: 7 }}>
+                  Email
+                  <input required type="email" value={ownerEmail} onChange={event => setOwnerEmail(event.target.value)} autoComplete="email" style={{ background: V.pitchCardRaised, border: `1px solid ${V.line}`, borderRadius: 8, padding: "11px 12px", color: V.chalk, font: `13px ${font}`, minWidth: 0 }} />
+                </label>
+                <button type="submit" disabled={creatingOwner} style={{ background: V.flood, color: V.pitch, border: 0, borderRadius: 8, minHeight: 40, padding: "10px 14px", fontSize: 12.5, fontWeight: 800, fontFamily: font, cursor: creatingOwner ? "wait" : "pointer" }}>
+                  {creatingOwner ? "Sending…" : "Send invitation"}
+                </button>
+                {ownerError && <p role="alert" style={{ gridColumn: "1 / -1", color: V.danger, fontSize: 12, margin: 0 }}>{ownerError}</p>}
+                <p style={{ gridColumn: "1 / -1", color: V.chalkFaint, fontSize: 12, margin: 0 }}>The invited account receives the owner role automatically and sets its password from the invitation email.</p>
+              </form>
+            )}
             {isLoading ? (
               <div style={{ ...glass(), borderRadius: 18, overflow: "hidden" }}>
                 {[...Array(4)].map((_, i) => <SkeletonRow key={i} columns={5} />)}

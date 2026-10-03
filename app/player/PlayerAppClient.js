@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { validateBookingRequest } from "@/lib/booking/validation";
+import { canSubmitBooking } from "@/lib/booking/policy";
 import { useToast } from "@/components/ui/toast";
 import { SkeletonGrid, SkeletonCard, Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -238,7 +240,8 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast }
   const [step, setStep] = useState(1); // 1: slot, 2: confirm, 3: success
   const [timer, setTimer] = useState(600);
   const [submitting, setSubmitting] = useState(false);
-  const price = turf ? calcPrice(turf, turf.occupancy) : 0;
+  const [bookingPrice, setBookingPrice] = useState(null);
+  const price = bookingPrice ?? (turf ? calcPrice(turf, turf.occupancy) : 0);
   const points = Math.floor(price * 0.1);
 
   useEffect(() => {
@@ -253,20 +256,30 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast }
   const formatTimer = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
 
   const handlePay = async () => {
-    if (selectedSlot === null || !profile?.id) return;
+    const validation = validateBookingRequest({ profile, turf, selectedSlot });
+    const policyValidation = canSubmitBooking({ profile, turf, selectedSlot });
+
+    if (!validation.ok || !policyValidation.ok) {
+      const message = validation.error || policyValidation.error || "Booking unavailable.";
+      showToast(message, { type: "error" });
+      if (message.includes("just taken") || message.includes("no longer available")) {
+        setStep(1);
+      }
+      return;
+    }
+
     setSubmitting(true);
-    const slot = turf.slots[selectedSlot];
-    const { error } = await supabase.from("bookings").insert({
+    const slot = policyValidation.slot;
+    const { data, error } = await supabase.from("bookings").insert({
       turf_id: turf.id,
       player_id: profile.id,
       booking_date: todayStr(),
       start_time: slot.raw_time,
       sport: turf.sports[0],
       players_count: 1,
-      price,
-      status: "pending",
-    });
+    }).select("price").single();
     setSubmitting(false);
+
     if (error) {
       if (error.code === "23505") {
         showToast("That slot was just taken — pick another.", { type: "error" });
@@ -276,6 +289,9 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast }
       }
       return;
     }
+
+    const finalPrice = Number(data?.price ?? price);
+    setBookingPrice(finalPrice);
     setStep(3);
   };
 
@@ -986,8 +1002,6 @@ function DisputeModal({ booking, profile, supabase, onClose, showToast }) {
       turf_id: booking.turfId,
       booking_id: booking.id,
       issue: `${category}: ${details.trim()}`,
-      amount: booking.price,
-      status: "open",
     });
     setSubmitting(false);
     if (error) {
@@ -1067,6 +1081,7 @@ export default function PlayerAppClient({ profile }) {
   const [matchesJoinedCount, setMatchesJoinedCount] = useState(0);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [joinedMatchIds, setJoinedMatchIds] = useState(new Set());
 
@@ -1096,7 +1111,7 @@ export default function PlayerAppClient({ profile }) {
   async function fetchMatches() {
     const { data, error } = await supabase
       .from("matches")
-      .select("*, turf:turfs(name), match_participants(count)")
+      .select("*, turf:turfs(name)")
       .in("status", ["open", "full"])
       .order("match_date", { ascending: true });
     if (error) {
@@ -1112,7 +1127,7 @@ export default function PlayerAppClient({ profile }) {
       turf_id: m.turf_id,
       time: fmtTime(m.start_time),
       date: m.match_date === today ? "Today" : m.match_date,
-      players: m.match_participants?.[0]?.count ?? 0,
+      players: m.participant_count,
       max: m.max_players,
       skill: m.skill_level,
     })));
@@ -1174,7 +1189,10 @@ export default function PlayerAppClient({ profile }) {
       .eq("user_id", profile.id)
       .order("created_at", { ascending: false })
       .limit(20);
-    if (!error) setNotifications(data || []);
+    if (!error) {
+      setNotifications(data || []);
+      setLastSyncedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
+    }
   }
 
   async function fetchJoinedMatches() {
@@ -1188,13 +1206,26 @@ export default function PlayerAppClient({ profile }) {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
+  const handleMarkAllRead = async () => {
+    if (!profile?.id || unreadCount === 0) return;
+    const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+    if (!unreadIds.length) return;
+
+    const { error } = await supabase.from("notifications").update({ read: true }).in("id", unreadIds);
+    if (error) {
+      showToast("Couldn't mark notifications as read.", { type: "error" });
+      return;
+    }
+
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setLastSyncedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
+  };
+
   const toggleNotifications = async () => {
     const opening = !showNotifications;
     setShowNotifications(opening);
     if (opening && unreadCount > 0) {
-      const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
-      await supabase.from("notifications").update({ read: true }).in("id", unreadIds);
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      await handleMarkAllRead();
     }
   };
 
@@ -1238,10 +1269,17 @@ export default function PlayerAppClient({ profile }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => {
         fetchTurfs();
         fetchMyBookings();
+        fetchNotifications();
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, () => fetchMatches())
       .on("postgres_changes", { event: "*", schema: "public", table: "match_participants" }, () => { fetchMatches(); fetchJoinedMatches(); })
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, () => fetchNotifications())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${profile?.id}` }, (payload) => {
+        fetchNotifications();
+        if (payload?.new?.title && !showNotifications) {
+          showToast(`${payload.new.title} — live update`, { type: "info" });
+        }
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "notifications", filter: `user_id=eq.${profile?.id}` }, () => fetchNotifications())
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -1360,7 +1398,11 @@ export default function PlayerAppClient({ profile }) {
               <>
                 <button onClick={toggleNotifications} aria-label="Notifications" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: V.chalk, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
                   <Icon name="notification" size={15} />
-                  {unreadCount > 0 && <span style={{ position: "absolute", top: 6, right: 6, width: 5, height: 5, borderRadius: "50%", background: V.flood }} />}
+                  {unreadCount > 0 && (
+                    <span style={{ position: "absolute", top: -2, right: -2, minWidth: 14, height: 14, padding: "0 4px", borderRadius: 999, background: V.flood, color: V.pitch, fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
                 </button>
                 <button onClick={() => router.push("/settings")} aria-label="Account settings" title="Account settings" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, padding: "6px 9px", cursor: "pointer", color: V.chalk, fontSize: 11, fontWeight: 700, fontFamily: FONT_BODY }}>
                   Account
@@ -1425,7 +1467,11 @@ export default function PlayerAppClient({ profile }) {
               <>
                 <button onClick={toggleNotifications} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 36, height: 36, cursor: "pointer", color: V.chalk, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
                   <Icon name="notification" size={16} />
-                  {unreadCount > 0 && <span style={{ position: "absolute", top: 7, right: 7, width: 6, height: 6, borderRadius: "50%", background: V.flood }} />}
+                  {unreadCount > 0 && (
+                    <span style={{ position: "absolute", top: -2, right: -2, minWidth: 15, height: 15, padding: "0 4px", borderRadius: 999, background: V.flood, color: V.pitch, fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
                 </button>
                 <button onClick={handleSignOut} title="Sign out" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 36, height: 36, cursor: "pointer", color: V.chalkDim, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Icon name="logout" size={16} />
@@ -1454,8 +1500,19 @@ export default function PlayerAppClient({ profile }) {
               background: V.pitchCard, border: `1px solid ${V.line}`, borderRadius: 14,
               boxShadow: "0 20px 60px rgba(0,0,0,0.5)", zIndex: 1000,
             }}>
-              <div style={{ padding: "14px 16px", borderBottom: `1px solid ${V.line}`, fontWeight: 700, fontSize: 13, color: V.chalk, fontFamily: FONT_BODY }}>
-                Notifications
+              <div style={{ padding: "14px 16px", borderBottom: `1px solid ${V.line}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: V.chalk, fontFamily: FONT_BODY }}>Notifications</div>
+                  <div style={{ marginTop: 3, fontSize: 10.5, color: V.chalkFaint, fontFamily: FONT_BODY }}>
+                    {unreadCount > 0 ? `${unreadCount} unread` : "All caught up"}
+                    {lastSyncedAt ? ` · Live ${lastSyncedAt}` : " · Syncing..."}
+                  </div>
+                </div>
+                {unreadCount > 0 && (
+                  <button onClick={handleMarkAllRead} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 999, color: V.chalkDim, padding: "6px 10px", cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: FONT_BODY }}>
+                    Mark all read
+                  </button>
+                )}
               </div>
               {notifications.length === 0 ? (
                 <div style={{ padding: "28px 16px", textAlign: "center", color: V.chalkFaint, fontSize: 13, fontFamily: FONT_BODY }}>
@@ -1464,7 +1521,10 @@ export default function PlayerAppClient({ profile }) {
               ) : (
                 notifications.map(n => (
                   <div key={n.id} style={{ padding: "12px 16px", borderBottom: `1px solid ${V.line}`, background: n.read ? "transparent" : V.floodDim }}>
-                    <div style={{ color: V.chalk, fontWeight: 700, fontSize: 13, fontFamily: FONT_BODY, marginBottom: 3 }}>{n.title}</div>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center" }}>
+                      <div style={{ color: V.chalk, fontWeight: 700, fontSize: 13, fontFamily: FONT_BODY, marginBottom: 3 }}>{n.title}</div>
+                      {!n.read && <span style={{ width: 7, height: 7, borderRadius: "50%", background: V.flood, display: "inline-block" }} />}
+                    </div>
                     {n.body && <div style={{ color: V.chalkDim, fontSize: 12.5, fontFamily: FONT_BODY, lineHeight: 1.4 }}>{n.body}</div>}
                     <div style={{ color: V.chalkFaint, fontSize: 10.5, marginTop: 4, fontFamily: FONT_BODY }}>
                       {new Date(n.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}

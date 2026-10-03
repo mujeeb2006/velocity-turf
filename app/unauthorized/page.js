@@ -1,14 +1,14 @@
 import { redirect } from "next/navigation";
-import { getProfile } from "@/lib/supabase/server";
-import AuthShell from "../auth-shell";
 import Link from "next/link";
+import { getProfile } from "@/lib/supabase/server";
+import { getPortalHome } from "@/lib/auth/guards";
+import AuthShell from "../auth-shell";
 
 export default async function UnauthorizedPage() {
   const profile = await getProfile();
   if (!profile) redirect("/login");
 
-  const homeByRole = { admin: "/admin", owner: "/owner", player: "/player" };
-  const home = homeByRole[profile.role] || "/player";
+  const home = getPortalHome(profile);
 
   return (
     <AuthShell title="Wrong portal" subtitle={`Your account is registered as a ${profile.role}`}>

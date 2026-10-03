@@ -10,8 +10,8 @@ Auth and accounts are handled by **Supabase** (free tier is enough). Hosting is 
 
 > Booking requests, owner payout/review records, player reviews, and disputes use
 > Supabase queries. Checkout is still a demo flow and does not process payments.
-> The checked-in `supabase/schema.sql` only bootstraps profiles and auth; the
-> marketplace tables and their RLS policies must also exist in your Supabase project.
+> `supabase/schema.sql` creates the marketplace tables and their row-level security
+> policies for a new Supabase project.
 
 ---
 
@@ -19,9 +19,9 @@ Auth and accounts are handled by **Supabase** (free tier is enough). Hosting is 
 
 1. Go to [supabase.com](https://supabase.com) → New Project (free tier).
 2. Once it's created, open **SQL Editor** and paste in the contents of
-   `supabase/schema.sql` from this repo, then click **Run**.
-   This creates the `profiles` table (with a `role` column: player / owner / admin)
-   and a trigger that auto-creates a profile row whenever someone signs up.
+  `supabase/schema.sql` from this repo, then click **Run**. This creates the
+  profiles, marketplace, booking, review, match, notification, and payout tables,
+  their access policies, slot/booking database functions, and the signup trigger.
 3. Go to **Authentication → Providers → Email** and, for quick testing,
    turn **off** "Confirm email" (so signup logs you in immediately instead of
    waiting on a confirmation email). Turn it back on before going fully live.
@@ -49,8 +49,8 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) — you'll land on `/login`.
 
-- Sign up once as a **Player** and once as a **Turf Owner** using the role picker
-  on the signup page, to see both portals.
+- Sign up as a **Player**. To test the **Turf Owner** portal, sign in as the
+  admin and invite an owner from the Admin dashboard.
 - To create an **Admin** account: sign up normally (as anything), then in
   Supabase's SQL Editor run:
   ```sql
@@ -93,12 +93,12 @@ middleware.js           → keeps the auth session cookie fresh
 supabase/schema.sql     → run this once in Supabase's SQL editor
 ```
 
-## Next steps (optional)
+## Deployment notes
 
-The browser app expects marketplace tables and policies in addition to the profile
-bootstrap in `supabase/schema.sql`. At minimum, the deployment schema must provide
-`turfs`, `bookings`, `payouts`, `reviews`, and `disputes`, with owner/player-scoped
-RLS policies. The booking flow is not connected to a payment provider.
+The checked-in schema is intended for a new Supabase project. If marketplace tables
+already exist, review and migrate their data and policies before applying this
+schema; `create table if not exists` does not modify existing table definitions.
+Checkout remains a demo flow and does not connect to a payment provider.
 
 For anything admin-only that needs to read *all* rows regardless of owner
    (e.g. the Users table, All Turfs table), use `createAdminClient()` from

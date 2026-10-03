@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { normalizeEmail, isValidEmail, isStrongPassword } from "@/lib/auth/validation";
 import AuthShell from "../auth-shell";
 import { inputStyle, buttonStyle, errorStyle, linkStyle } from "../auth-styles";
 
@@ -18,8 +19,20 @@ export default function LoginPage() {
   async function handleLogin(e) {
     e.preventDefault();
     setError("");
+
+    const normalizedEmail = normalizeEmail(email);
+    if (!isValidEmail(normalizedEmail)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    if (!isStrongPassword(password)) {
+      setError("Password must be at least 6 characters long.");
+      return;
+    }
+
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
     setLoading(false);
     if (error) {
       setError(error.message);

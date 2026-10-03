@@ -143,7 +143,6 @@ function TopBar({ title, sub, action }) {
   );
 }
 
-// ---- Mock data (swap for real Supabase queries once turfs/bookings tables exist) ----
 export default function AdminDashboardClient({ profile }) {
   const router = useRouter();
   const supabase = createClient();
@@ -158,6 +157,7 @@ export default function AdminDashboardClient({ profile }) {
   const [dataLoading, setDataLoading] = useState(true);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState(null);
   const [showOwnerForm, setShowOwnerForm] = useState(false);
   const [ownerName, setOwnerName] = useState("");
   const [ownerEmail, setOwnerEmail] = useState("");
@@ -172,18 +172,34 @@ export default function AdminDashboardClient({ profile }) {
       .eq("user_id", profile.id)
       .order("created_at", { ascending: false })
       .limit(20);
-    if (!error) setNotifications(data || []);
+    if (!error) {
+      setNotifications(data || []);
+      setLastSyncedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
+    }
   }
 
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  const handleMarkAllRead = async () => {
+    if (!profile?.id || unreadCount === 0) return;
+    const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+    if (!unreadIds.length) return;
+
+    const { error } = await supabase.from("notifications").update({ read: true }).in("id", unreadIds);
+    if (error) {
+      showToast("Couldn't mark notifications as read.", { type: "error" });
+      return;
+    }
+
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setLastSyncedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
+  };
 
   const toggleNotifications = async () => {
     const opening = !showNotifications;
     setShowNotifications(opening);
     if (opening && unreadCount > 0) {
-      const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
-      await supabase.from("notifications").update({ read: true }).in("id", unreadIds);
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      await handleMarkAllRead();
     }
   };
   const [loadedTabs, setLoadedTabs] = useState(() => new Set(["overview"]));
@@ -259,7 +275,13 @@ export default function AdminDashboardClient({ profile }) {
       .channel("admin-live-updates")
       .on("postgres_changes", { event: "*", schema: "public", table: "turfs" }, () => fetchAll())
       .on("postgres_changes", { event: "*", schema: "public", table: "disputes" }, () => fetchAll())
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${profile?.id}` }, () => fetchNotifications())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${profile?.id}` }, (payload) => {
+        fetchNotifications();
+        if (payload?.new?.title && !showNotifications) {
+          showToast(`${payload.new.title} — live update`, { type: "info" });
+        }
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "notifications", filter: `user_id=eq.${profile?.id}` }, () => fetchNotifications())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -354,8 +376,22 @@ export default function AdminDashboardClient({ profile }) {
             background: V.pitchCard, border: `1px solid ${V.line}`, borderRadius: 14,
             boxShadow: "0 20px 60px rgba(0,0,0,0.5)", zIndex: 1000,
           }}>
-            <div style={{ padding: "14px 16px", borderBottom: `1px solid ${V.line}`, fontWeight: 700, fontSize: 13, color: V.chalk, fontFamily: font }}>
-              Notifications
+            <div style={{ padding: "14px 16px", borderBottom: `1px solid ${V.line}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 13, color: V.chalk, fontFamily: font }}>Notifications</div>
+                <div style={{ color: V.chalkFaint, fontSize: 10.5, marginTop: 2, fontFamily: font }}>
+                  {unreadCount > 0 ? `${unreadCount} unread` : "All caught up"}
+                  {lastSyncedAt ? ` · Live ${lastSyncedAt}` : " · Syncing..."}
+                </div>
+              </div>
+              {unreadCount > 0 && (
+                <button
+                  onClick={handleMarkAllRead}
+                  style={{ background: "transparent", border: `1px solid ${V.line}`, color: V.chalk, borderRadius: 8, padding: "6px 8px", cursor: "pointer", fontSize: 11.5, fontWeight: 600, fontFamily: font }}
+                >
+                  Mark all read
+                </button>
+              )}
             </div>
             {notifications.length === 0 ? (
               <div style={{ padding: "28px 16px", textAlign: "center", color: V.chalkFaint, fontSize: 13, fontFamily: font }}>

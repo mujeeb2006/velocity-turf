@@ -172,6 +172,10 @@ function AddTurfModal({ profile, supabase, onClose, onCreated, showToast }) {
 
   const handleSubmit = async () => {
     if (!isValid || !profile?.id) return;
+    if (profile.role !== "owner") {
+      showToast("Owner access is required to submit a turf.", { type: "error" });
+      return;
+    }
     setSubmitting(true);
     const { error } = await supabase.from("turfs").insert({
       owner_id: profile.id,

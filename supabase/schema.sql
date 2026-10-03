@@ -542,7 +542,15 @@ set search_path = public, pg_temp
 as $$
 begin
   insert into public.profiles (id, email, full_name, role)
-  values (new.id, new.email, coalesce(new.raw_user_meta_data->>'full_name', ''), 'player');
+  values (
+    new.id,
+    new.email,
+    coalesce(new.raw_user_meta_data->>'full_name', ''),
+    case
+      when lower(coalesce(new.raw_user_meta_data->>'role', 'player')) = 'owner' then 'owner'
+      else 'player'
+    end
+  );
   return new;
 end;
 $$;

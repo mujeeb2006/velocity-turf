@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { normalizeEmail, isValidEmail, isStrongPassword } from "@/lib/auth/validation";
+import { normalizeEmail, normalizeSignupRole, isValidEmail, isStrongPassword } from "@/lib/auth/validation";
 import AuthShell from "../auth-shell";
 import { inputStyle, buttonStyle, errorStyle, linkStyle } from "../auth-styles";
 
@@ -15,6 +15,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [role, setRole] = useState("player");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
@@ -47,11 +48,16 @@ export default function SignupPage() {
     }
     setLoading(true);
 
+    const selectedRole = normalizeSignupRole(role);
+
     const { data, error } = await supabase.auth.signUp({
       email: normalizedEmail,
       password,
       options: {
-        data: { full_name: trimmedFullName },
+        data: {
+          full_name: trimmedFullName,
+          role: selectedRole,
+        },
       },
     });
 
@@ -86,10 +92,22 @@ export default function SignupPage() {
   }
 
   return (
-    <AuthShell title="Join as a player" subtitle="Create your player account to find and book a pitch">
+    <AuthShell title={role === "owner" ? "Join as a turf owner" : "Join as a player"} subtitle={role === "owner" ? "Create your owner account to list and manage turfs" : "Create your player account to find and book a pitch"}>
       {error && <div role="alert" style={{ ...errorStyle, marginBottom: 18 }}>{error}</div>}
 
       <form onSubmit={handleSignup} style={{ display: "grid", gap: 14 }}>
+        <div style={{ display: "grid", gap: 8 }}>
+          <label htmlFor="signup-role" style={{ color: "rgba(245,247,242,0.72)", fontSize: 13, fontFamily: "'Manrope', sans-serif" }}>I am signing up as</label>
+          <select
+            id="signup-role"
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            style={{ ...inputStyle, width: "100%", minHeight: 48, borderRadius: 10, padding: "13px 15px", background: "rgba(15, 20, 24, 0.92)" }}
+          >
+            <option value="player">Player</option>
+            <option value="owner">Turf owner</option>
+          </select>
+        </div>
         <input
           type="text"
           aria-label="Full name"

@@ -1,10 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { isValidEmail, isStrongPassword, normalizeEmail } from '../lib/auth/validation.js';
+import { isValidEmail, isStrongPassword, normalizeEmail, normalizeSignupRole } from '../lib/auth/validation.js';
 
 test('normalizeEmail trims whitespace and lowercases the value', () => {
   assert.equal(normalizeEmail('  Player@Example.com  '), 'player@example.com');
+});
+
+test('normalizeSignupRole keeps approved roles and falls back to player', () => {
+  assert.equal(normalizeSignupRole('Owner'), 'owner');
+  assert.equal(normalizeSignupRole('player'), 'player');
+  assert.equal(normalizeSignupRole('admin'), 'player');
+  assert.equal(normalizeSignupRole(''), 'player');
 });
 
 test('isValidEmail accepts standard emails and rejects malformed ones', () => {

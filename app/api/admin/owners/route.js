@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { getProfile } from "@/lib/supabase/server";
+import { normalizeUserRole } from "@/lib/auth/validation";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(request) {
   const profile = await getProfile();
   if (!profile) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
-  if (profile.role !== "admin") return NextResponse.json({ error: "Admin access required." }, { status: 403 });
+  if (normalizeUserRole(profile.role) !== "admin") return NextResponse.json({ error: "Admin access required." }, { status: 403 });
 
   let body;
   try {

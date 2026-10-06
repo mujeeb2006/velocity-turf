@@ -9,6 +9,7 @@ test('normalizeEmail trims whitespace and lowercases the value', () => {
 
 test('normalizeSignupRole keeps approved roles and falls back to player', () => {
   assert.equal(normalizeSignupRole('Owner'), 'owner');
+  assert.equal(normalizeSignupRole('turf_owner'), 'owner');
   assert.equal(normalizeSignupRole('player'), 'player');
   assert.equal(normalizeSignupRole('admin'), 'player');
   assert.equal(normalizeSignupRole(''), 'player');

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { normalizeUserRole } from "@/lib/auth/validation";
 import { useToast } from "@/components/ui/toast";
 import { COLORS as V, FONT_BODY, buttonStyle } from "@/lib/design-tokens";
 
@@ -98,7 +99,8 @@ export default function AccountSettingsClient({ profile }) {
     showToast("Password updated.", { type: "success" });
   }
 
-  const homePath = profile.role === "admin" ? "/admin" : profile.role === "owner" ? "/owner" : "/player";
+  const normalizedRole = normalizeUserRole(profile.role);
+  const homePath = normalizedRole === "admin" ? "/admin" : normalizedRole === "owner" ? "/owner" : "/player";
   const roleLabels = { admin: "Administrator", owner: "Turf owner", player: "Player" };
   const displayName = profile.full_name || profile.email?.split("@")[0] || "Velocity player";
   const initial = displayName.slice(0, 1).toUpperCase();
@@ -124,7 +126,7 @@ export default function AccountSettingsClient({ profile }) {
               <strong>{displayName}</strong>
               <span>{profile.email}</span>
             </div>
-            <div className="vt-settings-role"><SettingIcon name="shield" />{roleLabels[profile.role] || "Account"}</div>
+            <div className="vt-settings-role"><SettingIcon name="shield" />{roleLabels[normalizedRole] || "Account"}</div>
           </div>
 
           <nav className="vt-settings-nav" aria-label="Settings sections">

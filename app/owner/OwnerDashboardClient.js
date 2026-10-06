@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { normalizeUserRole } from "@/lib/auth/validation";
 import { useToast } from "@/components/ui/toast";
 import { SkeletonCard, SkeletonRow } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -206,7 +207,7 @@ function AddTurfModal({ profile, supabase, onClose, onCreated, showToast }) {
 
   const handleSubmit = async () => {
     if (!isValid || !profile?.id) return;
-    if (profile.role !== "owner") {
+    if (normalizeUserRole(profile.role) !== "owner") {
       showToast("Owner access is required to submit a turf.", { type: "error" });
       return;
     }
@@ -769,13 +770,40 @@ export default function OwnerDashboardClient({ profile }) {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px,1fr))", gap: 16, marginBottom: 32 }}>
                 {[...Array(4)].map((_, i) => <SkeletonCard key={i} lines={1} />)}
               </div>
+            ) : turfs.length === 0 ? (
+              <div style={{ marginBottom: 28 }}>
+                <EmptyState
+                  icon="🏟️"
+                  title="No turfs yet"
+                  subtitle="List your first turf to start receiving bookings and managing schedules."
+                  accent={V.flood}
+                  action={
+                    <button
+                      onClick={() => setShowAddTurf(true)}
+                      style={{
+                        background: V.flood,
+                        color: V.pitch,
+                        border: "none",
+                        borderRadius: 12,
+                        padding: "10px 18px",
+                        fontWeight: 800,
+                        fontSize: 13,
+                        cursor: "pointer",
+                        fontFamily: font,
+                      }}
+                    >
+                      Add your first turf
+                    </button>
+                  }
+                />
+              </div>
             ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px,1fr))", gap: 16, marginBottom: 32 }}>
-              <StatCard label="Total Revenue" value={`₹${totalRevenue.toLocaleString()}`} icon="rupee" color={COLORS.electricBlue} sub="Lifetime, all turfs" />
-              <StatCard label="Today's Bookings" value={turfs.reduce((s, t) => s + t.todayBookings, 0)} icon="clock" color={COLORS.pitchGreen} />
-              <StatCard label="Avg. Occupancy" value={`${avgOccupancy}%`} icon="trending" color={COLORS.energyOrange} />
-              <StatCard label="Avg. Rating" value={avgRating} icon="star" color={V.flood} />
-            </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px,1fr))", gap: 16, marginBottom: 32 }}>
+                <StatCard label="Total Revenue" value={`₹${totalRevenue.toLocaleString()}`} icon="rupee" color={COLORS.electricBlue} sub="Lifetime, all turfs" />
+                <StatCard label="Today's Bookings" value={turfs.reduce((s, t) => s + t.todayBookings, 0)} icon="clock" color={COLORS.pitchGreen} />
+                <StatCard label="Avg. Occupancy" value={`${avgOccupancy}%`} icon="trending" color={COLORS.energyOrange} />
+                <StatCard label="Avg. Rating" value={avgRating} icon="star" color={V.flood} />
+              </div>
             )}
 
             <h3 style={{ color: V.chalkDim, fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.2, margin: "0 0 14px" }}>Pending Requests</h3>
@@ -843,13 +871,6 @@ export default function OwnerDashboardClient({ profile }) {
                       <div style={{ color: V.chalkFaint, fontSize: 12.5, marginTop: 2 }}>{t.city}</div>
                     </div>
                     <Pill color={t.status === "live" ? COLORS.pitchGreen : t.status === "pending" ? COLORS.energyOrange : COLORS.danger}>{t.status}</Pill>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-                    <div>
-                      <div style={{ color: V.chalk, fontWeight: 700, fontSize: 16, fontFamily: font }}>{t.name}</div>
-                      <div style={{ color: V.chalkFaint, fontSize: 12.5, marginTop: 2 }}>{t.city}</div>
-                    </div>
-                    <Pill color={t.status === "live" ? COLORS.pitchGreen : COLORS.energyOrange}>{t.status}</Pill>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                     <span style={{ color: V.chalkDim, fontSize: 12 }}>Occupancy</span>

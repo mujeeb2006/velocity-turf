@@ -7,6 +7,11 @@ import { useToast } from "@/components/ui/toast";
 import { SkeletonCard, SkeletonRow } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { COLORS as V, FONT_DISPLAY, FONT_BODY, FONT_DATA, panel } from "@/lib/design-tokens";
+import {
+  filterUsers,
+  getUserBookingCount,
+  normalizeAdminRole,
+} from "@/lib/admin/dashboard-utils";
 
 // Old palette names aliased into the new design-tokens palette so every
 // existing COLORS.electricBlue etc. call site picks up the "floodlit
@@ -163,6 +168,9 @@ export default function AdminDashboardClient({ profile }) {
   const [ownerEmail, setOwnerEmail] = useState("");
   const [ownerError, setOwnerError] = useState("");
   const [creatingOwner, setCreatingOwner] = useState(false);
+  const [userSearch, setUserSearch] = useState("");
+  const [busyTurfId, setBusyTurfId] = useState(null);
+  const [busyRefundId, setBusyRefundId] = useState(null);
 
   async function fetchNotifications() {
     if (!profile?.id) return;
@@ -208,9 +216,9 @@ export default function AdminDashboardClient({ profile }) {
     setDataLoading(true);
     const [turfsRes, usersRes, disputesRes, bookingsRes] = await Promise.all([
       supabase.from("turfs").select("*, owner:profiles(full_name)").order("created_at", { ascending: false }),
-      supabase.from("profiles").select("id, full_name, role, created_at"),
+      supabase.from("profiles").select("id, full_name, role, email, created_at"),
       supabase.from("disputes").select("*, turf:turfs(name), player:profiles!disputes_raised_by_fkey(full_name)").order("created_at", { ascending: false }),
-      supabase.from("bookings").select("turf_id, price, status, created_at"),
+      supabase.from("bookings").select("player_id, turf_id, price, status, created_at"),
     ]);
 
     const turfs = turfsRes.data || [];
@@ -248,9 +256,12 @@ export default function AdminDashboardClient({ profile }) {
     setCityBreakdown(Object.values(cityMap).sort((a, b) => b.revenue - a.revenue));
 
     setUsers((usersRes.data || []).map(u => ({
-      id: u.id, name: u.full_name || "—",
-      role: u.role === "owner" ? "Turf Owner" : u.role === "admin" ? "Admin" : "Player",
+      id: u.id,
+      name: u.full_name || "—",
+      email: u.email || "—",
+      role: normalizeAdminRole(u.role),
       joined: new Date(u.created_at).toLocaleDateString(undefined, { month: "short", year: "numeric" }),
+      bookings: getUserBookingCount(bookings, u.id),
       status: "active",
     })));
 
@@ -324,37 +335,44 @@ export default function AdminDashboardClient({ profile }) {
   }
 
   const decideTurf = async (id, decision) => {
+    if (busyTurfId) return;
     const t = pendingTurfs.find(t => t.id === id);
+    if (!t) return;
+    setBusyTurfId(id);
     const { error } = await supabase.from("turfs")
       .update({ status: decision === "approve" ? "live" : "rejected", approved_at: decision === "approve" ? new Date().toISOString() : null })
       .eq("id", id);
+    setBusyTurfId(null);
     if (error) {
       showToast("Couldn't update that turf. Try again.", { type: "error" });
       return;
     }
-    if (t) {
-      showToast(
-        decision === "approve" ? `Approved "${t.name}" — now live on the platform` : `Rejected "${t.name}"`,
-        { type: decision === "approve" ? "success" : "info" }
-      );
-    }
+    showToast(
+      decision === "approve" ? `Approved "${t.name}" — now live on the platform` : `Rejected "${t.name}"`,
+      { type: decision === "approve" ? "success" : "info" }
+    );
     fetchAll();
   };
 
   const issueRefund = async (dbId) => {
+    if (busyRefundId) return;
     const d = disputes.find(d => d.dbId === dbId);
+    if (!d) return;
+    setBusyRefundId(dbId);
     const { error } = await supabase.from("disputes")
       .update({ status: "resolved", resolved_at: new Date().toISOString() })
       .eq("id", dbId);
+    setBusyRefundId(null);
     if (error) {
       showToast("Couldn't resolve that dispute. Try again.", { type: "error" });
       return;
     }
-    if (d) showToast(`Refund issued for ${d.id} · ₹${d.amount}`, { type: "success" });
+    showToast(`Refund issued for ${d.id} · ₹${d.amount}`, { type: "success" });
     fetchAll();
   };
 
   const openCount = disputes.filter(d => d.status === "open").length;
+  const filteredUsers = filterUsers(users, userSearch);
 
   const items = [
     { id: "overview", label: "Overview", icon: "grid" },

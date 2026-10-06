@@ -47,7 +47,9 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) — you'll land on `/login`.
+Open [http://localhost:3000](http://localhost:3000) to browse venues and open
+matches without signing in. An account is only needed to book a turf, join a
+match, or access player-specific dashboard and loyalty features.
 
 - Sign up as a **Player**. To test the **Turf Owner** portal, sign in as the
   admin and invite an owner from the Admin dashboard.
@@ -59,7 +61,8 @@ Open [http://localhost:3000](http://localhost:3000) — you'll land on `/login`.
   Sign out and back in — you'll now land on `/admin`.
 
 Signing in always redirects to the right portal automatically based on the
-account's role — there's no manual portal switcher anymore.
+account's role. Guests can browse the player experience at `/` or `/player`;
+there's no manual portal switcher.
 
 ## 4. Deploy (Vercel)
 
@@ -78,7 +81,7 @@ Anyone can now sign up and get routed to the portal that matches their role.
 
 ```
 app/
-  page.js              → redirects to /login or the right portal based on role
+  page.js              → guest player browsing, or the signed-in portal by role
   login/page.js         → sign in
   signup/page.js        → sign up (choose Player or Turf Owner)
   admin/                → admin-only, redirects non-admins to /unauthorized

@@ -193,6 +193,9 @@ function AddTurfModal({ profile, supabase, onClose, onCreated, showToast }) {
     if (error.code === "23514") {
       return "The turf details are invalid. Check that the closing time is later than the opening time and that prices are valid.";
     }
+    if (error.code === "42883" && error.message?.includes("notify_admins")) {
+      return "The database is missing its admin-notification helper. Ask your Supabase administrator to run supabase/migrations/20261006_add_notify_admins.sql, then try again.";
+    }
     if (error.code === "PGRST204" || error.code === "42703") {
       return "The database schema is missing turf fields. Ask an administrator to apply the latest Supabase schema.";
     }

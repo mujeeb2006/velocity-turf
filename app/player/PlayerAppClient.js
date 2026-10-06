@@ -545,7 +545,7 @@ function DiscoverSection({ turfs, onBook, onMatch, isLoading, initialSearch = ""
 // ============================================================
 function MatchmakingSection({ matches, onJoin, onLeave, isLoading, joinedMatchIds }) {
   return (
-    <div style={{ padding: "60px 24px" }}>
+    <div className="vt-match-section" style={{ padding: "60px 24px" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
         <div style={{ marginBottom: 32 }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: V.floodDim, border: `1px solid ${V.flood}4D`, borderRadius: 8, padding: "5px 14px", marginBottom: 12 }}>
@@ -556,7 +556,7 @@ function MatchmakingSection({ matches, onJoin, onLeave, isLoading, joinedMatchId
         </div>
 
         {isLoading ? (
-          <div style={{ display: "grid", gap: 16 }}>
+          <div className="vt-match-list" style={{ display: "grid", gap: 16 }}>
             {[...Array(3)].map((_, i) => <SkeletonCard key={i} lines={2} />)}
           </div>
         ) : matches.length === 0 ? (
@@ -572,7 +572,7 @@ function MatchmakingSection({ matches, onJoin, onLeave, isLoading, joinedMatchId
             const fill = m.players / m.max;
             const skillColor = m.skill === "Beginner" ? V.confirmed : m.skill === "Intermediate" ? V.info : V.pending;
             return (
-              <div key={m.id} style={{
+              <div key={m.id} className="vt-match-card" style={{
                 ...panel(), borderRadius: 14, padding: "20px 24px",
                 display: "grid", gridTemplateColumns: "1fr auto", gap: 16, alignItems: "center",
                 transition: "border-color 0.2s",
@@ -652,7 +652,7 @@ function LoyaltySection({ isLoading, leaderboard, myPoints }) {
   const myRank = leaderboard.find(p => p.isYou)?.rank;
 
   return (
-    <div style={{ padding: "60px 24px" }}>
+    <div className="vt-loyalty-section" style={{ padding: "60px 24px" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
         <div style={{ marginBottom: 32 }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: V.floodDim, border: `1px solid ${V.flood}4D`, borderRadius: 8, padding: "5px 14px", marginBottom: 12 }}>
@@ -662,12 +662,12 @@ function LoyaltySection({ isLoading, leaderboard, myPoints }) {
         </div>
 
         {isLoading ? (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+          <div className="vt-loyalty-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
             <SkeletonCard lines={4} />
             <SkeletonCard lines={4} />
           </div>
         ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+        <div className="vt-loyalty-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
           {/* My Points Card */}
           <div style={{ ...panel(true), borderRadius: 16, padding: 28 }}>
             <div style={{ color: V.chalkFaint, fontSize: 13, marginBottom: 8, fontFamily: FONT_BODY }}>Your balance</div>
@@ -744,7 +744,7 @@ function DashboardSection({ isLoading, bookings, matchesJoined, onCancel, onRevi
   const hoursPlayed = bookings.filter(b => b.status === "completed").length;
 
   return (
-    <div style={{ padding: "60px 24px" }}>
+    <div className="vt-dashboard-section" style={{ padding: "60px 24px" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
         <h2 style={{ color: V.chalk, fontFamily: FONT_DISPLAY, fontSize: 38, fontWeight: 400, margin: "0 0 32px" }}>My dashboard</h2>
 
@@ -1305,7 +1305,7 @@ export default function PlayerAppClient({ profile }) {
         }
       `}</style>
 
-      <div style={{
+      <div className="vt-player-app" style={{
         minHeight: "100vh",
         background: V.pitch,
         color: V.chalk,
@@ -1337,8 +1337,8 @@ export default function PlayerAppClient({ profile }) {
                     </span>
                   )}
                 </button>
-                <button onClick={() => router.push("/settings")} aria-label="Account settings" title="Account settings" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, padding: "6px 9px", cursor: "pointer", color: V.chalk, fontSize: 11, fontWeight: 700, fontFamily: FONT_BODY }}>
-                  Account
+                <button onClick={() => router.push("/settings")} aria-label="Account settings" title="Account settings" className="vt-mobile-account-button" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, padding: "6px 9px", cursor: "pointer", color: V.chalk, fontSize: 11, fontWeight: 700, fontFamily: FONT_BODY }}>
+                  {initial}
                 </button>
                 <button onClick={handleSignOut} aria-label="Sign out" title="Sign out" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: V.chalkDim, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Icon name="logout" size={15} />
@@ -1504,7 +1504,7 @@ export default function PlayerAppClient({ profile }) {
         </main>
 
         {/* BOTTOM TAB BAR (Mobile feel) */}
-        <div className="vt-bottom-nav" style={{
+        <nav className="vt-bottom-nav" aria-label="Primary navigation" style={{
           position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 900,
           background: "rgba(255,255,255,0.96)",
           backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
@@ -1512,7 +1512,7 @@ export default function PlayerAppClient({ profile }) {
           justifyContent: "space-around", padding: "8px 0 12px",
         }}>
           {TABS.map((tab, index) => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} aria-current={activeTab === tab.id ? "page" : undefined} style={{
               display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
               background: "none", border: "none", cursor: "pointer",
               padding: "6px 16px", borderRadius: 12,
@@ -1526,7 +1526,7 @@ export default function PlayerAppClient({ profile }) {
               )}
             </button>
           ))}
-        </div>
+        </nav>
 
         {/* BOOKING MODAL */}
         {bookingTurf && (

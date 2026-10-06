@@ -167,8 +167,39 @@ function AddTurfModal({ profile, supabase, onClose, onCreated, showToast }) {
 
   const set = (key) => (e) => setForm(f => ({ ...f, [key]: e.target.value }));
 
-  const isValid = form.name.trim() && form.address.trim() && form.city.trim()
-    && form.sports.length > 0 && form.base_price && form.peak_price;
+  const basePrice = Number(form.base_price);
+  const peakPrice = Number(form.peak_price);
+  const isValid = Boolean(
+    form.name.trim()
+    && form.address.trim()
+    && form.city.trim()
+    && form.sports.length > 0
+    && form.base_price !== ""
+    && form.peak_price !== ""
+    && Number.isFinite(basePrice)
+    && Number.isFinite(peakPrice)
+    && basePrice >= 0
+    && peakPrice >= 0
+    && form.open_time < form.close_time
+  );
+
+  const getSubmitErrorMessage = (error) => {
+    if (error.code === "42501") {
+      return "Your account does not have permission to list a turf. Confirm that your profile role is Turf Owner, then sign out and back in.";
+    }
+    if (error.code === "23503") {
+      return "Your owner profile could not be matched to your account. Sign out and back in, then contact an administrator if this continues.";
+    }
+    if (error.code === "23514") {
+      return "The turf details are invalid. Check that the closing time is later than the opening time and that prices are valid.";
+    }
+    if (error.code === "PGRST204" || error.code === "42703") {
+      return "The database schema is missing turf fields. Ask an administrator to apply the latest Supabase schema.";
+    }
+    const databaseReason = error.message || "No additional database message was returned.";
+    const errorCode = error.code ? ` [${error.code}]` : "";
+    return `Couldn't submit the turf: ${databaseReason}${errorCode}`;
+  };
 
   const handleSubmit = async () => {
     if (!isValid || !profile?.id) return;
@@ -177,23 +208,37 @@ function AddTurfModal({ profile, supabase, onClose, onCreated, showToast }) {
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.from("turfs").insert({
-      owner_id: profile.id,
-      name: form.name.trim(),
-      address: form.address.trim(),
-      city: form.city.trim(),
-      sports: form.sports,
-      amenities: form.amenities,
-      base_price: Number(form.base_price),
-      peak_price: Number(form.peak_price),
-      open_time: form.open_time,
-      close_time: form.close_time,
-      status: "pending",
-    });
-    setSubmitting(false);
-    if (error) {
-      showToast("Couldn't submit the turf. Please try again.", { type: "error" });
+    try {
+      const { error } = await supabase.from("turfs").insert({
+        owner_id: profile.id,
+        name: form.name.trim(),
+        address: form.address.trim(),
+        city: form.city.trim(),
+        sports: form.sports,
+        amenities: form.amenities,
+        base_price: basePrice,
+        peak_price: peakPrice,
+        open_time: form.open_time,
+        close_time: form.close_time,
+        status: "pending",
+      });
+      if (error) {
+        console.error("Turf submission failed", {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          ownerId: profile.id,
+        });
+        showToast(getSubmitErrorMessage(error), { type: "error" });
+        return;
+      }
+    } catch (error) {
+      console.error("Turf submission request failed", error);
+      showToast("Couldn't reach the database to submit this turf. Check your connection and try again.", { type: "error" });
       return;
+    } finally {
+      setSubmitting(false);
     }
     showToast("Turf submitted — an admin will review it shortly.", { type: "success" });
     onCreated();
@@ -283,7 +328,7 @@ function AddTurfModal({ profile, supabase, onClose, onCreated, showToast }) {
             </div>
           </div>
 
-          <button disabled={!isValid || submitting} onClick={handleSubmit} style={{
+          <button type="button" disabled={!isValid || submitting} onClick={handleSubmit} style={{
             marginTop: 4, width: "100%", padding: "13px", borderRadius: 12,
             background: isValid ? V.flood : V.line, color: isValid ? V.pitch : V.chalkFaint,
             border: "none", fontWeight: 800, fontSize: 14, cursor: isValid ? "pointer" : "not-allowed",

@@ -61,26 +61,6 @@ const Icon = ({ name, size = 20, color = "currentColor", filled = false }) => {
 };
 
 // ============================================================
-// ANIMATED COUNTER
-// ============================================================
-function AnimatedCounter({ value, prefix = "", suffix = "" }) {
-  const [display, setDisplay] = useState(0);
-  useEffect(() => {
-    let start = 0;
-    const end = value;
-    const duration = 1200;
-    const step = end / (duration / 16);
-    const timer = setInterval(() => {
-      start += step;
-      if (start >= end) { setDisplay(end); clearInterval(timer); }
-      else setDisplay(Math.floor(start));
-    }, 16);
-    return () => clearInterval(timer);
-  }, [value]);
-  return <span>{prefix}{display.toLocaleString()}{suffix}</span>;
-}
-
-// ============================================================
 // SLOT GRID COMPONENT
 // ============================================================
 function SlotGrid({ slots, onSelect, selected }) {
@@ -127,93 +107,78 @@ function SlotGrid({ slots, onSelect, selected }) {
 function TurfCard({ turf, onBook, onMatch }) {
   const price = calcPrice(turf, turf.occupancy);
   const isDynamic = turf.occupancy > 70;
-  const sportEmoji = { Football: "⚽", Basketball: "🏀", Cricket: "🏏", Badminton: "🏸", Hockey: "🏑" };
+  const sportImages = {
+    Football: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1000&q=85",
+    Basketball: "https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=1000&q=85",
+    Cricket: "https://images.unsplash.com/photo-1531415074968-036ba1b575da?auto=format&fit=crop&w=1000&q=85",
+    Badminton: "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=1000&q=85",
+    Hockey: "https://images.unsplash.com/photo-1580748141549-71748dbe0f8b?auto=format&fit=crop&w=1000&q=85",
+  };
+  const coverImage = sportImages[turf.sports[0]] || sportImages.Football;
+  const hasAvailability = turf.slots.some(slot => slot.status === "available");
 
   return (
-    <div style={{
-      ...panel(),
-      borderRadius: 16,
-      overflow: "hidden",
-      transition: "transform 0.25s, border-color 0.25s",
-      cursor: "pointer",
-    }}
+    <article className="vt-venue-card" style={{ ...panel(), cursor: "pointer" }}
       onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.borderColor = V.lineStrong; }}
       onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.borderColor = V.line; }}
     >
-      {/* Image Area */}
-      <div style={{
-        height: 150,
-        background: V.pitchCardRaised,
-        position: "relative",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        overflow: "hidden",
-        borderBottom: `1px solid ${V.line}`,
-      }}>
-        <div style={{ fontSize: 56, opacity: 0.5, filter: "grayscale(0.3)" }}>{sportEmoji[turf.sports[0]]}</div>
+      <div className="vt-venue-cover">
+        <img src={coverImage} alt={`${turf.sports[0]} venue`} loading="lazy" onError={e => { e.currentTarget.style.display = "none"; }} />
+        <div className="vt-venue-cover-shade" />
+        <span className={`vt-venue-status ${hasAvailability ? "" : "unavailable"}`}>
+          {hasAvailability ? "Slots available today" : "No slots available today"}
+        </span>
         {isDynamic && (
-          <span style={{ position: "absolute", top: 12, left: 12, background: V.pitch, border: `1px solid ${V.pending}66`, color: V.pending, padding: "4px 10px", borderRadius: 6, fontSize: 10, fontWeight: 700, letterSpacing: 0.4, fontFamily: FONT_BODY }}>
+          <span className="vt-venue-demand">
             HIGH DEMAND
           </span>
         )}
-        {/* Occupancy bar */}
-        <div style={{ position: "absolute", bottom: 12, left: 12, right: 12 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-            <span style={{ color: V.chalkFaint, fontSize: 10, fontFamily: FONT_BODY }}>Occupancy</span>
-            <span style={{ color: turf.occupancy > 70 ? V.pending : V.confirmed, fontSize: 10, fontWeight: 700, fontFamily: FONT_DATA }}>{turf.occupancy}%</span>
-          </div>
-          <div style={{ height: 3, background: "rgba(245,247,242,0.1)", borderRadius: 2 }}>
-            <div style={{ height: "100%", width: `${turf.occupancy}%`, background: turf.occupancy > 70 ? V.pending : V.confirmed, borderRadius: 2, transition: "width 1s ease" }} />
-          </div>
+        <div className="vt-venue-occupancy">
+          <span>Today’s demand</span>
+          <span>{turf.occupancy}%</span>
+          <div><i style={{ width: `${turf.occupancy}%` }} /></div>
         </div>
       </div>
 
-      {/* Content */}
-      <div style={{ padding: "16px 20px 20px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+      <div className="vt-venue-content">
+        <div className="vt-venue-heading">
           <div>
-            <h3 style={{ color: V.chalk, fontWeight: 400, fontSize: 22, margin: 0, fontFamily: FONT_DISPLAY, letterSpacing: 0.3 }}>{turf.name}</h3>
-            <div style={{ display: "flex", alignItems: "center", gap: 4, color: V.chalkFaint, fontSize: 12, marginTop: 4, fontFamily: FONT_BODY }}>
-              <Icon name="map" size={12} color={V.chalkFaint} />
+            <h3 className="vt-venue-name">{turf.name}</h3>
+            <div className="vt-venue-location">
+              <Icon name="map" size={14} color={V.chalkFaint} />
               {turf.location}
             </div>
           </div>
-          <div style={{ textAlign: "right" }}>
-            <div style={{ color: V.chalk, fontWeight: 700, fontSize: 20, fontFamily: FONT_DATA }}>
-              ₹{price}
-            </div>
-            <div style={{ color: V.chalkFaint, fontSize: 10, fontFamily: FONT_BODY }}>/hour</div>
+          <div className="vt-venue-price">
+            <strong>₹{price}</strong>
+            <span>/ hour</span>
           </div>
         </div>
 
-        {/* Sports */}
-        <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
+        <div className="vt-venue-tags">
           {turf.sports.map((s, index) => (
-            <span key={s} style={{ background: `${NAV_ACCENTS[index % NAV_ACCENTS.length]}18`, border: `1px solid ${NAV_ACCENTS[index % NAV_ACCENTS.length]}40`, color: NAV_ACCENTS[index % NAV_ACCENTS.length], padding: "3px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600, fontFamily: FONT_BODY }}>
+            <span key={s} className="vt-venue-tag vt-venue-sport" style={{ "--tag-accent": NAV_ACCENTS[index % NAV_ACCENTS.length] }}>
               {s}
             </span>
           ))}
           {turf.amenities.slice(0, 2).map(a => (
-            <span key={a} style={{ background: "transparent", border: `1px solid ${V.line}`, color: V.chalkDim, padding: "3px 10px", borderRadius: 6, fontSize: 11, fontFamily: FONT_BODY }}>
+            <span key={a} className="vt-venue-tag">
               {a}
             </span>
           ))}
         </div>
 
-        {/* Rating */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-          <div style={{ display: "flex", gap: 2 }}>
+        <div className="vt-venue-rating">
+          <div className="vt-venue-stars">
             {[...Array(5)].map((_, i) => (
               <Icon key={i} name="star" size={12} filled={i < Math.round(turf.rating)} color={i < Math.round(turf.rating) ? V.flood : V.line} />
             ))}
           </div>
-          <span style={{ color: V.chalk, fontWeight: 700, fontSize: 13, fontFamily: FONT_DATA }}>{turf.rating}</span>
-          <span style={{ color: V.chalkFaint, fontSize: 12, fontFamily: FONT_BODY }}>({turf.reviews} reviews)</span>
+          <strong>{turf.rating}</strong>
+          <span>({turf.reviews} reviews)</span>
         </div>
 
-        {/* Actions */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <div className="vt-venue-actions">
           <button onClick={() => onBook(turf)} style={buttonStyle("primary", "md")}
             onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
             onMouseLeave={e => e.currentTarget.style.opacity = "1"}
@@ -228,7 +193,7 @@ function TurfCard({ turf, onBook, onMatch }) {
           </button>
         </div>
       </div>
-    </div>
+    </article>
   );
 }
 
@@ -396,7 +361,7 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast }
                 </button>
                 <button disabled={submitting} onClick={handlePay} style={{
                   padding: "13px", borderRadius: 12, background: V.flood,
-                  border: "none", color: V.pitch, fontWeight: 800, cursor: submitting ? "wait" : "pointer", fontFamily: FONT_BODY,
+                  border: "none", color: "#ffffff", fontWeight: 800, cursor: submitting ? "wait" : "pointer", fontFamily: FONT_BODY,
                   opacity: submitting ? 0.7 : 1,
                 }}>
                   {submitting ? "Confirming..." : `Confirm demo booking · ₹${price}`}
@@ -430,7 +395,7 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast }
               <button onClick={onConfirm} style={{
                 width: "100%", padding: "14px", borderRadius: 12,
                 background: V.flood,
-                border: "none", color: V.pitch, fontWeight: 800, fontSize: 15, cursor: "pointer",
+                border: "none", color: "#ffffff", fontWeight: 800, fontSize: 15, cursor: "pointer",
                 fontFamily: FONT_BODY,
               }}>
                 Done
@@ -446,90 +411,60 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast }
 // ============================================================
 // HERO SECTION
 // ============================================================
-function HeroSection({ onExplore }) {
-  const [stats] = useState({ turfs: 240, cities: 18, bookings: 52000, players: 91000 });
+function HeroSection({ onExplore, venueCount, isLoading }) {
   const [searchVal, setSearchVal] = useState("");
 
   const submitSearch = () => onExplore(searchVal);
 
   return (
-    <div className="vt-hero vt-player-hero" style={{
-      minHeight: "min(82vh, 680px)",
-      display: "flex",
-      flexDirection: "column",
-      justifyContent: "center",
-      alignItems: "flex-start",
-      position: "relative",
-      overflow: "hidden",
-      padding: "80px max(24px, calc((100vw - 1120px) / 2)) 60px",
-    }}>
-      <StadiumScene className="vt-player-scene" />
-      <div className="vt-player-hero-shade" />
-
-      {/* Content */}
-      <div className="vt-player-hero-copy" style={{ position: "relative", zIndex: 1, maxWidth: 800, margin: 0, textAlign: "left" }}>
-        <div className="vt-player-hero-kicker">YOUR NEXT MATCH STARTS HERE</div>
-        {/* Headline */}
-        <h1 style={{
-          fontSize: 76,
-          lineHeight: 0.9,
-          margin: "0 0 18px",
-          fontFamily: FONT_DISPLAY,
-          letterSpacing: 0.5,
-        }}>
-          <span style={{ color: V.chalk }}>Play on</span>
-          <br />
-          <span style={{ color: V.flood }}>your terms</span>
+    <section className="vt-player-hero">
+      <div className="vt-player-hero-copy">
+        <div className="vt-player-hero-kicker"><span /> FIND YOUR NEXT GAME</div>
+        <h1>
+          Find your pitch.<br />
+          <em>Make it a match.</em>
         </h1>
-
-        <p style={{ color: V.chalkDim, fontSize: 15, maxWidth: 460, margin: "0 0 28px", lineHeight: 1.7, fontFamily: FONT_BODY }}>
-          Real turf availability, honest pricing, and a QR code the moment you book. No guesswork.
+        <p className="vt-player-hero-description">
+          Explore local sports venues, check live availability, and book your next game in a few taps.
         </p>
 
-        {/* Search */}
-        <div className="vt-player-search" style={{ display: "flex", gap: 8, maxWidth: 520, margin: "0 0 34px", background: V.pitchCard, borderRadius: 12, padding: 9, border: `1px solid ${V.line}`, alignItems: "center" }}>
+        <div className="vt-player-search">
           <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, paddingLeft: 12 }}>
-            <Icon name="search" size={18} color={V.chalkFaint} />
+            <Icon name="search" size={19} color={V.chalkFaint} />
             <input
               value={searchVal}
               onChange={e => setSearchVal(e.target.value)}
               onKeyDown={e => e.key === "Enter" && submitSearch()}
               placeholder="Search turfs, sports, locations…"
-              style={{
-                flex: 1, background: "none", border: "none", outline: "none",
-                color: V.chalk, fontSize: 15, fontFamily: FONT_BODY,
-              }}
+              aria-label="Search turfs, sports, or locations"
             />
           </div>
-          <button onClick={submitSearch} style={{ ...buttonStyle("primary", "lg"), whiteSpace: "nowrap" }}>
-            Find turfs
+          <button onClick={submitSearch} className="vt-player-search-button">
+            Explore venues <span aria-hidden="true">→</span>
           </button>
         </div>
 
-        {/* Stats */}
-        <div className="vt-player-hero-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 22, maxWidth: 600, margin: 0 }}>
-          {[
-            { value: stats.turfs, label: "Premium turfs", suffix: "+" },
-            { value: stats.cities, label: "Cities", suffix: "" },
-            { value: stats.bookings, label: "Bookings", suffix: "+" },
-            { value: stats.players, label: "Players", suffix: "+" },
-          ].map(s => (
-            <div key={s.label} style={{ textAlign: "center" }}>
-              <div style={{ color: V.chalk, fontSize: 28, fontFamily: FONT_DATA, fontWeight: 700 }}>
-                <AnimatedCounter value={s.value} suffix={s.suffix} />
-              </div>
-              <div style={{ color: V.chalkFaint, fontSize: 11.5, marginTop: 4, fontFamily: FONT_BODY }}>{s.label}</div>
-            </div>
-          ))}
+        <div className="vt-player-hero-trust">
+          <span><i aria-hidden="true">✓</i> Live availability</span>
+          <span><i aria-hidden="true">✓</i> Clear hourly pricing</span>
+          <span><i aria-hidden="true">✓</i> Easy online booking</span>
         </div>
       </div>
 
-      <style>{`
-        @media (max-height: 820px) {
-          .vt-hero h1 { font-size: 64px !important; }
-        }
-      `}</style>
-    </div>
+      <div className="vt-player-hero-visual" aria-label="Illustration of a football ground">
+        <div className="vt-player-scene-frame">
+          <StadiumScene className="vt-player-scene" />
+          <div className="vt-player-visual-caption">
+            <span className="vt-player-caption-icon" aria-hidden="true">⚽</span>
+            <span><strong>Game on.</strong><small>{isLoading ? "Finding live venues" : `${venueCount} ${venueCount === 1 ? "venue" : "venues"} to explore`}</small></span>
+          </div>
+        </div>
+        <div className="vt-player-hero-note">
+          <span className="vt-player-note-mark" aria-hidden="true">✓</span>
+          <span><strong>Book with confidence</strong><small>Real-time slots, no guesswork</small></span>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -549,42 +484,40 @@ function DiscoverSection({ turfs, onBook, onMatch, isLoading, initialSearch = ""
     .filter(t => !q || t.name.toLowerCase().includes(q) || t.location.toLowerCase().includes(q) || t.sports.some(s => s.toLowerCase().includes(q)));
 
   return (
-    <div style={{ padding: "60px 24px" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 16 }}>
+    <section className="vt-discover-section">
+      <div className="vt-discover-inner">
+        <div className="vt-discover-heading">
           <div>
-            <h2 style={{ color: V.chalk, fontFamily: FONT_DISPLAY, fontSize: 38, fontWeight: 400, margin: 0 }}>
-              Nearby turfs
-            </h2>
-            <p style={{ color: V.chalkFaint, margin: "6px 0 0", fontSize: 14, fontFamily: FONT_BODY }}>Ranked by availability</p>
+            <span className="vt-section-eyebrow">PLAY NEAR YOU</span>
+            <h2>Find your next venue</h2>
+            <p>Choose a sport and find a ground that fits your game.</p>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
+          <span className="vt-venue-count">
+            {isLoading ? "Updating venues" : `${filtered.length} ${filtered.length === 1 ? "venue" : "venues"}`}
+          </span>
+        </div>
+
+        <div className="vt-discover-controls">
+          <div className="vt-sport-filters" aria-label="Filter venues by sport">
             {sports.map(s => (
-              <button key={s} onClick={() => setFilter(s)} style={{
-                padding: "8px 16px", borderRadius: 8,
-                background: filter === s ? V.flood : "transparent",
-                border: `1px solid ${filter === s ? V.flood : V.line}`,
-                color: filter === s ? V.pitch : V.chalkDim,
-                cursor: "pointer", fontSize: 13, fontWeight: 700,
-                fontFamily: FONT_BODY, transition: "all 0.2s",
-              }}>
+              <button key={s} onClick={() => setFilter(s)} className={`vt-sport-filter ${filter === s ? "active" : ""}`} aria-pressed={filter === s}>
                 {s}
               </button>
             ))}
           </div>
-        </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 10, background: V.pitchCard, border: `1px solid ${V.line}`, borderRadius: 12, padding: "10px 14px", marginBottom: 32, maxWidth: 420 }}>
-          <Icon name="search" size={16} color={V.chalkFaint} />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search by name, area, or sport…"
-            style={{ flex: 1, background: "none", border: "none", outline: "none", color: V.chalk, fontSize: 13.5, fontFamily: FONT_BODY }}
-          />
-          {search && (
-            <button onClick={() => setSearch("")} style={{ background: "none", border: "none", color: V.chalkFaint, cursor: "pointer", fontSize: 15, padding: 0 }}>×</button>
-          )}
+          <label className="vt-discover-search">
+            <Icon name="search" size={17} color={V.chalkFaint} />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search by venue, area, or sport"
+              aria-label="Search venues"
+            />
+            {search && (
+              <button type="button" onClick={() => setSearch("")} aria-label="Clear search">×</button>
+            )}
+          </label>
         </div>
 
         {isLoading ? (
@@ -596,14 +529,14 @@ function DiscoverSection({ turfs, onBook, onMatch, isLoading, initialSearch = ""
             subtitle={q ? "Try a different name, area, or sport." : "Try a different sport, or check back later as new turfs come online."}
           />
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 24 }}>
+          <div className="vt-venue-grid">
             {filtered.map(t => (
               <TurfCard key={t.id} turf={t} onBook={onBook} onMatch={onMatch} />
             ))}
           </div>
         )}
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -917,7 +850,7 @@ function DashboardSection({ isLoading, bookings, matchesJoined, onCancel, onRevi
                   <div style={{ color: V.chalkFaint, fontSize: 13, marginTop: 3, fontFamily: FONT_BODY }}>{b.date} · {b.time} · ₹{b.price}</div>
                 </div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <button onClick={() => onReview(b)} style={{ background: V.flood, border: "none", borderRadius: 8, padding: "8px 14px", color: V.pitch, cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: FONT_BODY }}>Leave review</button>
+                  <button onClick={() => onReview(b)} style={{ background: V.flood, border: "none", borderRadius: 8, padding: "8px 14px", color: "#ffffff", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: FONT_BODY }}>Leave review</button>
                   <button onClick={() => onDispute(b)} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, padding: "8px 14px", color: V.chalkDim, cursor: "pointer", fontSize: 13, fontFamily: FONT_BODY }}>Report issue</button>
                 </div>
               </div>
@@ -1383,14 +1316,14 @@ export default function PlayerAppClient({ profile }) {
             so account actions (notifications, sign out) live here instead. */}
         <div className="vt-mobile-topbar" style={{
           position: "fixed", top: 0, left: 0, right: 0, zIndex: 900,
-          background: "rgba(7,13,10,0.94)",
+          background: "rgba(255,255,255,0.96)",
           backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
           borderBottom: `1px solid ${V.line}`,
           padding: "0 16px", height: 56,
           alignItems: "center", justifyContent: "space-between",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 26, height: 26, borderRadius: 7, background: V.flood, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: V.pitch }}>⚡</div>
+            <div style={{ width: 26, height: 26, borderRadius: 7, background: V.flood, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: "#ffffff" }}>⚡</div>
             <span style={{ fontWeight: 800, fontSize: 13, letterSpacing: 0.3, color: V.chalk }}>VELOCITY TURF</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1399,7 +1332,7 @@ export default function PlayerAppClient({ profile }) {
                 <button onClick={toggleNotifications} aria-label="Notifications" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: V.chalk, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
                   <Icon name="notification" size={15} />
                   {unreadCount > 0 && (
-                    <span style={{ position: "absolute", top: -2, right: -2, minWidth: 14, height: 14, padding: "0 4px", borderRadius: 999, background: V.flood, color: V.pitch, fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
+                    <span style={{ position: "absolute", top: -2, right: -2, minWidth: 14, height: 14, padding: "0 4px", borderRadius: 999, background: V.flood, color: "#ffffff", fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
                       {unreadCount > 9 ? "9+" : unreadCount}
                     </span>
                   )}
@@ -1416,7 +1349,7 @@ export default function PlayerAppClient({ profile }) {
                 <button onClick={() => router.push("/login")} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: V.chalk, fontSize: 12.5, fontWeight: 700, fontFamily: FONT_BODY }}>
                   Log in
                 </button>
-                <button onClick={() => router.push("/signup")} style={{ background: V.flood, border: "none", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: V.pitch, fontSize: 12.5, fontWeight: 800, fontFamily: FONT_BODY }}>
+                <button onClick={() => router.push("/signup")} style={{ background: V.flood, border: "none", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: "#ffffff", fontSize: 12.5, fontWeight: 800, fontFamily: FONT_BODY }}>
                   Sign up
                 </button>
               </>
@@ -1427,7 +1360,7 @@ export default function PlayerAppClient({ profile }) {
         {/* TOP NAV (Desktop) */}
         <nav className="vt-top-nav" style={{
           position: "fixed", top: 0, left: 0, right: 0, zIndex: 900,
-          background: "rgba(7,13,10,0.92)",
+          background: "rgba(255,255,255,0.96)",
           backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
           borderBottom: `1px solid ${V.line}`,
           padding: "0 32px",
@@ -1437,7 +1370,7 @@ export default function PlayerAppClient({ profile }) {
         }}>
           {/* Logo */}
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: V.flood, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: V.pitch }}>⚡</div>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: V.flood, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: "#ffffff" }}>⚡</div>
             <span style={{ fontWeight: 800, fontSize: 16, letterSpacing: 0.3, fontFamily: FONT_BODY }}>
               <span style={{ color: V.chalk }}>VELOCITY</span>
               <span style={{ color: V.flood }}> TURF</span>
@@ -1451,8 +1384,8 @@ export default function PlayerAppClient({ profile }) {
                 padding: "8px 16px", borderRadius: 8,
                 background: "transparent",
                 border: "none",
-                borderBottom: activeTab === tab.id ? `2px solid ${NAV_ACCENTS[index % NAV_ACCENTS.length]}` : "2px solid transparent",
-                color: activeTab === tab.id ? NAV_ACCENTS[index % NAV_ACCENTS.length] : V.chalkDim,
+                borderBottom: activeTab === tab.id ? `2px solid ${V.flood}` : "2px solid transparent",
+                color: activeTab === tab.id ? V.flood : V.chalkDim,
                 cursor: "pointer", fontSize: 14, fontWeight: 600,
                 transition: "color 0.2s, border-color 0.2s", fontFamily: FONT_BODY,
               }}>
@@ -1468,7 +1401,7 @@ export default function PlayerAppClient({ profile }) {
                 <button onClick={toggleNotifications} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 36, height: 36, cursor: "pointer", color: V.chalk, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
                   <Icon name="notification" size={16} />
                   {unreadCount > 0 && (
-                    <span style={{ position: "absolute", top: -2, right: -2, minWidth: 15, height: 15, padding: "0 4px", borderRadius: 999, background: V.flood, color: V.pitch, fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
+                    <span style={{ position: "absolute", top: -2, right: -2, minWidth: 15, height: 15, padding: "0 4px", borderRadius: 999, background: V.flood, color: "#ffffff", fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
                       {unreadCount > 9 ? "9+" : unreadCount}
                     </span>
                   )}
@@ -1476,7 +1409,7 @@ export default function PlayerAppClient({ profile }) {
                 <button onClick={handleSignOut} title="Sign out" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 36, height: 36, cursor: "pointer", color: V.chalkDim, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Icon name="logout" size={16} />
                 </button>
-                <button onClick={() => router.push("/settings")} title="Account settings" aria-label="Account settings" style={{ width: 36, height: 36, borderRadius: 8, background: V.flood, border: "none", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, color: V.pitch, fontFamily: FONT_BODY, cursor: "pointer" }}>
+                <button onClick={() => router.push("/settings")} title="Account settings" aria-label="Account settings" style={{ width: 36, height: 36, borderRadius: 8, background: V.flood, border: "none", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, color: "#ffffff", fontFamily: FONT_BODY, cursor: "pointer" }}>
                   {initial}
                 </button>
               </>
@@ -1485,7 +1418,7 @@ export default function PlayerAppClient({ profile }) {
                 <button onClick={() => router.push("/login")} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 10, padding: "9px 16px", cursor: "pointer", color: V.chalk, fontSize: 13.5, fontWeight: 700, fontFamily: FONT_BODY }}>
                   Log in
                 </button>
-                <button onClick={() => router.push("/signup")} style={{ background: V.flood, border: "none", borderRadius: 10, padding: "9px 16px", cursor: "pointer", color: V.pitch, fontSize: 13.5, fontWeight: 800, fontFamily: FONT_BODY }}>
+                <button onClick={() => router.push("/signup")} style={{ background: V.flood, border: "none", borderRadius: 10, padding: "9px 16px", cursor: "pointer", color: "#ffffff", fontSize: 13.5, fontWeight: 800, fontFamily: FONT_BODY }}>
                   Sign up
                 </button>
               </>
@@ -1540,31 +1473,22 @@ export default function PlayerAppClient({ profile }) {
         <main className="vt-main-content" style={{ paddingTop: 64, paddingBottom: 80 }}>
           {activeTab === "home" && (
             <>
-              <HeroSection onExplore={(query) => { setSearchQuery(query || ""); setActiveTab("discover"); }} />
-              {/* Smart suggestion banner */}
-              <div style={{ padding: "0 24px 60px" }}>
-                <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-                  <div style={{
-                    background: V.pitchCard, border: `1px solid ${V.line}`,
-                    borderLeft: `3px solid ${V.flood}`,
-                    borderRadius: "4px 14px 14px 4px", padding: "24px 32px",
-                    display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16,
-                  }}>
-                    <div>
-                      <div style={{ color: V.chalk, fontWeight: 700, fontSize: 18, fontFamily: FONT_BODY }}>Best time to play: tomorrow, 7 AM</div>
-                      <div style={{ color: V.chalkDim, fontSize: 13.5, marginTop: 4, fontFamily: FONT_BODY }}>Clear skies, 32% less demand, ₹960 average price</div>
-                    </div>
-                    <button onClick={() => setActiveTab("discover")} style={{
-                      background: "transparent",
-                      border: `1px solid ${V.flood}`, borderRadius: 10, padding: "11px 24px",
-                      color: V.flood, fontWeight: 700, cursor: "pointer", fontSize: 14,
-                      fontFamily: FONT_BODY,
-                    }}>
-                      Book for tomorrow
-                    </button>
-                  </div>
+              <HeroSection
+                onExplore={(query) => { setSearchQuery(query || ""); setActiveTab("discover"); }}
+                venueCount={turfs.length}
+                isLoading={turfsLoading}
+              />
+              <section className="vt-home-promo">
+                <div className="vt-home-promo-icon" aria-hidden="true">↗</div>
+                <div className="vt-home-promo-copy">
+                  <span className="vt-section-eyebrow">YOUR NEXT GAME STARTS HERE</span>
+                  <strong>From finding a ground to kickoff.</strong>
+                  <p>Compare venues, check current availability, and choose a slot that works for your crew.</p>
                 </div>
-              </div>
+                <button className="vt-home-promo-button" onClick={() => setActiveTab("discover")}>
+                  Browse venues <span aria-hidden="true">→</span>
+                </button>
+              </section>
             </>
           )}
           {activeTab === "discover" && <DiscoverSection turfs={turfs} onBook={handleBook} onMatch={(turf) => { setActiveTab("matches"); showToast(`Showing open matches — look for ones at ${turf.name}.`, { type: "info" }); }} isLoading={isTabLoading("discover")} initialSearch={searchQuery} />}
@@ -1582,7 +1506,7 @@ export default function PlayerAppClient({ profile }) {
         {/* BOTTOM TAB BAR (Mobile feel) */}
         <div className="vt-bottom-nav" style={{
           position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 900,
-          background: "rgba(7,13,10,0.94)",
+          background: "rgba(255,255,255,0.96)",
           backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
           borderTop: `1px solid ${V.line}`,
           justifyContent: "space-around", padding: "8px 0 12px",
@@ -1592,13 +1516,13 @@ export default function PlayerAppClient({ profile }) {
               display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
               background: "none", border: "none", cursor: "pointer",
               padding: "6px 16px", borderRadius: 12,
-              color: activeTab === tab.id ? NAV_ACCENTS[index % NAV_ACCENTS.length] : V.chalkFaint,
+              color: activeTab === tab.id ? V.flood : V.chalkFaint,
               transition: "color 0.2s",
             }}>
-              <Icon name={tab.icon} size={20} color={activeTab === tab.id ? NAV_ACCENTS[index % NAV_ACCENTS.length] : V.chalkFaint} />
+              <Icon name={tab.icon} size={20} color={activeTab === tab.id ? V.flood : V.chalkFaint} />
               <span style={{ fontSize: 10, fontWeight: 600, fontFamily: FONT_BODY }}>{tab.label}</span>
               {activeTab === tab.id && (
-                <div style={{ width: 4, height: 4, borderRadius: "50%", background: NAV_ACCENTS[index % NAV_ACCENTS.length] }} />
+                <div style={{ width: 4, height: 4, borderRadius: "50%", background: V.flood }} />
               )}
             </button>
           ))}
@@ -1612,7 +1536,7 @@ export default function PlayerAppClient({ profile }) {
         {disputeBooking && <DisputeModal booking={disputeBooking} profile={profile} supabase={supabase} onClose={() => setDisputeBooking(null)} showToast={showToast} />}
 
         {/* Real-time indicator */}
-        <div style={{
+        <div className="vt-live-indicator" style={{
           position: "fixed", bottom: 76, right: 20, zIndex: 800,
           background: V.pitchCardRaised, border: `1px solid ${V.flood}44`,
           borderRadius: 50, padding: "6px 14px", display: "flex", alignItems: "center", gap: 8,

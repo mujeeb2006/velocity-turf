@@ -1,11 +1,11 @@
 import { COLORS as V, FONT_BODY } from "@/lib/design-tokens";
 
 export const inputStyle = {
-  background: V.pitchCardRaised,
-  border: `1px solid ${V.line}`,
+  background: "#ffffff",
+  border: "1px solid rgba(17, 24, 39, 0.12)",
   borderRadius: 12,
   padding: "12px 14px",
-  color: V.chalk,
+  color: "#172126",
   fontSize: 14,
   fontFamily: FONT_BODY,
   outline: "none",
@@ -56,9 +56,9 @@ export const roleStyle = {
   flex: 1,
   padding: "11px",
   borderRadius: 10,
-  background: "transparent",
-  border: `1px solid ${V.line}`,
-  color: V.chalkDim,
+  background: "#f7f9f5",
+  border: "1px solid rgba(17, 24, 39, 0.12)",
+  color: "#4b5d58",
   fontWeight: 700,
   fontSize: 13.5,
   cursor: "pointer",
@@ -68,7 +68,7 @@ export const roleStyle = {
 
 export const roleActiveStyle = {
   ...roleStyle,
-  background: V.floodDim,
-  border: `1px solid ${V.flood}`,
-  color: V.flood,
+  background: "rgba(31, 155, 108, 0.08)",
+  border: "1px solid rgba(31, 155, 108, 0.35)",
+  color: "#146e4f",
 };

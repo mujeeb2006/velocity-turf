@@ -1,229 +1,638 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { COLORS as V, FONT_DISPLAY, FONT_BODY, FONT_DATA, buttonStyle } from "@/lib/design-tokens";
-import StadiumScene from "@/components/StadiumScene";
+import { FONT_BODY, FONT_DISPLAY } from "@/lib/design-tokens";
 
-function AnimatedCounter({ value, suffix = "" }) {
-  const [display, setDisplay] = useState(0);
-  const ref = useRef(null);
-  const [started, setStarted] = useState(false);
+const tabs = ["Venues (481)", "Coaching (8)", "Events (1)", "Memberships (0)"];
 
-  useEffect(() => {
-    const obs = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) setStarted(true);
-    }, { threshold: 0.4 });
-    if (ref.current) obs.observe(ref.current);
-    return () => obs.disconnect();
-  }, []);
+const venues = [
+  {
+    name: "Depot18 - Sports",
+    distance: "Jayamahal Palace Road (~2.8 km)",
+    rating: 4.33,
+    reviews: 21,
+    tags: ["Football", "Cricket"],
+    featured: true,
+    bookable: true,
+    image:
+      "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=900&q=80",
+    details: "1 more",
+  },
+  {
+    name: "Terra Arena",
+    distance: "Railway Colony (~3.2 km)",
+    rating: 4.14,
+    reviews: 22,
+    tags: ["Football"],
+    featured: true,
+    bookable: true,
+    image:
+      "https://images.unsplash.com/photo-1547347298-4074fc3086f0?auto=format&fit=crop&w=900&q=80",
+    details: "3 more",
+  },
+  {
+    name: "WINGS Sports Centre",
+    distance: "Maria Nketiah School (~4.9 km)",
+    rating: 4.69,
+    reviews: 65,
+    tags: ["Football", "Cricket"],
+    featured: true,
+    bookable: true,
+    image:
+      "https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=900&q=80",
+    details: "2 more",
+    promo: true,
+  },
+  {
+    name: "Rush Arena",
+    distance: "1.9 km • Bengaluru",
+    rating: 4.81,
+    reviews: 52,
+    tags: ["Turf Football", "Box Cricket", "Pickleball"],
+    featured: false,
+    image:
+      "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=900&q=80",
+    details: "1 more",
+  },
+  {
+    name: "Oxygen Powerplay Arena",
+    distance: "3.1 km • Bengaluru",
+    rating: 4.72,
+    reviews: 41,
+    tags: ["Box Cricket", "Turf Football"],
+    featured: false,
+    image:
+      "https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=900&q=80",
+    details: "3 more",
+  },
+  {
+    name: "RV Cricket Kingdom",
+    distance: "3.7 km • Bengaluru",
+    rating: 4.84,
+    reviews: 74,
+    tags: ["Box Cricket"],
+    featured: false,
+    image:
+      "https://images.unsplash.com/photo-1531415074968-036ba1b575da?auto=format&fit=crop&w=900&q=80",
+    details: "1 more",
+  },
+];
 
-  useEffect(() => {
-    if (!started) return;
-    const duration = 1400;
-    const start = performance.now();
-    let raf;
-    const tick = (now) => {
-      const p = Math.min(1, (now - start) / duration);
-      setDisplay(Math.round(value * (1 - Math.pow(1 - p, 3))));
-      if (p < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [started, value]);
-
-  return <span ref={ref}>{display.toLocaleString()}{suffix}</span>;
+function SearchIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="6" />
+      <path d="M16 16l4 4" />
+    </svg>
+  );
 }
 
-const FEATURES = [
-  {
-    n: "01",
-    title: "Real-time availability",
-    body: "Slots update the moment someone else books — what you see on screen is what's actually open, not a stale calendar.",
-  },
-  {
-    n: "02",
-    title: "In, out, no calls",
-    body: "Confirm a slot and your entry pass is a QR code, sent instantly. Show it at the gate — that's the whole check-in.",
-  },
-  {
-    n: "03",
-    title: "Short a player?",
-    body: "Open matches list who's already in and at what level, so you can fill a game instead of cancelling it.",
-  },
-  {
-    n: "04",
-    title: "Play, earn, repeat",
-    body: "Every booking adds to a running ledger. Climb the leaderboard against players in your city.",
-  },
-];
-
-const STEPS = [
-  { n: "1", title: "Find a turf", body: "Filter by sport, price, and what's actually free right now." },
-  { n: "2", title: "Lock a slot", body: "Pick a time, pay, done. The slot is held the second you confirm." },
-  { n: "3", title: "Show up and play", body: "Scan your QR at the gate. No paperwork, no front desk." },
-];
-
-function Icon({ name, size = 20, color = "currentColor" }) {
-  const paths = {
-    building: <><rect x="4" y="3" width="16" height="18" rx="1" /><path d="M9 21v-4h6v4M9 8h1M14 8h1M9 12h1M14 12h1" /></>,
-    arrow: <path d="M5 12h14M13 6l6 6-6 6" />,
-  };
+function PinIcon() {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" xmlns="http://www.w3.org/2000/svg">
-      {paths[name]}
+    <svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 21s-6-4.35-6-10a6 6 0 1 1 12 0c0 5.65-6 10-6 10Z" />
+      <circle cx="12" cy="11" r="2.6" />
+    </svg>
+  );
+}
+
+function StarIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16" fill="currentColor">
+      <path d="M12 2.5l2.7 5.46 6.02.88-4.36 4.24 1.03 6-5.39-2.82-5.39 2.82 1.03-6L3.28 8.84l6.02-.88L12 2.5Z" />
     </svg>
   );
 }
 
 export default function LandingClient() {
   return (
-    <div style={{ background: V.pitch, color: V.chalk, fontFamily: FONT_BODY, minHeight: "100vh" }}>
+    <div className="vt-professional-page">
       <style>{`
         * { box-sizing: border-box; }
         html { scroll-behavior: smooth; }
-        a:focus-visible, button:focus-visible { outline: 2px solid ${V.flood}; outline-offset: 2px; }
-        @media (prefers-reduced-motion: reduce) {
-          * { animation-duration: 0.01ms !important; }
+        body { background: #f1f1ee; }
+        a { color: inherit; }
+        button, input, select { font: inherit; }
+        .vt-professional-page {
+          min-height: 100vh;
+          background: #f3f4f1;
+          color: #111827;
+          font-family: ${FONT_BODY};
+        }
+        .topbar {
+          position: sticky;
+          top: 0;
+          z-index: 20;
+          height: 72px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          padding: 0 24px;
+          background: rgba(255,255,255,0.96);
+          backdrop-filter: blur(14px);
+          border-bottom: 1px solid rgba(17,24,39,0.08);
+        }
+        .brand-wrap {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .brand-mark {
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          display: grid;
+          place-items: center;
+          background: linear-gradient(135deg, #1f7d62, #5ccf9a);
+          color: white;
+          font-weight: 800;
+          font-size: 18px;
+          box-shadow: 0 10px 20px rgba(19,120,88,0.18);
+        }
+        .brand-text {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-weight: 800;
+          color: #08130f;
+          letter-spacing: 0.02em;
+        }
+        .brand-text strong {
+          font-size: 30px;
+          font-family: ${FONT_DISPLAY};
+          letter-spacing: -0.06em;
+          line-height: 1;
+          margin-top: 1px;
+        }
+        .brand-location {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          border: 1px solid rgba(17,24,39,0.12);
+          border-radius: 999px;
+          background: #f6f7f4;
+          color: #3a4a45;
+          font-size: 14px;
+          font-weight: 600;
+        }
+        .brand-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #2fb77f, #7ce7b2);
+          box-shadow: 0 0 0 3px rgba(47,183,127,0.12);
+        }
+        .main-nav {
+          display: flex;
+          align-items: center;
+          gap: 24px;
+          color: #1a2d29;
+          font-size: 15px;
+          font-weight: 600;
+        }
+        .main-nav a {
+          text-decoration: none;
+          color: #1e2d2b;
+          opacity: 0.76;
+        }
+        .main-nav a.active {
+          position: relative;
+          opacity: 1;
+          color: #0f2e2a;
+        }
+        .main-nav a.active::after {
+          content: "";
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: -17px;
+          height: 3px;
+          border-radius: 999px;
+          background: #24b36a;
+        }
+        .nav-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          height: 44px;
+          padding: 0 24px;
+          border: 0;
+          border-radius: 12px;
+          background: linear-gradient(135deg, #1f9b6c, #2ac180);
+          color: #fff;
+          font-weight: 800;
+          letter-spacing: 0.04em;
+          text-decoration: none;
+          box-shadow: 0 12px 20px rgba(28,160,107,0.2);
+        }
+        .content-shell {
+          max-width: 1240px;
+          margin: 0 auto;
+          padding: 30px 20px 48px;
+        }
+        .page-header {
+          padding-top: 10px;
+        }
+        .page-header h1 {
+          margin: 0 0 20px;
+          font-size: clamp(2.2rem, 3vw, 3.1rem);
+          line-height: 1.14;
+          letter-spacing: -0.06em;
+          font-family: ${FONT_DISPLAY};
+          color: #1a1d20;
+        }
+        .toolbar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 18px;
+          padding-bottom: 18px;
+          margin-bottom: 10px;
+          border-bottom: 1px solid rgba(17,24,39,0.12);
+        }
+        .search-box {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          width: min(100%, 560px);
+          min-height: 54px;
+          padding: 0 18px;
+          background: rgba(255,255,255,0.75);
+          border: 1px solid rgba(17,24,39,0.12);
+          border-radius: 16px;
+          color: #55615d;
+          box-shadow: 0 6px 20px rgba(15,23,42,0.02);
+        }
+        .search-box input {
+          width: 100%;
+          border: 0;
+          background: transparent;
+          color: #17242a;
+          font-size: 15px;
+          outline: none;
+        }
+        .search-box input::placeholder { color: #73807a; }
+        .select-box {
+          min-width: 230px;
+          min-height: 54px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          padding: 0 18px;
+          border: 1px solid rgba(17,24,39,0.12);
+          border-radius: 16px;
+          background: rgba(255,255,255,0.75);
+          color: #223230;
+          font-weight: 600;
+          box-shadow: 0 6px 20px rgba(15,23,42,0.02);
+        }
+        .select-box .caret {
+          width: 10px;
+          height: 10px;
+          border-right: 2px solid currentColor;
+          border-bottom: 2px solid currentColor;
+          transform: rotate(45deg) translateY(-1px);
+          opacity: 0.8;
+        }
+        .tabs {
+          display: flex;
+          align-items: center;
+          gap: 18px;
+          padding: 6px 0 0;
+          margin-bottom: 26px;
+          flex-wrap: wrap;
+        }
+        .tab {
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+          min-height: 38px;
+          padding: 0;
+          color: #2f3b3a;
+          font-size: 15px;
+          font-weight: 600;
+          opacity: 0.8;
+        }
+        .tab.active {
+          opacity: 1;
+          color: #0f5341;
+        }
+        .tab.active::after {
+          content: "";
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: -14px;
+          height: 3px;
+          border-radius: 999px;
+          background: #24b36a;
+        }
+        .cards-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 22px;
+        }
+        .venue-card {
+          position: relative;
+          overflow: hidden;
+          border: 1px solid rgba(17,24,39,0.12);
+          border-radius: 20px;
+          background: rgba(255,255,255,0.42);
+          box-shadow: 0 10px 30px rgba(15,23,42,0.03);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .venue-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 18px 32px rgba(15,23,42,0.06);
+        }
+        .venue-image {
+          position: relative;
+          height: 240px;
+        }
+        .venue-image img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+        .image-badges {
+          position: absolute;
+          inset: 14px 14px auto 14px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          pointer-events: none;
+        }
+        .featured-pill, .bookable-pill {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 32px;
+          padding: 0 12px;
+          border-radius: 10px;
+          font-size: 12px;
+          font-weight: 800;
+          letter-spacing: 0.01em;
+          border: 1px solid rgba(17,24,39,0.06);
+        }
+        .featured-pill {
+          background: #f7c86d;
+          color: #2f2300;
+        }
+        .bookable-pill {
+          background: linear-gradient(135deg, #1ca76a, #2cc67d);
+          color: white;
+          box-shadow: 0 10px 18px rgba(28,167,106,0.18);
+        }
+        .card-body {
+          padding: 18px 18px 16px;
+        }
+        .meta-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 10px;
+        }
+        .venue-name {
+          margin: 0;
+          font-size: 1.1rem;
+          font-weight: 800;
+          color: #181e1c;
+        }
+        .rating {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 8px;
+          border-radius: 999px;
+          background: rgba(250,204,57,0.12);
+          color: #8b6500;
+          font-weight: 800;
+          font-size: 12px;
+        }
+        .venue-info {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          color: #53615f;
+          font-size: 14px;
+          margin-bottom: 14px;
+        }
+        .meta-settings {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+        }
+        .meta-left {
+          display: inline-flex;
+          align-items: center;
+          gap: 12px;
+          color: #384846;
+          font-size: 13px;
+          font-weight: 700;
+          white-space: nowrap;
+        }
+        .meta-left .facility {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 26px;
+          height: 26px;
+          border-radius: 50%;
+          background: rgba(17,24,39,0.04);
+          color: #2e3d39;
+        }
+        .tags {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          justify-content: flex-end;
+        }
+        .tag {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 28px;
+          padding: 0 10px;
+          background: rgba(17,24,39,0.04);
+          border: 1px solid rgba(17,24,39,0.08);
+          border-radius: 999px;
+          color: #465a57;
+          font-size: 11px;
+          font-weight: 700;
+        }
+        .promo-card {
+          position: absolute;
+          right: 10px;
+          bottom: 10px;
+          width: 188px;
+          padding: 16px 14px 12px;
+          border-radius: 18px;
+          background: linear-gradient(180deg, #128a5e, #0a6d4f);
+          color: #fff;
+          box-shadow: 0 20px 30px rgba(9,92,69,0.3);
+        }
+        .promo-card strong {
+          display: block;
+          font-size: 13px;
+          line-height: 1.45;
+          margin-bottom: 12px;
+        }
+        .promo-app {
+          border-radius: 14px;
+          background: rgba(255,255,255,0.1);
+          border: 1px solid rgba(255,255,255,0.15);
+          padding: 14px 12px 10px;
+          text-align: center;
+        }
+        .promo-app .mini-phone {
+          width: 80px;
+          height: 110px;
+          margin: 0 auto 10px;
+          border-radius: 14px;
+          background: linear-gradient(180deg, #12b76a, #0a7d52);
+          box-shadow: inset 0 0 0 2px rgba(255,255,255,0.22);
+          position: relative;
+        }
+        .promo-app .mini-phone::before {
+          content: "";
+          position: absolute;
+          left: 50%;
+          top: 12px;
+          width: 28px;
+          height: 28px;
+          transform: translateX(-50%);
+          border-radius: 50%;
+          background: rgba(255,255,255,0.12);
+        }
+        .promo-app .mini-phone::after {
+          content: "PLAYO";
+          position: absolute;
+          left: 50%;
+          bottom: 18px;
+          transform: translateX(-50%);
+          font-size: 16px;
+          font-weight: 800;
+          letter-spacing: 0.04em;
+        }
+        @media (max-width: 1024px) {
+          .cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .main-nav { display: none; }
+        }
+        @media (max-width: 640px) {
+          .topbar { padding: 0 14px; }
+          .brand-text strong { font-size: 25px; }
+          .brand-location { display: none; }
+          .toolbar { flex-direction: column; align-items: stretch; }
+          .search-box, .select-box { width: 100%; }
+          .cards-grid { grid-template-columns: 1fr; }
+          .content-shell { padding-left: 14px; padding-right: 14px; }
         }
       `}</style>
 
-      {/* NAV */}
-      <nav className="vt-landing-nav" style={{
-        position: "sticky", top: 0, zIndex: 50,
-        background: "rgba(7,13,10,0.85)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
-        borderBottom: `1px solid ${V.line}`,
-        padding: "0 24px", height: 68,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div className="vt-landing-brand-mark" aria-hidden="true">⚡</div>
-          <span style={{ fontWeight: 800, fontSize: 15, letterSpacing: 0.3 }}>
-            <span style={{ color: V.chalk }}>VELOCITY</span> <span style={{ color: V.flood }}>TURF</span>
-          </span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Link href="/login" style={{ ...buttonStyle("secondary", "sm"), textDecoration: "none", display: "inline-block" }}>Sign in</Link>
-          <Link href="/signup" style={{ ...buttonStyle("primary", "sm"), textDecoration: "none", display: "inline-block" }}>Join to play</Link>
-        </div>
-      </nav>
-
-      {/* HERO */}
-      <section className="vt-landing-hero">
-        <StadiumScene className="vt-landing-scene" />
-        <div className="vt-landing-copy">
-          <div className="vt-landing-kicker">YOUR CITY. YOUR PITCH. YOUR GAME.</div>
-          <h1 className="vt-landing-title">MAKE ROOM<br />FOR <em>GAME NIGHT.</em></h1>
-          <p className="vt-landing-description">
-            Find a pitch that is actually available, bring your crew, and lock in a time. Your next game is closer than you think.
-          </p>
-          <div className="vt-landing-actions">
-            <Link href="/signup" style={{ ...buttonStyle("primary", "lg"), textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}>
-              Create player account <Icon name="arrow" size={16} />
-            </Link>
-            <Link href="/login" style={{ ...buttonStyle("secondary", "lg"), textDecoration: "none", display: "inline-block" }}>
-              Sign in
-            </Link>
-          </div>
-
-          <div className="vt-landing-stats">
-            {[
-              { value: 240, label: "Turfs", suffix: "+" },
-              { value: 18, label: "Cities", suffix: "" },
-              { value: 52000, label: "Bookings", suffix: "+" },
-              { value: 91000, label: "Players", suffix: "+" },
-            ].map(s => (
-              <div key={s.label}>
-                <div className="vt-landing-stat-value">
-                  <AnimatedCounter value={s.value} suffix={s.suffix} />
-                </div>
-                <div className="vt-landing-stat-label">{s.label}</div>
-              </div>
-            ))}
+      <header className="topbar">
+        <div className="brand-wrap">
+          <div className="brand-mark">P</div>
+          <div className="brand-text">
+            <strong>PLAYO</strong>
+            <span className="brand-location"><span className="brand-dot" /> Bengaluru</span>
           </div>
         </div>
-      </section>
 
-      {/* FEATURES — scoreboard rows, not a card grid */}
-      <section style={{ padding: "40px 24px 100px", borderTop: `1px solid ${V.line}` }}>
-        <div style={{ maxWidth: 880, margin: "0 auto" }}>
-          {FEATURES.map((f, i) => (
-            <div key={f.n} style={{
-              display: "flex", gap: 28, alignItems: "baseline", padding: "36px 0",
-              borderBottom: i < FEATURES.length - 1 ? `1px solid ${V.line}` : "none",
-              flexDirection: i % 2 === 1 ? "row-reverse" : "row",
-              textAlign: i % 2 === 1 ? "right" : "left",
-            }}>
-              <div style={{ fontFamily: FONT_DATA, fontSize: 48, color: "rgba(245,247,242,0.14)", fontWeight: 700, flexShrink: 0, width: 90 }}>
-                {f.n}
-              </div>
-              <div>
-                <h3 style={{ color: V.chalk, fontFamily: FONT_DISPLAY, fontSize: 28, fontWeight: 400, margin: "0 0 8px", letterSpacing: 0.3 }}>{f.title}</h3>
-                <p style={{ color: V.chalkDim, fontSize: 15.5, lineHeight: 1.6, margin: 0, maxWidth: 460, marginLeft: i % 2 === 1 ? "auto" : 0 }}>{f.body}</p>
-              </div>
+        <nav className="main-nav" aria-label="Main navigation">
+          <Link href="#">Games</Link>
+          <Link href="#">Venues</Link>
+          <Link href="#">Trainers</Link>
+          <Link href="#">Partner with us</Link>
+        </nav>
+
+        <Link href="/login" className="nav-button">LOGIN</Link>
+      </header>
+
+      <main className="content-shell">
+        <header className="page-header">
+          <h1>Football Grounds in Bangalore: Book nearby Football Grounds</h1>
+
+          <div className="toolbar">
+            <label className="search-box" aria-label="Search by venue name">
+              <SearchIcon />
+              <input type="text" placeholder="Search by venue name" />
+            </label>
+
+            <div className="select-box" aria-label="Sport filter">
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 18 }}>⚽</span>
+                <span>Football</span>
+              </span>
+              <span className="caret" />
+            </div>
+          </div>
+        </header>
+
+        <nav className="tabs" aria-label="Category tabs">
+          {tabs.map((tab, index) => (
+            <div key={tab} className={`tab ${index === 0 ? "active" : ""}`}>
+              {tab}
             </div>
           ))}
-        </div>
-      </section>
+        </nav>
 
-      {/* HOW IT WORKS */}
-      <section style={{ padding: "0 24px 100px" }}>
-        <div style={{ maxWidth: 980, margin: "0 auto" }}>
-          <h2 style={{ color: V.chalk, fontFamily: FONT_DISPLAY, fontSize: 40, fontWeight: 400, textAlign: "center", margin: "0 0 56px" }}>
-            Three steps. That's it.
-          </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 32 }}>
-            {STEPS.map(s => (
-              <div key={s.n}>
-                <div style={{ fontFamily: FONT_DISPLAY, fontSize: 72, color: V.flood, lineHeight: 1, marginBottom: 12 }}>{s.n}</div>
-                <h3 style={{ color: V.chalk, fontSize: 19, fontWeight: 700, margin: "0 0 8px", fontFamily: FONT_BODY }}>{s.title}</h3>
-                <p style={{ color: V.chalkDim, fontSize: 14.5, lineHeight: 1.6, margin: 0 }}>{s.body}</p>
+        <section className="cards-grid" aria-label="Turf listing grid">
+          {venues.map((venue) => (
+            <article key={venue.name} className="venue-card">
+              <div className="venue-image">
+                <img src={venue.image} alt={venue.name} />
+                <div className="image-badges">
+                  {venue.featured ? <span className="featured-pill">Featured</span> : null}
+                  {venue.bookable ? <span className="bookable-pill">Bookable</span> : null}
+                </div>
+                {venue.promo ? (
+                  <div className="promo-card" aria-label="Promo card">
+                    <strong>Get Karma Discounts by booking on the App</strong>
+                    <div className="promo-app">
+                      <div className="mini-phone" />
+                    </div>
+                  </div>
+                ) : null}
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* PLAYER BAND */}
-      <section style={{ padding: "56px 24px", background: V.pitchCard, borderTop: `1px solid ${V.line}`, borderBottom: `1px solid ${V.line}` }}>
-        <div style={{ maxWidth: 880, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-            <div style={{ width: 48, height: 48, borderRadius: 10, background: V.floodDim, border: `1px solid ${V.flood}40`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <span aria-hidden="true" style={{ color: V.flood, fontSize: 22 }}>⚡</span>
-            </div>
-            <div>
-              <h3 style={{ color: V.chalk, fontSize: 20, fontWeight: 700, margin: "0 0 4px", fontFamily: FONT_BODY }}>Got a game in mind?</h3>
-              <p style={{ color: V.chalkDim, fontSize: 14, margin: 0 }}>Get your people together and make the next match happen.</p>
-            </div>
-          </div>
-          <Link href="/signup" style={{ ...buttonStyle("primary", "md"), textDecoration: "none", display: "inline-block", whiteSpace: "nowrap" }}>
-            Sign up to play
-          </Link>
-        </div>
-      </section>
+              <div className="card-body">
+                <div className="meta-row">
+                  <h2 className="venue-name">{venue.name}</h2>
+                  <span className="rating">
+                    <StarIcon />
+                    {venue.rating.toFixed(2)}
+                  </span>
+                </div>
 
-      {/* FINAL CTA */}
-      <section style={{ padding: "100px 24px", textAlign: "center" }}>
-        <h2 style={{ color: V.chalk, fontFamily: FONT_DISPLAY, fontSize: "clamp(36px, 6vw, 56px)", fontWeight: 400, margin: "0 0 16px" }}>
-          Ready to play?
-        </h2>
-        <p style={{ color: V.chalkDim, fontSize: 16, margin: "0 0 32px" }}>Your next game is one good plan away.</p>
-        <Link href="/signup" style={{ ...buttonStyle("primary", "lg"), textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}>
-          Join Velocity Turf <Icon name="arrow" size={16} />
-        </Link>
-      </section>
+                <div className="venue-info">
+                  <PinIcon />
+                  <span>{venue.distance}</span>
+                </div>
 
-      {/* FOOTER */}
-      <footer style={{ padding: "32px 24px", borderTop: `1px solid ${V.line}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div className="vt-landing-brand-mark" style={{ width: 22, height: 22, borderRadius: 5, fontSize: 12 }}>⚡</div>
-          <span style={{ color: V.chalkFaint, fontSize: 12.5 }}>© {new Date().getFullYear()} Velocity Turf</span>
-        </div>
-        <div style={{ display: "flex", gap: 20 }}>
-          <Link href="/login" style={{ color: V.chalkFaint, fontSize: 12.5, textDecoration: "none" }}>Log in</Link>
-          <Link href="/signup" style={{ color: V.chalkFaint, fontSize: 12.5, textDecoration: "none" }}>Sign up</Link>
-        </div>
-      </footer>
+                <div className="meta-settings">
+                  <div className="meta-left">
+                    <span className="facility">◉</span>
+                    <span>{venue.details}</span>
+                  </div>
+
+                  <div className="tags">
+                    {venue.tags.map((tag) => (
+                      <span key={tag} className="tag">{tag}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </article>
+          ))}
+        </section>
+      </main>
     </div>
   );
 }

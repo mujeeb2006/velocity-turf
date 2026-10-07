@@ -68,6 +68,8 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
   const [disputeFilter, setDisputeFilter] = useState("open");
 
   const [busyTurfId, setBusyTurfId] = useState(null);
+  const [busyBookingId, setBusyBookingId] = useState(null);
+  const [rejectingBooking, setRejectingBooking] = useState(null);
   const [rejecting, setRejecting] = useState(null);
   const [reviewDispute, setReviewDispute] = useState(null);
   const [busyDispute, setBusyDispute] = useState(false);
@@ -225,6 +227,21 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
       return;
     }
     showToast(decision === "approve" ? `Approved "${turf.name}" — now live. The owner has been notified.` : `Rejected "${turf.name}". The owner has been notified.`, { type: decision === "approve" ? "success" : "info" });
+    fetchAll();
+  }
+
+  async function decideBooking(booking, decision) {
+    if (busyBookingId) return;
+    setBusyBookingId(booking.id);
+    const { ok, data } = await postJson("/api/bookings/decision", { bookingId: booking.id, decision });
+    setBusyBookingId(null);
+    setRejectingBooking(null);
+    if (!ok) {
+      showToast(data.error || "Couldn't update that booking. Try again.", { type: "error" });
+      fetchAll();
+      return;
+    }
+    showToast(decision === "approve" ? `Booking for ${booking.player} approved.` : `Booking for ${booking.player} rejected.`, { type: decision === "approve" ? "success" : "info" });
     fetchAll();
   }
 
@@ -411,6 +428,12 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
             { key: "sport", label: "Sport", width: "0.9fr" },
             { key: "amount", label: "Amount", width: "0.9fr", align: "right", sortable: true, render: (b) => <span style={{ fontFamily: mono, color: V.chalk, fontWeight: 700 }}>{formatINR(b.amount)}</span> },
             { key: "status", label: "Status", width: "0.9fr", sortable: true, render: (b) => <StatusPill status={b.status} /> },
+            { key: "actions", label: "Actions", width: "1.5fr", render: (b) => b.status === "pending" ? (
+              <div style={{ display: "flex", gap: 6 }}>
+                <Btn variant="danger" size="sm" disabled={busyBookingId === b.id} onClick={() => setRejectingBooking(b)}>Reject</Btn>
+                <Btn variant="primary" size="sm" busy={busyBookingId === b.id} onClick={() => decideBooking(b, "approve")}>Approve</Btn>
+              </div>
+            ) : <span style={{ color: V.chalkFaint }}>—</span> },
           ];
           return (
             <>
@@ -432,7 +455,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
                 <div style={{ ...panel(), borderRadius: 16, overflow: "hidden" }}>{[...Array(5)].map((_, i) => <SkeletonRow key={i} columns={6} />)}</div>
               ) : (
                 <>
-                  <DataTable columns={columns} rows={shown} sort={bookingSort} onSort={toggleSort(setBookingSort)} minWidth={820} empty="No bookings match your filters." />
+                  <DataTable columns={columns} rows={shown} sort={bookingSort} onSort={toggleSort(setBookingSort)} minWidth={940} empty="No bookings match your filters." />
                   {rows.length > shown.length && (
                     <div style={{ textAlign: "center", marginTop: 14 }}>
                       <Btn onClick={() => setBookingLimit((n) => n + PAGE_SIZE)}>Show more ({rows.length - shown.length} remaining)</Btn>
@@ -534,6 +557,16 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
           message="The listing will be marked as rejected and the owner will be notified. This can't be undone from the dashboard."
           confirmLabel="Reject turf" busy={busyTurfId === rejecting.id}
           onConfirm={() => decideTurf(rejecting, "reject")} onClose={() => setRejecting(null)}
+        />
+      )}
+      {rejectingBooking && (
+        <ConfirmModal
+          title="Reject this booking?"
+          confirmLabel="Reject booking"
+          busy={busyBookingId === rejectingBooking.id}
+          message={`${rejectingBooking.player}'s booking for ${rejectingBooking.turf} on ${formatDayLabel(rejectingBooking.date, today)} at ${formatTime12(rejectingBooking.time)} will be declined and the slot reopened.`}
+          onConfirm={() => decideBooking(rejectingBooking, "reject")}
+          onClose={() => setRejectingBooking(null)}
         />
       )}
 

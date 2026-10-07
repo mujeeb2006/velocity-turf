@@ -409,22 +409,30 @@ export default function OwnerDashboardClient({ profile }) {
   async function respond(request, action) {
     if (respondingId) return;
     setRespondingId(request.id);
-    const { data, error } = await supabase.from("bookings")
-      .update({ status: action === "accept" ? "confirmed" : "declined" })
-      .eq("id", request.id).eq("status", "pending").select("id");
-    setRespondingId(null);
-    setDeclining(null);
-    if (error) {
-      showToast("Couldn't update that booking request. Try again.", { type: "error" });
-      return;
+    try {
+      const response = await fetch("/api/bookings/decision", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId: request.id, decision: action === "accept" ? "approve" : "reject" }),
+      });
+      let data = {};
+      try { data = await response.json(); } catch { /* empty body */ }
+      if (!response.ok) {
+        showToast(data.error || "Couldn't update that booking request. Try again.", { type: "error" });
+        if (response.status === 409) fetchAll();
+        return;
+      }
+
+      const status = action === "accept" ? "confirmed" : "declined";
+      setBookings((prev) => prev.map((b) => (b.id === request.id ? { ...b, status } : b)));
+      showToast(action === "accept" ? `Accepted ${request.player}'s booking for ${request.turf}` : `Declined ${request.player}'s booking for ${request.turf}`, { type: action === "accept" ? "success" : "info" });
+    } catch (error) {
+      console.error("Booking response failed", error);
+      showToast("Couldn't reach the server. Check your connection and try again.", { type: "error" });
+    } finally {
+      setRespondingId(null);
+      setDeclining(null);
     }
-    if (!data?.length) {
-      showToast("That request was already handled — refreshing.", { type: "info" });
-      fetchAll();
-      return;
-    }
-    setBookings((prev) => prev.map((b) => (b.id === request.id ? { ...b, status: action === "accept" ? "confirmed" : "declined" } : b)));
-    showToast(action === "accept" ? `Accepted ${request.player}'s booking for ${request.turf}` : `Declined ${request.player}'s booking for ${request.turf}`, { type: action === "accept" ? "success" : "info" });
   }
 
   const pendingCount = d.requests.length;

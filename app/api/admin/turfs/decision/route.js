@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, readJson, notifyUser, UUID_PATTERN } from "@/lib/admin/server";
 
@@ -13,8 +14,8 @@ export async function POST(request) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
-  const admin = createAdminClient();
-  const { data: turf, error: lookupError } = await admin
+  const supabase = createClient();
+  const { data: turf, error: lookupError } = await supabase
     .from("turfs")
     .select("id, name, owner_id, status")
     .eq("id", turfId)
@@ -29,7 +30,7 @@ export async function POST(request) {
   }
 
   const approve = decision === "approve";
-  let { data: updated, error } = await admin
+  let { data: updated, error } = await supabase
     .from("turfs")
     .update({ status: approve ? "live" : "rejected", approved_at: approve ? new Date().toISOString() : null })
     .eq("id", turfId)
@@ -39,7 +40,7 @@ export async function POST(request) {
   // Existing deployments may predate the optional approved_at column.
   if (error?.code === "42703" || error?.code === "PGRST204") {
     console.warn("turf decision retrying without approved_at; apply the latest schema to track approval timestamps");
-    ({ data: updated, error } = await admin
+    ({ data: updated, error } = await supabase
       .from("turfs")
       .update({ status: approve ? "live" : "rejected" })
       .eq("id", turfId)
@@ -48,21 +49,25 @@ export async function POST(request) {
   }
 
   if (error) {
-    console.error("turf decision failed", error);
-    return NextResponse.json({ error: "Could not update that turf." }, { status: 500 });
+    console.error("turf decision failed", { code: error.code, message: error.message, details: error.details });
+    return NextResponse.json({ error: "Could not update that turf. Check that the latest Supabase schema and admin policies are applied." }, { status: 500 });
   }
   if (!updated?.length) {
     return NextResponse.json({ error: "This turf has already been reviewed." }, { status: 409 });
   }
 
-  await notifyUser(
-    admin,
-    turf.owner_id,
-    approve ? `"${turf.name}" is now live` : `"${turf.name}" was not approved`,
-    approve
-      ? "Your turf passed review and players can now book it."
-      : "Your listing was not approved. Review the details and contact support if you'd like to resubmit.",
-  );
+  try {
+    await notifyUser(
+      createAdminClient(),
+      turf.owner_id,
+      approve ? `"${turf.name}" is now live` : `"${turf.name}" was not approved`,
+      approve
+        ? "Your turf passed review and players can now book it."
+        : "Your listing was not approved. Review the details and contact support if you'd like to resubmit.",
+    );
+  } catch (error) {
+    console.error("turf decision notification failed", error);
+  }
 
   return NextResponse.json({ success: true, status: approve ? "live" : "rejected" });
 }

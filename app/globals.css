@@ -2205,3 +2205,110 @@ button:active {
     flex-direction: column;
   }
 }
+
+/* ------------------------------------------------------------------
+   Owner / Admin dashboard kit (components/dashboard/kit.js)
+   ------------------------------------------------------------------ */
+.vt-stat {
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.vt-stat:hover {
+  transform: translateY(-2px);
+  border-color: rgba(31, 174, 113, 0.35) !important;
+  box-shadow: 0 10px 26px rgba(31, 174, 113, 0.1);
+}
+
+.vt-btn {
+  transition: background-color 150ms ease, border-color 150ms ease, opacity 150ms ease, transform 150ms ease;
+}
+
+.vt-btn:hover:not(:disabled) {
+  filter: brightness(0.96);
+  border-color: rgba(17, 24, 39, 0.28);
+}
+
+.vt-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.vt-btn:focus-visible,
+.vt-seg:focus-visible,
+.vt-nav-item:focus-visible,
+.vt-th:focus-visible,
+.vt-row-click:focus-visible {
+  outline: 2px solid #1fae71;
+  outline-offset: 2px;
+}
+
+.vt-input-wrap:focus-within {
+  border-color: #1fae71 !important;
+  box-shadow: 0 0 0 3px rgba(31, 174, 113, 0.14);
+}
+
+.vt-nav-item:hover {
+  background: rgba(31, 174, 113, 0.07) !important;
+}
+
+.vt-row {
+  transition: background-color 140ms ease;
+}
+
+.vt-row:hover {
+  background: #f7f9f6;
+}
+
+.vt-row-click {
+  cursor: pointer;
+}
+
+.vt-th:hover {
+  color: #162128 !important;
+}
+
+.vt-notif-panel {
+  top: 64px;
+  left: 254px;
+}
+
+.vt-two-col {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.vt-even-col {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+@media (max-width: 1100px) {
+  .vt-two-col,
+  .vt-even-col {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .vt-dashboard-sidebar {
+    border-bottom-color: rgba(17, 24, 39, 0.1) !important;
+  }
+
+  .vt-dashboard-identity {
+    display: none !important;
+  }
+
+  .vt-dashboard-footer {
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    margin-top: 8px !important;
+  }
+
+  .vt-notif-panel {
+    top: 64px;
+    left: 16px;
+  }
+}

@@ -14,19 +14,38 @@ export async function POST(request) {
   }
 
   const admin = createAdminClient();
-  const { data: turf } = await admin.from("turfs").select("id, name, owner_id, status").eq("id", turfId).maybeSingle();
+  const { data: turf, error: lookupError } = await admin
+    .from("turfs")
+    .select("id, name, owner_id, status")
+    .eq("id", turfId)
+    .maybeSingle();
+  if (lookupError) {
+    console.error("turf decision lookup failed", lookupError);
+    return NextResponse.json({ error: "Could not load that turf for review." }, { status: 500 });
+  }
   if (!turf) return NextResponse.json({ error: "Turf not found." }, { status: 404 });
   if (turf.status !== "pending") {
     return NextResponse.json({ error: "This turf has already been reviewed." }, { status: 409 });
   }
 
   const approve = decision === "approve";
-  const { data: updated, error } = await admin
+  let { data: updated, error } = await admin
     .from("turfs")
     .update({ status: approve ? "live" : "rejected", approved_at: approve ? new Date().toISOString() : null })
     .eq("id", turfId)
     .eq("status", "pending")
     .select("id");
+
+  // Existing deployments may predate the optional approved_at column.
+  if (error?.code === "42703" || error?.code === "PGRST204") {
+    console.warn("turf decision retrying without approved_at; apply the latest schema to track approval timestamps");
+    ({ data: updated, error } = await admin
+      .from("turfs")
+      .update({ status: approve ? "live" : "rejected" })
+      .eq("id", turfId)
+      .eq("status", "pending")
+      .select("id"));
+  }
 
   if (error) {
     console.error("turf decision failed", error);

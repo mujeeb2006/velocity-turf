@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { normalizeEmail, isValidEmail, isStrongPassword } from "@/lib/auth/validation";
 import AuthShell from "../auth-shell";
 import { inputStyle, buttonStyle, errorStyle, linkStyle } from "../auth-styles";
+import { COLORS as V } from "@/lib/design-tokens";
 
 export default function LoginPage() {
   const supabase = createClient();
@@ -70,7 +71,7 @@ export default function LoginPage() {
         </button>
       </form>
 
-      <p style={{ color: "rgba(245,247,242,0.4)", fontSize: 13.5, marginTop: 22, textAlign: "center", fontFamily: "'Manrope', sans-serif" }}>
+      <p style={{ color: V.chalkDim, fontSize: 13.5, marginTop: 22, textAlign: "center", fontFamily: "'Manrope', sans-serif" }}>
         Don't have an account?{" "}
         <Link href="/signup" style={linkStyle}>
           Sign up

@@ -1,3 +1,5 @@
+import { COLORS as V } from "@/lib/design-tokens";
+
 // Shared skeleton/shimmer primitives used while dashboard data "loads".
 // Kept dependency-free (no hooks) so it can be dropped into any client component.
 
@@ -29,7 +31,7 @@ export function Skeleton({ width = "100%", height = 14, radius = 8, style = {} }
         height,
         borderRadius: radius,
         background:
-          "linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.12) 37%, rgba(255,255,255,0.05) 63%)",
+          "linear-gradient(90deg, rgba(22,33,40,0.04) 25%, rgba(22,33,40,0.09) 37%, rgba(22,33,40,0.04) 63%)",
         backgroundSize: "600px 100%",
         animation: "skeletonShimmer 1.4s ease infinite",
         ...style,
@@ -44,9 +46,9 @@ export function SkeletonCard({ lines = 3, height = 160 }) {
   return (
     <div
       style={{
-        background: "rgba(13, 21, 38, 0.75)",
-        border: "1px solid rgba(14,165,233,0.15)",
-        borderRadius: 18,
+        background: V.pitchCard,
+        border: `1px solid ${V.line}`,
+        borderRadius: 16,
         padding: 20,
         display: "flex",
         flexDirection: "column",
@@ -71,7 +73,7 @@ export function SkeletonRow({ columns = 4 }) {
         alignItems: "center",
         gap: 20,
         padding: "16px 20px",
-        borderBottom: "1px solid rgba(255,255,255,0.05)",
+        borderBottom: `1px solid ${V.line}`,
       }}
     >
       {[...Array(columns)].map((_, i) => (

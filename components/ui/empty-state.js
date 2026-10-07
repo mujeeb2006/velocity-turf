@@ -2,13 +2,15 @@
 // empty list (no requests, no disputes, no search results, etc.) looks
 // consistent across Player / Owner / Admin.
 
+import { COLORS as V } from "@/lib/design-tokens";
+
 export function EmptyState({ icon = "📭", title, subtitle, action, accent = "#0EA5E9" }) {
   return (
     <div
       style={{
-        background: "rgba(13, 21, 38, 0.75)",
-        border: "1px solid rgba(14,165,233,0.15)",
-        borderRadius: 18,
+        background: V.pitchCard,
+        border: `1px solid ${V.line}`,
+        borderRadius: 16,
         padding: "44px 24px",
         textAlign: "center",
         display: "flex",
@@ -33,11 +35,11 @@ export function EmptyState({ icon = "📭", title, subtitle, action, accent = "#
       >
         {icon}
       </div>
-      <div style={{ color: "#fff", fontWeight: 700, fontSize: 15.5, fontFamily: "'Exo 2', sans-serif" }}>
+      <div style={{ color: V.chalk, fontWeight: 700, fontSize: 15.5, fontFamily: "'Exo 2', sans-serif" }}>
         {title}
       </div>
       {subtitle && (
-        <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, maxWidth: 340, lineHeight: 1.5 }}>
+        <div style={{ color: V.chalkDim, fontSize: 13, maxWidth: 340, lineHeight: 1.5 }}>
           {subtitle}
         </div>
       )}

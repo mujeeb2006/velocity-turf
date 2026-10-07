@@ -561,10 +561,7 @@ begin
     new.id,
     new.email,
     coalesce(new.raw_user_meta_data->>'full_name', ''),
-    case
-      when lower(coalesce(new.raw_user_meta_data->>'role', 'player')) in ('owner', 'turf_owner', 'turf owner') then 'owner'
-      else 'player'
-    end
+    'player'
   );
   return new;
 end;

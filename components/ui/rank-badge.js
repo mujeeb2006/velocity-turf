@@ -3,6 +3,8 @@
 // users even though the data was fine. This renders rank badges as plain
 // SVG so they look identical everywhere.
 
+import { COLORS as V } from "@/lib/design-tokens";
+
 const RANK_STYLES = {
   1: { bg: "#FBBF24", fg: "#050A14", ring: "#FBBF24" },
   2: { bg: "#CBD5E1", fg: "#050A14", ring: "#CBD5E1" },
@@ -20,9 +22,9 @@ export function RankBadge({ rank, size = 28 }) {
           width: size,
           height: size,
           borderRadius: "50%",
-          background: "rgba(255,255,255,0.06)",
-          border: "1px solid rgba(255,255,255,0.12)",
-          color: "rgba(255,255,255,0.5)",
+          background: V.pitchCardRaised,
+          border: `1px solid ${V.lineStrong}`,
+          color: V.chalkDim,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",

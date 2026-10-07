@@ -19,7 +19,7 @@ export const buttonStyle = {
   borderRadius: 12,
   background: V.flood,
   border: "none",
-  color: V.pitch,
+  color: V.chalk,
   fontWeight: 800,
   fontSize: 15,
   cursor: "pointer",

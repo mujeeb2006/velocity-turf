@@ -2,20 +2,18 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { normalizeEmail, normalizeSignupRole, isValidEmail, isStrongPassword } from "@/lib/auth/validation";
 import AuthShell from "../auth-shell";
 import { inputStyle, buttonStyle, errorStyle, linkStyle } from "../auth-styles";
+import { COLORS as V } from "@/lib/design-tokens";
 
 export default function SignupPage() {
   const supabase = createClient();
-  const router = useRouter();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState("player");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
@@ -48,15 +46,13 @@ export default function SignupPage() {
     }
     setLoading(true);
 
-    const selectedRole = normalizeSignupRole(role);
-
     const { data, error } = await supabase.auth.signUp({
       email: normalizedEmail,
       password,
       options: {
         data: {
           full_name: trimmedFullName,
-          role: selectedRole,
+          role: normalizeSignupRole(),
         },
       },
     });
@@ -81,7 +77,7 @@ export default function SignupPage() {
   if (done) {
     return (
       <AuthShell title="Check your email" subtitle="We've sent you a confirmation link">
-        <p style={{ color: "rgba(245,247,242,0.6)", fontSize: 14.5, textAlign: "center", fontFamily: "'Manrope', sans-serif" }}>
+        <p style={{ color: V.chalkDim, fontSize: 14.5, textAlign: "center", fontFamily: "'Manrope', sans-serif" }}>
           Click the link in your email to activate your account, then come back and sign in.
         </p>
         <Link href="/login" style={{ ...buttonStyle, display: "block", textAlign: "center", marginTop: 22, textDecoration: "none", boxSizing: "border-box" }}>
@@ -92,22 +88,13 @@ export default function SignupPage() {
   }
 
   return (
-    <AuthShell title={role === "owner" ? "Join as a turf owner" : "Join as a player"} subtitle={role === "owner" ? "Create your owner account to list and manage turfs" : "Create your player account to find and book a pitch"}>
+    <AuthShell title="Join as a player" subtitle="Create your player account to find and book a pitch">
       {error && <div role="alert" style={{ ...errorStyle, marginBottom: 18 }}>{error}</div>}
 
       <form onSubmit={handleSignup} style={{ display: "grid", gap: 14 }}>
-        <div style={{ display: "grid", gap: 8 }}>
-          <label htmlFor="signup-role" style={{ color: "rgba(245,247,242,0.72)", fontSize: 13, fontFamily: "'Manrope', sans-serif" }}>I am signing up as</label>
-          <select
-            id="signup-role"
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            style={{ ...inputStyle, width: "100%", minHeight: 48, borderRadius: 10, padding: "13px 15px", background: "rgba(15, 20, 24, 0.92)" }}
-          >
-            <option value="player">Player</option>
-            <option value="owner">Turf owner</option>
-          </select>
-        </div>
+        <p style={{ color: V.chalkDim, fontSize: 13, lineHeight: 1.5, fontFamily: "'Manrope', sans-serif" }}>
+          Turf owner accounts are available by admin invitation.
+        </p>
         <input
           type="text"
           aria-label="Full name"
@@ -156,7 +143,7 @@ export default function SignupPage() {
         </button>
       </form>
 
-      <p style={{ color: "rgba(245,247,242,0.52)", fontSize: 13.5, lineHeight: 1.6, marginTop: 22, textAlign: "center", fontFamily: "'Manrope', sans-serif" }}>
+      <p style={{ color: V.chalkDim, fontSize: 13.5, lineHeight: 1.6, marginTop: 22, textAlign: "center", fontFamily: "'Manrope', sans-serif" }}>
         Already have an account?{" "}
         <Link href="/login" style={linkStyle}>
           Sign in

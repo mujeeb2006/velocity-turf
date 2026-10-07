@@ -53,7 +53,7 @@ match, or access player-specific dashboard and loyalty features.
 
 - Sign up as a **Player**. To test the **Turf Owner** portal, sign in as the
   admin and invite an owner from the Admin dashboard.
-- To create an **Admin** account: sign up normally (as anything), then in
+- To create an **Admin** account: sign up as a player, then in
   Supabase's SQL Editor run:
   ```sql
   update public.profiles set role = 'admin' where email = 'you@example.com';
@@ -73,7 +73,8 @@ there's no manual portal switcher.
    its dashboard).
 4. Click **Deploy**. Done — you'll get a live `https://your-app.vercel.app` URL.
 
-Anyone can now sign up and get routed to the portal that matches their role.
+Anyone can sign up as a player and access the player portal. Admins can invite
+turf owners from the Admin dashboard.
 
 ---
 
@@ -83,7 +84,7 @@ Anyone can now sign up and get routed to the portal that matches their role.
 app/
   page.js              → guest player browsing, or the signed-in portal by role
   login/page.js         → sign in
-  signup/page.js        → sign up (choose Player or Turf Owner)
+  signup/page.js         → public player signup; owners are invited by admins
   admin/                → admin-only, redirects non-admins to /unauthorized
   owner/                → owner-only
   player/                → player-only
@@ -98,9 +99,10 @@ supabase/schema.sql     → run this once in Supabase's SQL editor
 
 ## Deployment notes
 
-The checked-in schema is intended for a new Supabase project. If marketplace tables
-already exist, review and migrate their data and policies before applying this
-schema; `create table if not exists` does not modify existing table definitions.
+The checked-in schema is intended for a new Supabase project. For existing
+projects, apply the SQL files in `supabase/migrations/` using the SQL Editor.
+Review and migrate existing data and policies before applying the full schema;
+`create table if not exists` does not modify existing table definitions.
 Checkout remains a demo flow and does not connect to a payment provider.
 
 For anything admin-only that needs to read *all* rows regardless of owner

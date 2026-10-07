@@ -1,6 +1,6 @@
 import Link from "next/link";
 import StadiumScene from "@/components/StadiumScene";
-import BrandMark from "@/components/brand-mark";
+import BrandLogo from "@/components/brand-logo";
 
 export default function AuthShell({ title, subtitle, children }) {
   return (
@@ -9,8 +9,7 @@ export default function AuthShell({ title, subtitle, children }) {
         <section className="vt-auth-art" aria-label="Velocity Turf matchday">
           <StadiumScene className="vt-auth-art-scene" />
           <Link href="/" className="vt-auth-brand" aria-label="Velocity Turf home">
-            <BrandMark size={36} />
-            <span>VELOCITY <b>TURF</b></span>
+            <BrandLogo width={430} textColor="#172126" taglineColor="#53615B" />
           </Link>
           <div className="vt-auth-art-copy">
             <span className="vt-auth-eyebrow"><span /> THE GAME STARTS HERE</span>
@@ -25,8 +24,7 @@ export default function AuthShell({ title, subtitle, children }) {
 
         <section className="vt-auth-panel">
           <div className="vt-auth-mobile-brand">
-            <BrandMark size={36} />
-            <span>VELOCITY <b>TURF</b></span>
+            <BrandLogo width={400} textColor="#172126" taglineColor="#53615B" />
           </div>
           <header className="vt-auth-heading">
             <h1>{title}</h1>

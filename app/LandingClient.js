@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FONT_BODY, FONT_DISPLAY } from "@/lib/design-tokens";
+import BrandMark from "@/components/brand-mark";
 
 const tabs = ["Venues (481)", "Coaching (8)", "Events (1)", "Memberships (0)"];
 
@@ -512,7 +513,7 @@ export default function LandingClient() {
           background: rgba(255,255,255,0.12);
         }
         .promo-app .mini-phone::after {
-          content: "PLAYO";
+          content: "VELOCITY";
           position: absolute;
           left: 50%;
           bottom: 18px;
@@ -538,9 +539,9 @@ export default function LandingClient() {
 
       <header className="topbar">
         <div className="brand-wrap">
-          <div className="brand-mark">P</div>
+          <BrandMark size={38} />
           <div className="brand-text">
-            <strong>PLAYO</strong>
+            <strong>VELOCITY <span style={{ color: "#169B58" }}>TURF</span></strong>
             <span className="brand-location"><span className="brand-dot" /> Bengaluru</span>
           </div>
         </div>

@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 import { COLORS as V, FONT_BODY, FONT_DATA, FONT_DISPLAY, panel } from "@/lib/design-tokens";
 import { formatDelta, toCSV } from "@/lib/dashboard/format";
+import BrandMark from "@/components/brand-mark";
 
 export const font = FONT_BODY;
 export const mono = FONT_DATA;
@@ -525,7 +526,7 @@ export function SideNav({ items, active, onSelect, roleLabel, roleIcon = "shield
     <nav aria-label="Dashboard" className="vt-dashboard-sidebar" style={{ width: 240, flexShrink: 0, minHeight: "100vh", position: "sticky", top: 0, alignSelf: "flex-start", background: V.pitchCard, borderRight: `1px solid ${V.line}`, padding: "22px 14px", display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 6px", marginBottom: 18 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 34, height: 34, borderRadius: 10, background: V.flood, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>⚡</div>
+          <BrandMark size={34} />
           <span style={{ fontWeight: 900, fontSize: 16, fontFamily: font, letterSpacing: -0.2 }}>
             <span style={{ color: V.chalk }}>VELOCITY</span> <span style={{ color: V.flood }}>TURF</span>
           </span>

@@ -7,6 +7,7 @@ import { normalizeUserRole } from "@/lib/auth/validation";
 import { useToast } from "@/components/ui/toast";
 import { SkeletonCard, SkeletonRow } from "@/components/ui/skeleton";
 import { COLORS as V, panel } from "@/lib/design-tokens";
+import { SPORT_OPTIONS } from "@/lib/sports";
 import {
   acceptanceRate, addDays, bookingDay, cancellationRate, dateKey, filterByRange, hourDistribution, isActiveBooking,
   monthComparison, ratingSummary, revenueBy, revenueSeries, sportBreakdown, sumRevenue, upcomingBookings,
@@ -21,7 +22,6 @@ import {
 } from "@/components/dashboard/kit";
 
 const TABS = ["overview", "turfs", "bookings", "analytics", "payouts", "reviews"];
-const SPORT_OPTIONS = ["Football", "Basketball", "Cricket", "Badminton", "Hockey"];
 const AMENITY_OPTIONS = ["Floodlights", "Parking", "Cafeteria", "Showers", "AC Hall", "Lockers", "WiFi", "Turf"];
 const BOOKING_SELECT = "id, turf_id, player_id, booking_date, start_time, sport, players_count, price, status, created_at";
 const OWNER_COLOR = V.aqua;

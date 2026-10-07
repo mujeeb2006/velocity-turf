@@ -11,6 +11,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { RankBadge } from "@/components/ui/rank-badge";
 import { COLORS as V, NAV_ACCENTS, FONT_DISPLAY, FONT_BODY, FONT_DATA, panel, floodGlow, buttonStyle } from "@/lib/design-tokens";
 import StadiumScene from "@/components/StadiumScene";
+import BrandMark from "@/components/brand-mark";
+import { SPORT_OPTIONS } from "@/lib/sports";
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
@@ -104,7 +106,7 @@ function SlotGrid({ slots, onSelect, selected }) {
 // ============================================================
 // TURF CARD
 // ============================================================
-function TurfCard({ turf, onBook, onMatch }) {
+function TurfCard({ turf, onBook, onMatch, index = 0 }) {
   const price = calcPrice(turf, turf.occupancy);
   const isDynamic = turf.occupancy > 70;
   const sportImages = {
@@ -113,15 +115,18 @@ function TurfCard({ turf, onBook, onMatch }) {
     Cricket: "https://images.unsplash.com/photo-1531415074968-036ba1b575da?auto=format&fit=crop&w=1000&q=85",
     Badminton: "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=1000&q=85",
     Hockey: "https://images.unsplash.com/photo-1580748141549-71748dbe0f8b?auto=format&fit=crop&w=1000&q=85",
+    Tennis: "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&w=1000&q=85",
+    Volleyball: "https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?auto=format&fit=crop&w=1000&q=85",
+    Pickleball: "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=1000&q=85",
+    Swimming: "https://images.unsplash.com/photo-1530549387789-4c1017266635?auto=format&fit=crop&w=1000&q=85",
+    "Table Tennis": "https://images.unsplash.com/photo-1611251135345-18c56206b863?auto=format&fit=crop&w=1000&q=85",
+    Squash: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?auto=format&fit=crop&w=1000&q=85",
   };
   const coverImage = sportImages[turf.sports[0]] || sportImages.Football;
   const hasAvailability = turf.slots.some(slot => slot.status === "available");
 
   return (
-    <article className="vt-venue-card" style={{ ...panel(), cursor: "pointer" }}
-      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.borderColor = V.lineStrong; }}
-      onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.borderColor = V.line; }}
-    >
+    <article className="vt-venue-card" style={{ ...panel(), "--venue-index": index }}>
       <div className="vt-venue-cover">
         <img src={coverImage} alt={`${turf.sports[0]} venue`} loading="lazy" onError={e => { e.currentTarget.style.display = "none"; }} />
         <div className="vt-venue-cover-shade" />
@@ -421,7 +426,7 @@ function HeroSection({ onExplore, venueCount, isLoading }) {
       <div className="vt-player-hero-copy">
         <div className="vt-player-hero-kicker"><span /> FIND YOUR NEXT GAME</div>
         <h1>
-          Find your pitch.<br />
+          Find your venue.<br />
           <em>Make it a match.</em>
         </h1>
         <p className="vt-player-hero-description">
@@ -451,12 +456,12 @@ function HeroSection({ onExplore, venueCount, isLoading }) {
         </div>
       </div>
 
-      <div className="vt-player-hero-visual" aria-label="Illustration of a football ground">
+      <div className="vt-player-hero-visual" aria-label="Illustration of a sports venue">
         <div className="vt-player-scene-frame">
           <StadiumScene className="vt-player-scene" />
           <div className="vt-player-visual-caption">
-            <span className="vt-player-caption-icon" aria-hidden="true">⚽</span>
-            <span><strong>Game on.</strong><small>{isLoading ? "Finding live venues" : `${venueCount} ${venueCount === 1 ? "venue" : "venues"} to explore`}</small></span>
+            <span className="vt-player-caption-icon" aria-hidden="true">🏟️</span>
+            <span><strong>Every game, one place.</strong><small>{isLoading ? "Finding live venues" : `${venueCount} ${venueCount === 1 ? "venue" : "venues"} to explore`}</small></span>
           </div>
         </div>
         <div className="vt-player-hero-note">
@@ -474,13 +479,15 @@ function HeroSection({ onExplore, venueCount, isLoading }) {
 function DiscoverSection({ turfs, onBook, onMatch, isLoading, initialSearch = "" }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState(initialSearch);
-  const sports = ["All", "Football", "Basketball", "Cricket"];
+  const sportOptions = [...new Map([...SPORT_OPTIONS, ...turfs.flatMap((t) => t.sports || [])]
+    .map((sport) => [String(sport).toLowerCase(), sport])).values()];
+  const sports = ["All", ...sportOptions];
 
   useEffect(() => { setSearch(initialSearch); }, [initialSearch]);
 
   const q = search.trim().toLowerCase();
   const filtered = turfs
-    .filter(t => filter === "All" || t.sports.includes(filter))
+    .filter(t => filter === "All" || t.sports.some((sport) => String(sport).toLowerCase() === filter.toLowerCase()))
     .filter(t => !q || t.name.toLowerCase().includes(q) || t.location.toLowerCase().includes(q) || t.sports.some(s => s.toLowerCase().includes(q)));
 
   return (
@@ -490,7 +497,7 @@ function DiscoverSection({ turfs, onBook, onMatch, isLoading, initialSearch = ""
           <div>
             <span className="vt-section-eyebrow">PLAY NEAR YOU</span>
             <h2>Find your next venue</h2>
-            <p>Choose a sport and find a ground that fits your game.</p>
+            <p>From football and badminton to swimming and more, find a venue that fits your game.</p>
           </div>
           <span className="vt-venue-count">
             {isLoading ? "Updating venues" : `${filtered.length} ${filtered.length === 1 ? "venue" : "venues"}`}
@@ -530,8 +537,8 @@ function DiscoverSection({ turfs, onBook, onMatch, isLoading, initialSearch = ""
           />
         ) : (
           <div className="vt-venue-grid">
-            {filtered.map(t => (
-              <TurfCard key={t.id} turf={t} onBook={onBook} onMatch={onMatch} />
+            {filtered.map((t, index) => (
+              <TurfCard key={t.id} turf={t} onBook={onBook} onMatch={onMatch} index={index} />
             ))}
           </div>
         )}
@@ -1307,7 +1314,7 @@ export default function PlayerAppClient({ profile }) {
 
       <div className="vt-player-app" style={{
         minHeight: "100vh",
-        background: V.pitch,
+        backgroundColor: V.pitch,
         color: V.chalk,
         fontFamily: FONT_BODY,
         position: "relative",
@@ -1323,7 +1330,7 @@ export default function PlayerAppClient({ profile }) {
           alignItems: "center", justifyContent: "space-between",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 26, height: 26, borderRadius: 7, background: V.flood, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: "#ffffff" }}>⚡</div>
+            <BrandMark size={26} />
             <span style={{ fontWeight: 800, fontSize: 13, letterSpacing: 0.3, color: V.chalk }}>VELOCITY TURF</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1370,7 +1377,7 @@ export default function PlayerAppClient({ profile }) {
         }}>
           {/* Logo */}
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: V.flood, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: "#ffffff" }}>⚡</div>
+            <BrandMark size={32} />
             <span style={{ fontWeight: 800, fontSize: 16, letterSpacing: 0.3, fontFamily: FONT_BODY }}>
               <span style={{ color: V.chalk }}>VELOCITY</span>
               <span style={{ color: V.flood }}> TURF</span>

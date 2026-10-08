@@ -1089,7 +1089,7 @@ function GuestPrompt({ icon, title, body, router }) {
         <p style={{ color: V.chalkDim, fontSize: 14.5, lineHeight: 1.6, margin: "0 0 28px" }}>{body}</p>
         <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
           <button onClick={() => router.push("/signup")} style={buttonStyle("primary", "md")}>Sign up free</button>
-          <button onClick={() => router.push("/login")} style={buttonStyle("secondary", "md")}>Log in</button>
+          <button onClick={() => router.push("/login")} style={buttonStyle("secondary", "md")}>Sign in</button>
         </div>
       </div>
     </div>
@@ -1452,7 +1452,7 @@ export default function PlayerAppClient({ profile }) {
             ) : (
               <>
                 <button onClick={() => router.push("/login")} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: V.chalk, fontSize: 12.5, fontWeight: 700, fontFamily: FONT_BODY }}>
-                  Log in
+                  Sign in
                 </button>
                 <button onClick={() => router.push("/signup")} style={{ background: V.flood, border: "none", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: "#ffffff", fontSize: 12.5, fontWeight: 800, fontFamily: FONT_BODY }}>
                   Sign up
@@ -1515,7 +1515,7 @@ export default function PlayerAppClient({ profile }) {
             ) : (
               <>
                 <button onClick={() => router.push("/login")} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 10, padding: "9px 16px", cursor: "pointer", color: V.chalk, fontSize: 13.5, fontWeight: 700, fontFamily: FONT_BODY }}>
-                  Log in
+                  Sign in
                 </button>
                 <button onClick={() => router.push("/signup")} style={{ background: V.flood, border: "none", borderRadius: 10, padding: "9px 16px", cursor: "pointer", color: "#ffffff", fontSize: 13.5, fontWeight: 800, fontFamily: FONT_BODY }}>
                   Sign up

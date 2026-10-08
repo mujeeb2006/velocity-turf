@@ -36,7 +36,7 @@ export default function SignupPage() {
     }
 
     if (!isStrongPassword(password)) {
-      setError("Password must be at least 6 characters long.");
+      setError("Password must be at least 8 characters long.");
       return;
     }
 
@@ -78,17 +78,17 @@ export default function SignupPage() {
     return (
       <AuthShell title="Check your inbox" subtitle="One more step to activate your account">
         <p style={{ color: V.chalkDim, fontSize: 14.5, textAlign: "center", fontFamily: "'Manrope', sans-serif" }}>
-          Open the confirmation link in your email, then log in to start booking.
+          Open the confirmation link in your email, then sign in to start booking.
         </p>
         <Link href="/login" style={{ ...buttonStyle, display: "block", textAlign: "center", marginTop: 22, textDecoration: "none", boxSizing: "border-box" }}>
-          Go to log in
+          Go to sign in
         </Link>
       </AuthShell>
     );
   }
 
   return (
-    <AuthShell title="Create your player account" subtitle="Find nearby turfs, book open slots, and earn rewards.">
+    <AuthShell title="Sign up" subtitle="Join in a minute and book your first game.">
       {error && <div role="alert" style={{ ...errorStyle, marginBottom: 18 }}>{error}</div>}
 
       <form onSubmit={handleSignup} style={{ display: "grid", gap: 14 }}>
@@ -98,7 +98,7 @@ export default function SignupPage() {
         <input
           type="text"
           aria-label="Full name"
-          placeholder="Full name"
+          placeholder="Your full name"
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
           required
@@ -118,35 +118,35 @@ export default function SignupPage() {
         <input
           type="password"
           aria-label="Password"
-          placeholder="Create a password (at least 6 characters)"
+          placeholder="Create a password (at least 8 characters)"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          minLength={6}
+          minLength={8}
           autoComplete="new-password"
           style={{ ...inputStyle, width: "100%", minHeight: 48, borderRadius: 10, padding: "13px 15px" }}
         />
         <input
           type="password"
           aria-label="Confirm password"
-          placeholder="Confirm password"
+          placeholder="Re-enter your password"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           required
-          minLength={6}
+          minLength={8}
           autoComplete="new-password"
           style={{ ...inputStyle, width: "100%", minHeight: 48, borderRadius: 10, padding: "13px 15px" }}
         />
 
         <button type="submit" disabled={loading} style={{ ...buttonStyle, width: "100%", minHeight: 50, marginTop: 4, borderRadius: 10, fontSize: 15 }}>
-          {loading ? "Creating account…" : "Sign Up"}
+          {loading ? "Creating account…" : "Sign up"}
         </button>
       </form>
 
       <p style={{ color: V.chalkDim, fontSize: 13.5, lineHeight: 1.6, marginTop: 22, textAlign: "center", fontFamily: "'Manrope', sans-serif" }}>
         Already have an account?{" "}
         <Link href="/login" style={linkStyle}>
-          Log in
+          Sign in
         </Link>
       </p>
     </AuthShell>

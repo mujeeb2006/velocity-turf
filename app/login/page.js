@@ -28,7 +28,7 @@ export default function LoginPage() {
     }
 
     if (!isStrongPassword(password)) {
-      setError("Password must be at least 6 characters long.");
+      setError("Password must be at least 8 characters long.");
       return;
     }
 

@@ -21,8 +21,9 @@ test('isValidEmail accepts standard emails and rejects malformed ones', () => {
   assert.equal(isValidEmail(''), false);
 });
 
-test('isStrongPassword enforces a minimum length and a non-trivial value', () => {
-  assert.equal(isStrongPassword('abc123'), true);
+test('isStrongPassword enforces an 8-character minimum and a non-trivial value', () => {
+  assert.equal(isStrongPassword('abc12345'), true);
   assert.equal(isStrongPassword('short'), false);
+  assert.equal(isStrongPassword('1234567'), false);
   assert.equal(isStrongPassword('      '), false);
 });

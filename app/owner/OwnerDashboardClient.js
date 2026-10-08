@@ -631,10 +631,13 @@ export default function OwnerDashboardClient({ profile }) {
             { key: "sport", label: "Sport", width: "0.9fr" },
             { key: "amount", label: "Amount", width: "0.9fr", align: "right", render: (r) => <span style={{ fontFamily: mono, color: V.chalk, fontWeight: 700 }}>{formatINR(r.amount)}</span> },
             { key: "status", label: "Status", width: "0.9fr", render: (r) => <StatusPill status={r.status} /> },
+            { key: "actions", label: "Actions", width: "0.8fr", render: (r) => r.status === "confirmed" ? (
+              <Btn variant="danger" size="sm" disabled={respondingId === r.id} onClick={() => setDeclining(r)}>Reject</Btn>
+            ) : <span style={{ color: V.chalkFaint }}>—</span> },
           ];
           return (
             <>
-              <TopBar title="Bookings" sub={`${pendingCount} awaiting response · ${d.upcoming.length} upcoming`} action={
+              <TopBar title="Bookings" sub={`${pendingCount} pending requests · ${d.upcoming.length} confirmed upcoming`} action={
                 <>
                   {refreshButton}
                   {bookingView === "history" && (
@@ -654,7 +657,7 @@ export default function OwnerDashboardClient({ profile }) {
               {loading ? (
                 <div style={{ display: "grid", gap: 12 }}>{[...Array(3)].map((_, i) => <SkeletonRow key={i} columns={3} />)}</div>
               ) : bookingView === "requests" ? (
-                list.length === 0 ? <EmptyBlock emoji="📭" title={q ? "No requests match" : "No pending requests"} subtitle="New booking requests from players will show up here." /> : (
+                list.length === 0 ? <EmptyBlock emoji="📭" title={q ? "No requests match" : "No bookings awaiting review"} subtitle="New bookings are confirmed automatically." /> : (
                   <div style={{ display: "grid", gap: 12 }}>
                     {list.map((r) => <RequestCard key={r.id} r={r} today={today} busy={respondingId === r.id} onAccept={() => respond(r, "accept")} onDecline={() => setDeclining(r)} />)}
                   </div>
@@ -814,8 +817,10 @@ export default function OwnerDashboardClient({ profile }) {
 
       {declining && (
         <ConfirmModal
-          title="Decline this request?" confirmLabel="Decline request" busy={respondingId === declining.id}
-          message={`${declining.player}'s booking for ${declining.turf} on ${formatDayLabel(declining.date, today)} at ${formatTime12(declining.time)} will be declined and the slot reopened.`}
+          title={declining.status === "confirmed" ? "Reject this booking?" : "Decline this request?"}
+          confirmLabel={declining.status === "confirmed" ? "Reject booking" : "Decline request"}
+          busy={respondingId === declining.id}
+          message={`${declining.player}'s booking for ${declining.turf} on ${formatDayLabel(declining.date, today)} at ${formatTime12(declining.time)} will be rejected and the slot reopened. The player will be notified.`}
           onConfirm={() => respond(declining, "decline")} onClose={() => setDeclining(null)}
         />
       )}

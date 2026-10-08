@@ -13,8 +13,8 @@ export default function BrandLogo({
     <svg
       className={className}
       width={width}
-      height={Math.round(width * 280 / 797)}
-      viewBox="0 0 797 280"
+      height={Math.round(width * 280 / 820)}
+      viewBox="0 0 820 280"
       role="img"
       aria-label="Velocity Turf — Online Turf Booking"
       xmlns="http://www.w3.org/2000/svg"
@@ -22,22 +22,25 @@ export default function BrandLogo({
     >
       <defs>
         <clipPath id={`${id}-mark`}>
-          <rect x="64" y="19" width="225" height="226" rx="46" />
+          <rect x="10" y="26" width="220" height="220" rx="52" />
         </clipPath>
       </defs>
+
       <g clipPath={`url(#${id}-mark)`}>
-        <rect x="64" y="19" width="225" height="226" fill="#168F4D" />
-        <path d="M64 19h56v226H64z" fill="#11783F" />
-        <path d="M120 19h56v226h-56z" fill="#20A052" />
-        <path d="M176 19h56v226h-56z" fill="#168543" />
-        <path d="M97 84h42l37 102 37-102h43l-62 138h-35L97 84Z" fill="#fff" />
-        <path d="M161 44h46M177 59h35" stroke="#D9F3DF" strokeWidth="5" strokeLinecap="round" />
-        <circle cx="239" cy="51" r="18" fill="#D4FF4F" />
-        <circle cx="239" cy="51" r="6" fill="#168543" />
+        <rect x="10" y="26" width="220" height="220" rx="52" fill="#159B57" />
+        <path d="M10 62h38v184H10z" fill="#1EA660" opacity="0.22" />
+        <path d="M162 26h68v220h-68z" fill="#0F7F4B" opacity="0.18" />
+        <path d="M46 52h18l55 130h-18L46 52Z" fill="#fff" />
+        <path d="M108 52h18L69 182h-18l57-130Z" fill="#fff" />
+        <path d="M64 60H77L96 120H83L64 60Z" fill="#D7FBE7" opacity="0.7" />
+        <path d="M50 44H135" stroke="#D9FBE9" strokeWidth="5" strokeLinecap="round" opacity="0.8" />
+        <circle cx="170" cy="56" r="16" fill="#D4FF4F" />
+        <circle cx="170" cy="56" r="5" fill="#116B3B" />
       </g>
-      <text x="330" y="121" fill={textColor} fontFamily="Arial, Helvetica, sans-serif" fontSize="68" fontWeight="400" letterSpacing="1">VELOCITY</text>
-      <text x="330" y="197" fill="#159E50" fontFamily="Arial, Helvetica, sans-serif" fontSize="68" fontWeight="400" letterSpacing="10">TURF</text>
-      <text x="332" y="237" fill={taglineColor} fontFamily="Arial, Helvetica, sans-serif" fontSize="17" fontWeight="700" letterSpacing="5.2">ONLINE TURF BOOKING</text>
+
+      <text x="270" y="112" fill={textColor} fontFamily="Arial, Helvetica, sans-serif" fontSize="72" fontWeight="800" letterSpacing="0.8">VELOCITY</text>
+      <text x="270" y="194" fill="#169C5A" fontFamily="Arial, Helvetica, sans-serif" fontSize="72" fontWeight="800" letterSpacing="0.8">TURF</text>
+      <text x="272" y="236" fill={taglineColor} fontFamily="Arial, Helvetica, sans-serif" fontSize="19" fontWeight="700" letterSpacing="5.6">ONLINE TURF BOOKING</text>
     </svg>
   );
 }

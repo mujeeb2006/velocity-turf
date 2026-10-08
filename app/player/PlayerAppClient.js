@@ -306,7 +306,7 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast }
         <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${V.line}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <h2 style={{ color: V.chalk, margin: 0, fontSize: 24, fontFamily: FONT_DISPLAY, fontWeight: 400 }}>
-              {step === 3 ? "Booking request submitted" : `Book ${turf.name}`}
+            {step === 3 ? "Booking confirmed" : `Book ${turf.name}`}
             </h2>
             <p style={{ color: V.chalkFaint, margin: "4px 0 0", fontSize: 13, fontFamily: FONT_BODY }}>{turf.location}</p>
           </div>
@@ -351,17 +351,17 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast }
                   fontFamily: FONT_BODY,
                 }}
               >
-                Continue to payment →
+                Review booking →
               </button>
             </>
           )}
 
           {step === 2 && (
             <>
-              <div style={{ background: "rgba(245,166,35,0.1)", border: `1px solid ${V.pending}4D`, borderRadius: 12, padding: "12px 16px", marginBottom: 20 }}>
+              <div style={{ background: `${V.flood}14`, border: `1px solid ${V.flood}4D`, borderRadius: 12, padding: "12px 16px", marginBottom: 20 }}>
                 <div>
-                  <div style={{ color: V.pending, fontWeight: 700, fontSize: 13, fontFamily: FONT_BODY }}>Availability check</div>
-                  <div style={{ color: V.chalkDim, fontSize: 12, marginTop: 2, fontFamily: FONT_BODY }}>This slot is secured only when your booking request is submitted. Demo checkout; no payment is processed.</div>
+                  <div style={{ color: V.confirmed, fontWeight: 700, fontSize: 13, fontFamily: FONT_BODY }}>Instant booking</div>
+                  <div style={{ color: V.chalkDim, fontSize: 12, marginTop: 2, fontFamily: FONT_BODY }}>Your slot is confirmed as soon as you book. Demo checkout; no payment is processed.</div>
                 </div>
               </div>
 
@@ -398,7 +398,7 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast }
                   border: "none", color: "#ffffff", fontWeight: 800, cursor: submitting ? "wait" : "pointer", fontFamily: FONT_BODY,
                   opacity: submitting ? 0.7 : 1,
                 }}>
-                  {submitting ? "Confirming..." : `Confirm demo booking · ₹${price}`}
+                  {submitting ? "Confirming..." : `Confirm booking · ₹${price}`}
                 </button>
               </div>
             </>
@@ -411,7 +411,7 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast }
               </div>
               <h3 style={{ color: V.chalk, fontFamily: FONT_DISPLAY, fontSize: 26, fontWeight: 400, marginBottom: 8 }}>You're all set</h3>
               <p style={{ color: V.chalkDim, marginBottom: 24, fontFamily: FONT_BODY, fontSize: 14 }}>
-                Your booking request for {turf.name} is pending owner approval. Your unique booking QR ticket is ready below.
+                Your booking at {turf.name} is confirmed. Your unique booking QR ticket is ready below.
               </p>
               <div style={{ background: V.chalk, width: 164, height: 164, padding: 12, margin: "0 auto 20px", borderRadius: 14, display: "grid", placeItems: "center" }}>
                 {bookingId && <BookingQrCode bookingId={bookingId} size={140} />}
@@ -922,7 +922,7 @@ function BookingQrModal({ booking, onClose }) {
         </div>
         {booking.status === "pending" && (
           <p style={{ color: V.pending, fontSize: 12, fontFamily: FONT_BODY, margin: "14px 0 0" }}>
-            This booking is awaiting owner approval.
+            This booking is awaiting review.
           </p>
         )}
       </div>
@@ -1327,7 +1327,7 @@ export default function PlayerAppClient({ profile }) {
 
   const handleBookingConfirmed = () => {
     handleBookingClose();
-    showToast("Booking request submitted. Your QR ticket is available in your dashboard.", { type: "success" });
+    showToast("Booking confirmed. Your QR ticket is available in your dashboard.", { type: "success" });
     fetchTurfs();
     fetchMyBookings();
   };

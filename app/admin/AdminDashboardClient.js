@@ -428,10 +428,10 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
             { key: "sport", label: "Sport", width: "0.9fr" },
             { key: "amount", label: "Amount", width: "0.9fr", align: "right", sortable: true, render: (b) => <span style={{ fontFamily: mono, color: V.chalk, fontWeight: 700 }}>{formatINR(b.amount)}</span> },
             { key: "status", label: "Status", width: "0.9fr", sortable: true, render: (b) => <StatusPill status={b.status} /> },
-            { key: "actions", label: "Actions", width: "1.5fr", render: (b) => b.status === "pending" ? (
+            { key: "actions", label: "Actions", width: "1.5fr", render: (b) => ["pending", "confirmed"].includes(b.status) ? (
               <div style={{ display: "flex", gap: 6 }}>
                 <Btn variant="danger" size="sm" disabled={busyBookingId === b.id} onClick={() => setRejectingBooking(b)}>Reject</Btn>
-                <Btn variant="primary" size="sm" busy={busyBookingId === b.id} onClick={() => decideBooking(b, "approve")}>Approve</Btn>
+                {b.status === "pending" && <Btn variant="primary" size="sm" busy={busyBookingId === b.id} onClick={() => decideBooking(b, "approve")}>Approve</Btn>}
               </div>
             ) : <span style={{ color: V.chalkFaint }}>—</span> },
           ];
@@ -561,10 +561,10 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
       )}
       {rejectingBooking && (
         <ConfirmModal
-          title="Reject this booking?"
+          title={rejectingBooking.status === "confirmed" ? "Reject this booking?" : "Reject this request?"}
           confirmLabel="Reject booking"
           busy={busyBookingId === rejectingBooking.id}
-          message={`${rejectingBooking.player}'s booking for ${rejectingBooking.turf} on ${formatDayLabel(rejectingBooking.date, today)} at ${formatTime12(rejectingBooking.time)} will be declined and the slot reopened.`}
+          message={`${rejectingBooking.player}'s booking for ${rejectingBooking.turf} on ${formatDayLabel(rejectingBooking.date, today)} at ${formatTime12(rejectingBooking.time)} will be rejected and the slot reopened. The player will be notified.`}
           onConfirm={() => decideBooking(rejectingBooking, "reject")}
           onClose={() => setRejectingBooking(null)}
         />

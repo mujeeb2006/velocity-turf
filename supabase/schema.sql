@@ -52,7 +52,7 @@ create table if not exists public.bookings (
   sport text not null,
   players_count integer not null default 1 check (players_count > 0),
   price numeric(10, 2) not null check (price >= 0),
-  status text not null default 'pending' check (status in ('pending', 'confirmed', 'declined', 'cancelled', 'completed')),
+  status text not null default 'confirmed' check (status in ('pending', 'confirmed', 'declined', 'cancelled', 'completed')),
   created_at timestamptz not null default now()
 );
 
@@ -247,7 +247,7 @@ create policy "bookings_player_cancel" on public.bookings for update to authenti
 drop policy if exists "bookings_owner_respond" on public.bookings;
 create policy "bookings_owner_respond" on public.bookings for update to authenticated
   using (
-    status = 'pending'
+    status in ('pending', 'confirmed')
     and exists (select 1 from public.turfs t where t.id = turf_id and t.owner_id = auth.uid())
   )
   with check (
@@ -403,7 +403,7 @@ begin
     when total_count > 0 and occupied_count::numeric / total_count > 0.7 then turf_row.peak_price
     else turf_row.base_price
   end;
-  new.status := 'pending';
+  new.status := 'confirmed';
   return new;
 end;
 $$;

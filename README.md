@@ -8,8 +8,9 @@ A turf-booking platform with three real, database-backed logins:
 
 Auth and accounts are handled by **Supabase** (free tier is enough). Hosting is on **Vercel** (free tier, one click from GitHub).
 
-> Booking requests, owner payout/review records, player reviews, and disputes use
-> Supabase queries. Checkout is still a demo flow and does not process payments.
+> Player bookings are confirmed instantly; turf owners and admins can reject a
+> booking afterward, which reopens its slot and notifies the player. Checkout is
+> still a demo flow and does not process payments.
 > `supabase/schema.sql` creates the marketplace tables and their row-level security
 > policies for a new Supabase project. Past bookings are automatically deleted
 > after seven days unless a review or dispute references them.
@@ -105,7 +106,8 @@ supabase/schema.sql     → run this once in Supabase's SQL editor
 The checked-in schema is intended for a new Supabase project. For existing
 projects, apply the SQL files in `supabase/migrations/` using the SQL Editor.
 Review and migrate existing data and policies before applying the full schema;
-`create table if not exists` does not modify existing table definitions.
+`create table if not exists` does not modify existing table definitions. Apply
+the instant-booking migration in `supabase/migrations/` to existing projects.
 Checkout remains a demo flow and does not connect to a payment provider.
 
 For anything admin-only that needs to read *all* rows regardless of owner

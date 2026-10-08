@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getProfile } from "@/lib/supabase/server";
 import { normalizeUserRole } from "@/lib/auth/validation";
-import { readJson, UUID_PATTERN } from "@/lib/admin/server";
+import { notifyUser, readJson, UUID_PATTERN } from "@/lib/admin/server";
 
 export async function POST(request) {
   const profile = await getProfile();
@@ -23,7 +23,7 @@ export async function POST(request) {
   const admin = createAdminClient();
   const { data: booking, error: bookingError } = await admin
     .from("bookings")
-    .select("id, status, turf_id")
+    .select("id, status, turf_id, player_id, booking_date, start_time, turf:turfs(name)")
     .eq("id", bookingId)
     .maybeSingle();
   if (bookingError) {
@@ -31,8 +31,9 @@ export async function POST(request) {
     return NextResponse.json({ error: "Could not load that booking." }, { status: 500 });
   }
   if (!booking) return NextResponse.json({ error: "Booking not found." }, { status: 404 });
-  if (booking.status !== "pending") {
-    return NextResponse.json({ error: "This booking has already been reviewed." }, { status: 409 });
+  const allowedStatuses = decision === "reject" ? ["pending", "confirmed"] : ["pending"];
+  if (!allowedStatuses.includes(booking.status)) {
+    return NextResponse.json({ error: "This booking can no longer be changed." }, { status: 409 });
   }
 
   if (role === "owner") {
@@ -55,14 +56,25 @@ export async function POST(request) {
     .from("bookings")
     .update({ status })
     .eq("id", bookingId)
-    .eq("status", "pending")
+    .in("status", allowedStatuses)
     .select("id");
   if (error) {
     console.error("booking decision update failed", error);
     return NextResponse.json({ error: "Could not update that booking." }, { status: 500 });
   }
   if (!updated?.length) {
-    return NextResponse.json({ error: "This booking has already been reviewed." }, { status: 409 });
+    return NextResponse.json({ error: "This booking has already been changed." }, { status: 409 });
+  }
+
+  if (decision === "reject") {
+    const turfName = booking.turf?.name || "the turf";
+    const bookingTime = String(booking.start_time || "").slice(0, 5);
+    await notifyUser(
+      admin,
+      booking.player_id,
+      "Booking rejected",
+      `Your booking at ${turfName} on ${booking.booking_date} at ${bookingTime} was rejected by the ${role === "owner" ? "turf owner" : "admin"}. The slot is available again.`,
+    );
   }
 
   return NextResponse.json({ success: true, status });

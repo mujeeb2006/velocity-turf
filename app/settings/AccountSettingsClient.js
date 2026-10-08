@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { normalizeUserRole } from "@/lib/auth/validation";
 import { useToast } from "@/components/ui/toast";
 import { COLORS as V, FONT_BODY, buttonStyle } from "@/lib/design-tokens";
-import BrandMark from "@/components/brand-mark";
+import BrandLockup from "@/components/brand-lockup";
 
 const inputStyle = {
   width: "100%", minHeight: 46, padding: "11px 13px", borderRadius: 9, background: V.pitchCardRaised,
@@ -110,8 +110,7 @@ export default function AccountSettingsClient({ profile }) {
     <main className="vt-settings-page">
       <header className="vt-settings-topbar">
         <a className="vt-settings-brand" href={homePath}>
-          <BrandMark size={34} />
-          <span>VELOCITY <b>TURF</b></span>
+          <BrandLockup markSize={36} compact />
         </a>
         <button onClick={() => router.push(homePath)} className="vt-settings-back" style={buttonStyle("secondary", "sm")}>
           <span aria-hidden="true">←</span> Back to dashboard

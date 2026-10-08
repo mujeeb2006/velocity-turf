@@ -12,7 +12,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { RankBadge } from "@/components/ui/rank-badge";
 import { COLORS as V, NAV_ACCENTS, FONT_DISPLAY, FONT_BODY, FONT_DATA, panel, floodGlow, buttonStyle } from "@/lib/design-tokens";
 import StadiumScene from "@/components/StadiumScene";
-import BrandMark from "@/components/brand-mark";
+import BrandLockup from "@/components/brand-lockup";
 import { SPORT_OPTIONS } from "@/lib/sports";
 
 function todayStr() {
@@ -1398,10 +1398,7 @@ export default function PlayerAppClient({ profile }) {
           padding: "0 16px", height: 56,
           alignItems: "center", justifyContent: "space-between",
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <BrandMark size={30} />
-            <span style={{ fontWeight: 800, fontSize: 14, letterSpacing: 0.15, color: V.chalk }}>VELOCITY <span style={{ color: V.flood }}>TURF</span></span>
-          </div>
+          <BrandLockup markSize={34} compact />
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             {profile?.id ? (
               <>
@@ -1445,13 +1442,7 @@ export default function PlayerAppClient({ profile }) {
           justifyContent: "space-between",
         }}>
           {/* Logo */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <BrandMark size={38} />
-            <span style={{ fontWeight: 800, fontSize: 17, letterSpacing: 0.15, fontFamily: FONT_BODY }}>
-              <span style={{ color: V.chalk }}>VELOCITY</span>
-              <span style={{ color: V.flood }}> TURF</span>
-            </span>
-          </div>
+          <BrandLockup markSize={46} />
 
           {/* Desktop Nav */}
           <div style={{ display: "flex", gap: 4 }}>

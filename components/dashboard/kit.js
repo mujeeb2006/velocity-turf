@@ -7,7 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 import { COLORS as V, FONT_BODY, FONT_DATA, FONT_DISPLAY, panel } from "@/lib/design-tokens";
 import { formatDelta, toCSV } from "@/lib/dashboard/format";
-import BrandMark from "@/components/brand-mark";
+import BrandLockup from "@/components/brand-lockup";
 
 export const font = FONT_BODY;
 export const mono = FONT_DATA;
@@ -525,12 +525,7 @@ export function SideNav({ items, active, onSelect, roleLabel, roleIcon = "shield
   return (
     <nav aria-label="Dashboard" className="vt-dashboard-sidebar" style={{ width: 240, flexShrink: 0, minHeight: "100vh", position: "sticky", top: 0, alignSelf: "flex-start", background: V.pitchCard, borderRight: `1px solid ${V.line}`, padding: "22px 14px", display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 6px", marginBottom: 18 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <BrandMark size={38} />
-          <span style={{ fontWeight: 900, fontSize: 15, fontFamily: font, letterSpacing: -0.2, whiteSpace: "nowrap" }}>
-            <span style={{ color: V.chalk }}>VELOCITY</span> <span style={{ color: V.flood }}>TURF</span>
-          </span>
-        </div>
+        <BrandLockup markSize={38} compact dark />
         <button ref={bellRef} type="button" className="vt-btn" onClick={onBell} aria-label={unreadCount ? `Notifications, ${unreadCount} unread` : "Notifications"} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: V.chalk, display: "flex", alignItems: "center", justifyContent: "center", position: "relative", flexShrink: 0 }}>
           <Icon name="notification" size={15} />
           {unreadCount > 0 && (

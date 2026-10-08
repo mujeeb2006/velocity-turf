@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FONT_BODY, FONT_DISPLAY } from "@/lib/design-tokens";
-import BrandMark from "@/components/brand-mark";
+import BrandLockup from "@/components/brand-lockup";
 
 const tabs = ["Venues (481)", "Coaching (8)", "Events (1)", "Memberships (0)"];
 
@@ -539,11 +539,8 @@ export default function LandingClient() {
 
       <header className="topbar">
         <div className="brand-wrap">
-          <BrandMark size={42} />
-          <div className="brand-text">
-            <strong>VELOCITY <span style={{ color: "#169B58" }}>TURF</span></strong>
-            <span className="brand-location"><span className="brand-dot" /> Bengaluru</span>
-          </div>
+          <BrandLockup markSize={42} />
+          <span className="brand-location"><span className="brand-dot" /> Bengaluru</span>
         </div>
 
         <nav className="main-nav" aria-label="Main navigation">

@@ -1399,8 +1399,8 @@ export default function PlayerAppClient({ profile }) {
           alignItems: "center", justifyContent: "space-between",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <BrandMark size={26} />
-            <span style={{ fontWeight: 800, fontSize: 13, letterSpacing: 0.3, color: V.chalk }}>VELOCITY TURF</span>
+            <BrandMark size={30} />
+            <span style={{ fontWeight: 800, fontSize: 14, letterSpacing: 0.15, color: V.chalk }}>VELOCITY <span style={{ color: V.flood }}>TURF</span></span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             {profile?.id ? (
@@ -1445,9 +1445,9 @@ export default function PlayerAppClient({ profile }) {
           justifyContent: "space-between",
         }}>
           {/* Logo */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <BrandMark size={32} />
-            <span style={{ fontWeight: 800, fontSize: 16, letterSpacing: 0.3, fontFamily: FONT_BODY }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <BrandMark size={38} />
+            <span style={{ fontWeight: 800, fontSize: 17, letterSpacing: 0.15, fontFamily: FONT_BODY }}>
               <span style={{ color: V.chalk }}>VELOCITY</span>
               <span style={{ color: V.flood }}> TURF</span>
             </span>

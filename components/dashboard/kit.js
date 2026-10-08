@@ -526,8 +526,8 @@ export function SideNav({ items, active, onSelect, roleLabel, roleIcon = "shield
     <nav aria-label="Dashboard" className="vt-dashboard-sidebar" style={{ width: 240, flexShrink: 0, minHeight: "100vh", position: "sticky", top: 0, alignSelf: "flex-start", background: V.pitchCard, borderRight: `1px solid ${V.line}`, padding: "22px 14px", display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 6px", marginBottom: 18 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <BrandMark size={34} />
-          <span style={{ fontWeight: 900, fontSize: 16, fontFamily: font, letterSpacing: -0.2 }}>
+          <BrandMark size={38} />
+          <span style={{ fontWeight: 900, fontSize: 15, fontFamily: font, letterSpacing: -0.2, whiteSpace: "nowrap" }}>
             <span style={{ color: V.chalk }}>VELOCITY</span> <span style={{ color: V.flood }}>TURF</span>
           </span>
         </div>

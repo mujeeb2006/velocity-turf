@@ -160,7 +160,7 @@ export default function LandingClient() {
           letter-spacing: 0.02em;
         }
         .brand-text strong {
-          font-size: 30px;
+          font-size: 23px;
           font-family: ${FONT_DISPLAY};
           letter-spacing: -0.06em;
           line-height: 1;
@@ -528,7 +528,7 @@ export default function LandingClient() {
         }
         @media (max-width: 640px) {
           .topbar { padding: 0 14px; }
-          .brand-text strong { font-size: 25px; }
+          .brand-text strong { font-size: 20px; }
           .brand-location { display: none; }
           .toolbar { flex-direction: column; align-items: stretch; }
           .search-box, .select-box { width: 100%; }
@@ -539,7 +539,7 @@ export default function LandingClient() {
 
       <header className="topbar">
         <div className="brand-wrap">
-          <BrandMark size={38} />
+          <BrandMark size={42} />
           <div className="brand-text">
             <strong>VELOCITY <span style={{ color: "#169B58" }}>TURF</span></strong>
             <span className="brand-location"><span className="brand-dot" /> Bengaluru</span>

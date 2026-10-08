@@ -110,7 +110,7 @@ export default function AccountSettingsClient({ profile }) {
     <main className="vt-settings-page">
       <header className="vt-settings-topbar">
         <a className="vt-settings-brand" href={homePath}>
-          <BrandMark size={30} />
+          <BrandMark size={34} />
           <span>VELOCITY <b>TURF</b></span>
         </a>
         <button onClick={() => router.push(homePath)} className="vt-settings-back" style={buttonStyle("secondary", "sm")}>

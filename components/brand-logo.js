@@ -36,6 +36,7 @@ export default function BrandLogo({
         <circle cx="168" cy="58" r="17" fill="#D4FF4F" />
         <circle cx="168" cy="58" r="5.5" fill="#116B3B" />
       </g>
+      <rect x="10.75" y="26.75" width="218.5" height="218.5" rx="51.5" fill="none" stroke="#0D7042" strokeOpacity="0.16" strokeWidth="1.5" />
 
       <text x="270" y="112" fill={textColor} fontFamily="Arial, Helvetica, sans-serif" fontSize="72" fontWeight="700" letterSpacing="1.2">VELOCITY</text>
       <text x="270" y="194" fill="#169C5A" fontFamily="Arial, Helvetica, sans-serif" fontSize="72" fontWeight="700" letterSpacing="1.2">TURF</text>

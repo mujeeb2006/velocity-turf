@@ -452,13 +452,13 @@ function HeroSection({ onExplore, venueCount, isLoading }) {
   return (
     <section className="vt-player-hero">
       <div className="vt-player-hero-copy">
-        <div className="vt-player-hero-kicker"><span /> FIND YOUR NEXT GAME</div>
+        <div className="vt-player-hero-kicker"><span /> GAME ON. EVERY DAY.</div>
         <h1>
-          Find your venue.<br />
-          <em>Make it a match.</em>
+          Book a turf.<br />
+          <em>Bring your squad.</em>
         </h1>
         <p className="vt-player-hero-description">
-          Explore local sports venues, check live availability, and book your next game in a few taps.
+          Find turfs near you, see open slots instantly, and lock your game in seconds.
         </p>
 
         <div className="vt-player-search">
@@ -468,19 +468,19 @@ function HeroSection({ onExplore, venueCount, isLoading }) {
               value={searchVal}
               onChange={e => setSearchVal(e.target.value)}
               onKeyDown={e => e.key === "Enter" && submitSearch()}
-              placeholder="Search turfs, sports, locations…"
+              placeholder="Search football, cricket, badminton, or your area..."
               aria-label="Search turfs, sports, or locations"
             />
           </div>
           <button onClick={submitSearch} className="vt-player-search-button">
-            Explore venues <span aria-hidden="true">→</span>
+            Book now <span aria-hidden="true">→</span>
           </button>
         </div>
 
         <div className="vt-player-hero-trust">
-          <span><i aria-hidden="true">✓</i> Live availability</span>
-          <span><i aria-hidden="true">✓</i> Clear hourly pricing</span>
-          <span><i aria-hidden="true">✓</i> Easy online booking</span>
+          <span><i aria-hidden="true">✓</i> Real-time slots</span>
+          <span><i aria-hidden="true">✓</i> No hidden charges</span>
+          <span><i aria-hidden="true">✓</i> Quick online booking</span>
         </div>
       </div>
 
@@ -489,12 +489,12 @@ function HeroSection({ onExplore, venueCount, isLoading }) {
           <StadiumScene className="vt-player-scene" />
           <div className="vt-player-visual-caption">
             <span className="vt-player-caption-icon" aria-hidden="true">🏟️</span>
-            <span><strong>Every game, one place.</strong><small>{isLoading ? "Finding live venues" : `${venueCount} ${venueCount === 1 ? "venue" : "venues"} to explore`}</small></span>
+            <span><strong>Your next match is waiting.</strong><small>{isLoading ? "Finding turfs near you" : venueCount < 5 ? "Turfs near you" : `${venueCount} ${venueCount === 1 ? "turf" : "turfs"} ready to play`}</small></span>
           </div>
         </div>
         <div className="vt-player-hero-note">
           <span className="vt-player-note-mark" aria-hidden="true">✓</span>
-          <span><strong>Book with confidence</strong><small>Real-time slots, no guesswork</small></span>
+          <span><strong>Slots you see are slots you get</strong><small>Instant confirmation</small></span>
         </div>
       </div>
     </section>
@@ -1548,12 +1548,12 @@ export default function PlayerAppClient({ profile }) {
               <section className="vt-home-promo">
                 <div className="vt-home-promo-icon" aria-hidden="true">↗</div>
                 <div className="vt-home-promo-copy">
-                  <span className="vt-section-eyebrow">YOUR NEXT GAME STARTS HERE</span>
-                  <strong>From finding a ground to kickoff.</strong>
-                  <p>Compare venues, check current availability, and choose a slot that works for your crew.</p>
+                  <span className="vt-section-eyebrow">READY TO PLAY?</span>
+                  <strong>Gather the squad. We&apos;ll sort the ground.</strong>
+                  <p>Compare turfs, pick a time, and book. Your game is set in a few taps.</p>
                 </div>
                 <button className="vt-home-promo-button" onClick={() => setActiveTab("discover")}>
-                  Browse venues <span aria-hidden="true">→</span>
+                  See all turfs <span aria-hidden="true">→</span>
                 </button>
               </section>
             </>

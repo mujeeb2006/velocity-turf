@@ -113,7 +113,7 @@ export default function AccountSettingsClient({ profile }) {
           <BrandLockup markSize={36} compact />
         </a>
         <button onClick={() => router.push(homePath)} className="vt-settings-back" style={buttonStyle("secondary", "sm")}>
-          <span aria-hidden="true">←</span> Back to dashboard
+          <span aria-hidden="true">←</span> {normalizedRole === "player" ? "Back to my games" : "Back to dashboard"}
         </button>
       </header>
 
@@ -122,7 +122,7 @@ export default function AccountSettingsClient({ profile }) {
           <div className="vt-settings-identity">
             <div className="vt-settings-avatar">{initial}</div>
             <div className="vt-settings-identity-copy">
-              <span className="vt-settings-overline">SIGNED-IN ACCOUNT</span>
+              <span className="vt-settings-overline">YOUR PROFILE</span>
               <strong>{displayName}</strong>
               <span>{profile.email}</span>
             </div>
@@ -130,7 +130,7 @@ export default function AccountSettingsClient({ profile }) {
           </div>
 
           <nav className="vt-settings-nav" aria-label="Settings sections">
-            <span className="vt-settings-overline">YOUR ACCOUNT</span>
+            <span className="vt-settings-overline">SETTINGS</span>
             <a href="#profile"><SettingIcon name="profile" /><span>Profile details</span><i /></a>
             <a href="#email"><SettingIcon name="email" /><span>Email address</span><i /></a>
             <a href="#password"><SettingIcon name="password" /><span>Password</span><i /></a>
@@ -138,25 +138,25 @@ export default function AccountSettingsClient({ profile }) {
 
           <div className="vt-settings-private-note">
             <SettingIcon name="shield" />
-            <span><strong>Your account, protected.</strong> Your sign-in details are managed securely.</span>
+            <span><strong>Your account is safe.</strong> We keep your login details secure.</span>
           </div>
         </aside>
 
         <div className="vt-settings-content">
           <div className="vt-settings-page-heading">
-            <span className="vt-settings-overline">ACCOUNT CONTROL</span>
+            <span className="vt-settings-overline">ACCOUNT</span>
             <h1>Account settings</h1>
-            <p>Manage your profile and sign-in details.</p>
+            <p>Update your name, email, and password.</p>
           </div>
 
           <div className="vt-settings-sections">
             <section className="vt-settings-card" id="profile" style={{ "--settings-accent": V.aqua }}>
               <div className="vt-settings-card-heading">
                 <span className="vt-settings-icon"><SettingIcon name="profile" /></span>
-                <div><h2>Profile details</h2><p>How your name appears across Velocity Turf.</p></div>
+                <div><h2>Profile details</h2><p>This is the name other players see.</p></div>
               </div>
               <form onSubmit={saveName} className="vt-settings-form">
-                <Field label="Full name" autoComplete="name" value={fullName} onChange={e => setFullName(e.target.value)} />
+                <Field label="Name" autoComplete="name" value={fullName} onChange={e => setFullName(e.target.value)} />
                 <div className="vt-settings-form-action"><button type="submit" disabled={saving} style={buttonStyle("primary", "sm")}>{saving ? "Saving..." : "Save changes"}</button></div>
               </form>
             </section>
@@ -164,10 +164,10 @@ export default function AccountSettingsClient({ profile }) {
             <section className="vt-settings-card" id="email" style={{ "--settings-accent": V.sky }}>
               <div className="vt-settings-card-heading">
                 <span className="vt-settings-icon"><SettingIcon name="email" /></span>
-                <div><h2>Email address</h2><p>A confirmation link is sent before a new address takes effect.</p></div>
+                <div><h2>Email address</h2><p>We'll email you a link to confirm your new address.</p></div>
               </div>
               <form onSubmit={changeEmail} className="vt-settings-form">
-                <Field label="Email" type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required />
+                <Field label="Email address" type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required />
                 <div className="vt-settings-form-action"><button type="submit" disabled={saving || email.trim() === profile.email} style={buttonStyle("secondary", "sm")}>{saving ? "Saving..." : "Update email"}</button></div>
               </form>
             </section>
@@ -175,11 +175,11 @@ export default function AccountSettingsClient({ profile }) {
             <section className="vt-settings-card" id="password" style={{ "--settings-accent": V.coral }}>
               <div className="vt-settings-card-heading">
                 <span className="vt-settings-icon"><SettingIcon name="password" /></span>
-                <div><h2>Password</h2><p>Choose a strong password with at least 8 characters.</p></div>
+                <div><h2>Change password</h2><p>Use at least 8 characters.</p></div>
               </div>
               <form onSubmit={changePassword} className="vt-settings-form vt-settings-password-form">
-                <Field label="New password" type="password" autoComplete="new-password" minLength={8} value={newPassword} onChange={e => setNewPassword(e.target.value)} required />
-                <Field label="Confirm new password" type="password" autoComplete="new-password" minLength={8} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
+                <Field label="New password" type="password" placeholder="Enter new password" autoComplete="new-password" minLength={8} value={newPassword} onChange={e => setNewPassword(e.target.value)} required />
+                <Field label="Confirm new password" type="password" placeholder="Re-enter new password" autoComplete="new-password" minLength={8} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
                 <div className="vt-settings-form-action"><button type="submit" disabled={saving} style={buttonStyle("primary", "sm")}>{saving ? "Saving..." : "Update password"}</button></div>
               </form>
             </section>

@@ -9,11 +9,11 @@ import { SkeletonCard, SkeletonRow } from "@/components/ui/skeleton";
 import { COLORS as V, panel } from "@/lib/design-tokens";
 import { SPORT_OPTIONS } from "@/lib/sports";
 import {
-  acceptanceRate, addDays, bookingDay, cancellationRate, dateKey, filterByRange, hourDistribution, isActiveBooking,
+  acceptanceRate, addDays, bookingDay, dateKey, filterByRange, hourDistribution, isActiveBooking,
   monthComparison, ratingSummary, revenueBy, revenueSeries, sportBreakdown, sumRevenue, upcomingBookings,
 } from "@/lib/dashboard/analytics";
 import {
-  formatCompactINR, formatDayLabel, formatINR, formatTime12, relativeTime, seriesToBars, toNumber,
+  formatBookingDate, formatCompactINR, formatINR, formatTime12, relativeTime, seriesToBars, toNumber,
 } from "@/lib/dashboard/format";
 import {
   AttentionItem, BarChart, BarList, Btn, Card, ConfirmModal, DataTable, EmptyBlock, ErrorBanner, Icon, Modal,
@@ -26,8 +26,14 @@ const AMENITY_OPTIONS = ["Floodlights", "Parking", "Cafeteria", "Showers", "AC H
 const BOOKING_SELECT = "id, turf_id, player_id, booking_date, start_time, sport, players_count, price, status, created_at";
 const OWNER_COLOR = V.aqua;
 
-const hourLabel = (h) => `${h % 12 === 0 ? 12 : h % 12}${h < 12 ? "a" : "p"}`;
+const hourLabel = (h) => `${h % 12 === 0 ? 12 : h % 12} ${h < 12 ? "AM" : "PM"}`;
 const fmtTime = (t) => (t ? t.slice(0, 5) : t);
+
+function isOverdueRequest(request, today, now = new Date()) {
+  if (request.date < today) return true;
+  const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  return request.date === today && String(request.time || "").slice(0, 5) < currentTime;
+}
 
 // =================================================================== modals
 function AddTurfModal({ profile, supabase, onClose, onCreated, showToast }) {
@@ -235,6 +241,7 @@ function ManageSlotsModal({ turf, supabase, onClose, showToast, onChanged }) {
 
 // =================================================================== requests
 function RequestCard({ r, today, busy, onAccept, onDecline }) {
+  const overdue = isOverdueRequest(r, today);
   return (
     <Card pad={18}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 14 }}>
@@ -243,17 +250,19 @@ function RequestCard({ r, today, busy, onAccept, onDecline }) {
             <span style={{ color: V.chalk, fontWeight: 800, fontSize: 15 }}>{r.player}</span>
             <span style={{ color: V.chalkFaint }}>·</span>
             <span style={{ color: V.chalkDim, fontWeight: 600, fontSize: 14 }}>{r.turf}</span>
-            {r.date === today && <Pill color={V.pending}>Today</Pill>}
+            {overdue ? <Pill color={V.danger}>Overdue</Pill> : r.date === today ? <Pill color={V.pending}>Today</Pill> : null}
           </div>
           <div style={{ color: V.chalkDim, fontSize: 13, marginTop: 5 }}>
-            {formatDayLabel(r.date, today)}, {formatTime12(r.time)} · {r.sport}{r.players ? ` · ${r.players} player${r.players === 1 ? "" : "s"}` : ""} ·{" "}
-            <strong style={{ color: V.chalk, fontFamily: mono }}>{formatINR(r.amount)}</strong>
+            {formatBookingDate(r.date)}, {formatTime12(r.time)} · {r.sport}{r.players ? ` · ${r.players} player${r.players === 1 ? "" : "s"}` : ""} ·{" "}
+            <strong style={{ color: V.chalk, fontFamily: font }}>{formatINR(r.amount)}</strong>
           </div>
-          <div style={{ color: V.chalkFaint, fontSize: 11.5, marginTop: 3 }}>Requested {relativeTime(r.createdAt)}</div>
+          <div style={{ color: overdue ? V.danger : V.chalkFaint, fontSize: 11.5, marginTop: 3 }}>
+            {overdue ? `Overdue · requested ${relativeTime(r.createdAt)}` : `Requested ${relativeTime(r.createdAt)}`}
+          </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <Btn variant="danger" disabled={busy} onClick={onDecline}>Decline</Btn>
-          <Btn variant="primary" icon="check" busy={busy} onClick={onAccept}>Accept</Btn>
+          <Btn variant="danger" disabled={busy} onClick={onDecline}>Reject</Btn>
+          <Btn variant="primary" icon="check" busy={busy} onClick={onAccept}>Confirm booking</Btn>
         </div>
       </div>
     </Card>
@@ -378,7 +387,11 @@ export default function OwnerDashboardClient({ profile }) {
     }));
     const revenueByTurf = new Map(revenueBy(bookings, (b) => b.turf_id).map((r) => [r.key, r.revenue]));
     const todayByTurf = {};
-    bookings.forEach((b) => { if (bookingDay(b) === today && isActiveBooking(b)) todayByTurf[b.turf_id] = (todayByTurf[b.turf_id] || 0) + 1; });
+    bookings.forEach((b) => {
+      if (bookingDay(b) === today && (b.status === "confirmed" || b.status === "completed")) {
+        todayByTurf[b.turf_id] = (todayByTurf[b.turf_id] || 0) + 1;
+      }
+    });
 
     const turfRows = turfs.map((t) => ({ ...t, revenue: revenueByTurf.get(t.id) || 0, todayBookings: todayByTurf[t.id] || 0 }));
     const requests = rows.filter((r) => r.status === "pending").sort((a, b) => a.sortKey.localeCompare(b.sortKey));
@@ -425,7 +438,7 @@ export default function OwnerDashboardClient({ profile }) {
 
       const status = action === "accept" ? "confirmed" : "declined";
       setBookings((prev) => prev.map((b) => (b.id === request.id ? { ...b, status } : b)));
-      showToast(action === "accept" ? `Accepted ${request.player}'s booking for ${request.turf}` : `Declined ${request.player}'s booking for ${request.turf}`, { type: action === "accept" ? "success" : "info" });
+      showToast(action === "accept" ? `Confirmed ${request.player}'s booking for ${request.turf}` : `Rejected ${request.player}'s booking for ${request.turf}`, { type: action === "accept" ? "success" : "info" });
     } catch (error) {
       console.error("Booking response failed", error);
       showToast("Couldn't reach the server. Check your connection and try again.", { type: "error" });
@@ -436,6 +449,7 @@ export default function OwnerDashboardClient({ profile }) {
   }
 
   const pendingCount = d.requests.length;
+  const overdueCount = d.requests.filter((request) => isOverdueRequest(request, today)).length;
   const items = [
     { id: "overview", label: "Overview", icon: "grid" },
     { id: "turfs", label: "My Turfs", icon: "building" },
@@ -445,8 +459,8 @@ export default function OwnerDashboardClient({ profile }) {
     { id: "reviews", label: "Reviews", icon: "star" },
   ];
 
-  const refreshButton = <Btn icon="refresh" size="sm" onClick={fetchAll}>{updatedAt ? `Updated ${updatedAt}` : "Refresh"}</Btn>;
-  const addTurfButton = <Btn variant="primary" icon="plus" onClick={() => setShowAddTurf(true)}>Add New Turf</Btn>;
+  const refreshButton = <Btn icon="refresh" size="sm" onClick={fetchAll}>{updatedAt ? `Refreshed ${updatedAt}` : "Refresh"}</Btn>;
+  const addTurfButton = <Btn variant="primary" icon="plus" onClick={() => setShowAddTurf(true)}>Add a turf</Btn>;
   const skeletonStats = <StatGrid>{[...Array(5)].map((_, i) => <SkeletonCard key={i} lines={1} />)}</StatGrid>;
 
   return (
@@ -458,7 +472,7 @@ export default function OwnerDashboardClient({ profile }) {
       />
       <NotificationsPanel
         open={notes.open} onClose={() => notes.setOpen(false)} notifications={notes.notifications} unreadCount={notes.unreadCount}
-        lastSyncedAt={notes.lastSyncedAt} onMarkAll={notes.markAllRead} onMarkOne={notes.markOne}
+        onMarkAll={notes.markAllRead} onMarkOne={notes.markOne}
         emptyText="Nothing yet — booking requests and turf approvals will show up here."
       />
 
@@ -470,9 +484,12 @@ export default function OwnerDashboardClient({ profile }) {
           const m = d.month;
           const awaiting = d.turfRows.filter((t) => t.status === "pending");
           const rejected = d.turfRows.filter((t) => t.status === "rejected");
+          const todayBookingCount = d.turfRows.reduce((sum, turf) => sum + turf.todayBookings, 0);
+          const firstOverdueRequest = d.requests.find((request) => isOverdueRequest(request, today));
+          const requestToReview = firstOverdueRequest || d.requests[0];
           return (
             <>
-              <TopBar title={`Welcome back, ${profile?.full_name || "Owner"}`} sub="Here's how your turfs are doing" action={<>{refreshButton}{addTurfButton}</>} />
+              <TopBar title={`Welcome back, ${profile?.full_name || "Owner"}`} sub="Here's how your turfs are doing today." action={<>{refreshButton}{addTurfButton}</>} />
               {loading ? skeletonStats : turfs.length === 0 ? (
                 <div style={{ marginBottom: 28 }}>
                   <EmptyBlock emoji="🏟️" title="No turfs yet" subtitle="List your first turf to start receiving bookings and managing schedules."
@@ -482,9 +499,12 @@ export default function OwnerDashboardClient({ profile }) {
                 <>
                   <div style={{ display: "grid", gap: 10, marginBottom: 22 }}>
                     {pendingCount > 0 && (
-                      <AttentionItem icon="clock" tone={V.pending} title={`${pendingCount} booking request${pendingCount === 1 ? "" : "s"} waiting for you`}
-                        subtitle={`Earliest: ${formatDayLabel(d.requests[0].date, today)}, ${formatTime12(d.requests[0].time)} at ${d.requests[0].turf}.`}
-                        action={<Btn variant="primary" size="sm" onClick={() => { setBookingView("requests"); selectTab("bookings"); }}>Respond</Btn>} />
+                      <AttentionItem icon="clock" tone={overdueCount ? V.danger : V.pending}
+                        title={overdueCount
+                          ? `${overdueCount} overdue booking request${overdueCount === 1 ? "" : "s"}`
+                          : `${pendingCount} new booking request${pendingCount === 1 ? "" : "s"}`}
+                        subtitle={`${overdueCount ? "Overdue · needs a reply" : "Needs a reply"}: ${requestToReview.turf}, ${formatBookingDate(requestToReview.date)}, ${formatTime12(requestToReview.time)}.`}
+                        action={<Btn variant="primary" size="sm" onClick={() => { setBookingView("requests"); selectTab("bookings"); }}>Review request</Btn>} />
                     )}
                     {awaiting.length > 0 && (
                       <AttentionItem icon="shield" tone={V.sky} title={`${awaiting.length} listing${awaiting.length === 1 ? " is" : "s are"} awaiting admin approval`}
@@ -496,11 +516,11 @@ export default function OwnerDashboardClient({ profile }) {
                     )}
                   </div>
                   <StatGrid>
-                    <StatCard label="Revenue this month" value={formatCompactINR(m.revenue)} icon="rupee" color={OWNER_COLOR} delta={m.revenueChange} sub={`${formatCompactINR(d.lifetime.revenue)} lifetime`} />
-                    <StatCard label="Today's bookings" value={d.turfRows.reduce((s, t) => s + t.todayBookings, 0)} icon="calendar" color={V.confirmed} sub={`${d.upcoming.length} upcoming confirmed`} />
-                    <StatCard label="Occupancy today" value={d.avgOccupancy === null ? "—" : `${d.avgOccupancy}%`} icon="trending" color={V.pending} sub="Across live turfs" />
-                    <StatCard label="Avg. rating" value={d.rating.average === null ? "—" : d.rating.average.toFixed(1)} icon="star" color={V.violet} sub={`${d.rating.total} review${d.rating.total === 1 ? "" : "s"}`} />
-                    <StatCard label="Acceptance rate" value={d.acceptance === null ? "—" : `${d.acceptance}%`} icon="check" color={V.sky} sub="Of answered requests" />
+                    <StatCard label="Earned this month" value={formatCompactINR(m.revenue)} icon="rupee" color={OWNER_COLOR} delta={m.revenueChange} sub={`${formatCompactINR(d.lifetime.revenue)} all time`} />
+                    <StatCard label="Games today" value={todayBookingCount} icon="calendar" color={V.confirmed} sub={todayBookingCount ? `${todayBookingCount} confirmed bookings` : "None confirmed yet"} />
+                    <StatCard label="Turf usage today" value={d.avgOccupancy === null ? "—" : `${d.avgOccupancy}%`} icon="trending" color={V.pending} sub="Across all live turfs" />
+                    <StatCard label="Average rating" value={d.rating.average === null ? "—" : d.rating.average.toFixed(1)} icon="star" color={V.violet} sub={d.rating.total ? `${d.rating.total} review${d.rating.total === 1 ? "" : "s"}` : "No reviews yet"} />
+                    <StatCard label="Requests accepted" value={d.acceptance === null ? "—" : `${d.acceptance}%`} icon="check" color={V.sky} sub="Of the requests you replied to" />
                   </StatGrid>
                 </>
               )}
@@ -509,13 +529,13 @@ export default function OwnerDashboardClient({ profile }) {
                 <>
                   <div className="vt-two-col">
                     <Card>
-                      <SectionTitle action={<Segmented label="Chart range" value={range} onChange={setRange} options={[{ id: 7, label: "7d" }, { id: 30, label: "30d" }, { id: 90, label: "90d" }]} />}>Revenue</SectionTitle>
+                      <SectionTitle action={<Segmented label="Chart range" value={range} onChange={setRange} options={[{ id: 7, label: "7d" }, { id: 30, label: "30d" }, { id: 90, label: "90d" }]} />}>Earnings</SectionTitle>
                       {loading ? <SkeletonCard lines={3} /> : <BarChart data={seriesToBars(revenueSeries(bookings, range, today), range)} formatValue={formatINR} ariaLabel={`Daily revenue for the last ${range} days`} />}
                     </Card>
                     <Card>
                       <SectionTitle>Today's schedule</SectionTitle>
                       {loading ? <SkeletonCard lines={3} /> : d.todaySchedule.length === 0 ? (
-                        <div style={{ color: V.chalkFaint, fontSize: 13 }}>Nothing booked for today.</div>
+                        <div style={{ color: V.chalkFaint, fontSize: 13 }}>No games booked today yet.</div>
                       ) : (
                         <div style={{ display: "grid", maxHeight: 290, overflowY: "auto" }}>
                           {d.todaySchedule.map((r, i) => (
@@ -533,7 +553,7 @@ export default function OwnerDashboardClient({ profile }) {
                     </Card>
                   </div>
 
-                  <SectionTitle action={pendingCount > 3 ? <Btn variant="ghost" size="sm" onClick={() => selectTab("bookings")}>View all {pendingCount}</Btn> : null}>Pending requests</SectionTitle>
+                  <SectionTitle action={pendingCount > 3 ? <Btn variant="ghost" size="sm" onClick={() => selectTab("bookings")}>View all {pendingCount}</Btn> : null}>Requests to review</SectionTitle>
                   {loading ? <div style={{ display: "grid", gap: 12 }}>{[...Array(2)].map((_, i) => <SkeletonRow key={i} columns={3} />)}</div>
                     : pendingCount === 0 ? <EmptyBlock emoji="✅" title="All caught up" subtitle="No pending booking requests right now." />
                     : (
@@ -608,7 +628,7 @@ export default function OwnerDashboardClient({ profile }) {
                       </div>
                       <div style={{ background: V.pitchCardRaised, borderRadius: 10, padding: 10 }}>
                         <div style={{ color: V.chalkFaint, fontSize: 11 }}>Revenue</div>
-                        <div style={{ color: V.chalk, fontWeight: 800, fontSize: 14, fontFamily: mono }}>{formatINR(t.revenue)}</div>
+                        <div style={{ color: V.chalk, fontWeight: 800, fontSize: 14, fontFamily: font }}>{formatINR(t.revenue)}</div>
                       </div>
                     </div>
                     <Btn style={{ marginTop: 14, width: "100%" }} icon="calendar" onClick={() => setSlotsTurf(t)}>Manage slots</Btn>
@@ -625,11 +645,11 @@ export default function OwnerDashboardClient({ profile }) {
           const match = (r) => !q || [r.player, r.turf, r.sport].some((v) => String(v || "").toLowerCase().includes(q));
           const list = (bookingView === "requests" ? d.requests : bookingView === "upcoming" ? d.upcoming : d.history).filter(match);
           const columns = [
-            { key: "sortKey", label: "When", width: "1.1fr", render: (r) => <div><div style={{ color: V.chalk, fontWeight: 700 }}>{formatDayLabel(r.date, today)}</div><div style={{ color: V.chalkFaint, fontSize: 11.5 }}>{formatTime12(r.time)}</div></div> },
+            { key: "sortKey", label: "When", width: "1.1fr", render: (r) => <div><div style={{ color: V.chalk, fontWeight: 700 }}>{formatBookingDate(r.date)}</div><div style={{ color: V.chalkFaint, fontSize: 11.5 }}>{formatTime12(r.time)}</div></div> },
             { key: "player", label: "Player", width: "1.2fr" },
             { key: "turf", label: "Turf", width: "1.3fr" },
             { key: "sport", label: "Sport", width: "0.9fr" },
-            { key: "amount", label: "Amount", width: "0.9fr", align: "right", render: (r) => <span style={{ fontFamily: mono, color: V.chalk, fontWeight: 700 }}>{formatINR(r.amount)}</span> },
+            { key: "amount", label: "Amount", width: "0.9fr", align: "right", render: (r) => <span style={{ fontFamily: font, color: V.chalk, fontWeight: 700 }}>{formatINR(r.amount)}</span> },
             { key: "status", label: "Status", width: "0.9fr", render: (r) => <StatusPill status={r.status} /> },
             { key: "actions", label: "Actions", width: "0.8fr", render: (r) => r.status === "confirmed" ? (
               <Btn variant="danger" size="sm" disabled={respondingId === r.id} onClick={() => setDeclining(r)}>Reject</Btn>
@@ -637,7 +657,7 @@ export default function OwnerDashboardClient({ profile }) {
           ];
           return (
             <>
-              <TopBar title="Bookings" sub={`${pendingCount} pending requests · ${d.upcoming.length} confirmed upcoming`} action={
+              <TopBar title="Bookings" sub={`${pendingCount} requests to review · ${d.upcoming.length} upcoming confirmed bookings`} action={
                 <>
                   {refreshButton}
                   {bookingView === "history" && (
@@ -650,7 +670,7 @@ export default function OwnerDashboardClient({ profile }) {
               } />
               <Toolbar>
                 <Segmented label="Booking list" value={bookingView} onChange={setBookingView} options={[
-                  { id: "requests", label: "Requests", count: d.requests.length }, { id: "upcoming", label: "Upcoming", count: d.upcoming.length }, { id: "history", label: "History", count: d.history.length },
+                  { id: "requests", label: "To review", count: d.requests.length }, { id: "upcoming", label: "Upcoming", count: d.upcoming.length }, { id: "history", label: "Past", count: d.history.length },
                 ]} />
                 <SearchInput value={bookingQuery} onChange={setBookingQuery} placeholder="Search player, turf or sport…" label="Search bookings" />
               </Toolbar>
@@ -680,39 +700,39 @@ export default function OwnerDashboardClient({ profile }) {
           const hourBars = hours.filter((h) => h.hour >= from && h.hour <= to).map((h) => ({ key: h.hour, label: hourLabel(h.hour), value: h.count, tooltip: `${formatTime12(`${h.hour}:00`)} · ${h.count} booking${h.count === 1 ? "" : "s"}` }));
           const byTurf = revenueBy(inRange, (b) => b.turf_id).map((r) => ({ key: r.key, label: d.turfRows.find((t) => t.id === r.key)?.name || "Turf", sub: `${r.count} booking${r.count === 1 ? "" : "s"}`, value: r.revenue }));
           const sports = sportBreakdown(inRange).map((s) => ({ key: s.key, label: s.key, value: s.count }));
-          const cancel = cancellationRate(inRange);
+          const cancelledCount = inRange.filter((booking) => booking.status === "cancelled").length;
           return (
             <>
-              <TopBar title="Analytics" sub="Revenue, demand and performance across your turfs" action={
+              <TopBar title="Analytics" sub="See what earns the most and when your turfs are busiest." action={
                 <Segmented label="Date range" value={range} onChange={setRange} options={[{ id: 7, label: "7 days" }, { id: 30, label: "30 days" }, { id: 90, label: "90 days" }]} />
               } />
               {loading ? skeletonStats : (
                 <StatGrid>
-                  <StatCard label={`Revenue · last ${range} days`} value={formatCompactINR(rev.revenue)} icon="rupee" color={OWNER_COLOR} />
+                  <StatCard label={`Earned in the last ${range} days`} value={formatCompactINR(rev.revenue)} icon="rupee" color={OWNER_COLOR} />
                   <StatCard label="Paid bookings" value={rev.count} icon="calendar" color={V.confirmed} />
-                  <StatCard label="Avg. booking value" value={rev.count ? formatINR(rev.revenue / rev.count) : "—"} icon="wallet" color={V.violet} />
-                  <StatCard label="Acceptance rate" value={acceptanceRate(inRange) === null ? "—" : `${acceptanceRate(inRange)}%`} icon="check" color={V.sky} />
-                  <StatCard label="Cancellation rate" value={cancel === null ? "—" : `${cancel}%`} icon="x" color={V.danger} />
+                  <StatCard label="Average per booking" value={rev.count ? formatINR(rev.revenue / rev.count) : "—"} icon="wallet" color={V.violet} />
+                  <StatCard label="Requests accepted" value={acceptanceRate(inRange) === null ? "—" : `${acceptanceRate(inRange)}%`} icon="check" color={V.sky} sub="Of the requests you replied to" />
+                  <StatCard label="Cancelled bookings" value={cancelledCount} icon="x" color={V.danger} />
                 </StatGrid>
               )}
               <div style={{ marginBottom: 16 }}>
                 <Card>
-                  <SectionTitle>Daily revenue</SectionTitle>
+                  <SectionTitle>Daily earnings</SectionTitle>
                   {loading ? <SkeletonCard lines={3} /> : <BarChart data={seriesToBars(revenueSeries(bookings, range, today), range)} formatValue={formatINR} ariaLabel={`Daily revenue for the last ${range} days`} />}
                 </Card>
               </div>
               <div className="vt-even-col" style={{ marginBottom: 16 }}>
                 <Card>
-                  <SectionTitle>Busiest hours</SectionTitle>
+                  <SectionTitle>Peak hours</SectionTitle>
                   {loading ? <SkeletonCard lines={3} /> : inRange.length === 0 ? <div style={{ color: V.chalkFaint, fontSize: 13 }}>No bookings in this period.</div> : <BarChart data={hourBars} height={130} color={V.sky} formatValue={(v) => `${v} booking${v === 1 ? "" : "s"}`} ariaLabel="Bookings by start hour" labelEvery={2} />}
                 </Card>
                 <Card>
-                  <SectionTitle>Revenue by turf</SectionTitle>
+                  <SectionTitle>Earnings by turf</SectionTitle>
                   {loading ? <SkeletonCard lines={3} /> : <BarList items={byTurf} formatValue={formatCompactINR} empty="No revenue in this period." />}
                 </Card>
               </div>
               <Card>
-                <SectionTitle>Bookings by sport</SectionTitle>
+                <SectionTitle>Popular sports</SectionTitle>
                 {loading ? <SkeletonCard lines={2} /> : <BarList items={sports} color={V.violet} formatValue={(v) => `${v}`} empty="No bookings in this period." />}
               </Card>
             </>
@@ -725,13 +745,13 @@ export default function OwnerDashboardClient({ profile }) {
           const pending = payouts.filter((p) => p.status !== "paid").reduce((s, p) => s + toNumber(p.amount), 0);
           const columns = [
             { key: "payout_id", label: "Payout ID", width: "1fr", render: (p) => <span style={{ fontFamily: mono }}>{p.payout_id || (p.id ? String(p.id).slice(0, 8) : "—")}</span> },
-            { key: "period", label: "Period", width: "1.3fr", render: (p) => <span style={{ color: V.chalk }}>{p.period || [p.period_start, p.period_end].filter(Boolean).join(" – ") || "—"}</span> },
-            { key: "amount", label: "Amount", width: "1fr", align: "right", render: (p) => <span style={{ fontFamily: mono, color: V.chalk, fontWeight: 700 }}>{formatINR(p.amount)}</span> },
-            { key: "status", label: "Status", width: "0.8fr", render: (p) => <StatusPill status={p.status || "pending"} /> },
+            { key: "period", label: "Period", width: "1.2fr", render: (p) => <span style={{ color: V.chalk }}>{p.period || [p.period_start, p.period_end].filter(Boolean).join(" – ") || "—"}</span> },
+            { key: "amount", label: "Amount", width: "1.2fr", align: "right", render: (p) => <span style={{ fontFamily: font, color: V.chalk, fontWeight: 700 }}>{formatINR(p.amount)}</span> },
+            { key: "status", label: "Status", width: "1.1fr", render: (p) => <StatusPill status={p.status || "pending"} /> },
           ];
           return (
             <>
-              <TopBar title="Payouts" sub="Your settlement history" action={payouts.length > 0 && (
+              <TopBar title="Payouts" sub="Money paid out to you" action={payouts.length > 0 && (
                 <Btn icon="download" size="sm" onClick={() => downloadCSV(`payouts-${today}.csv`, payouts, [
                   { label: "Payout ID", value: (p) => p.payout_id || p.id }, { label: "Period", value: (p) => p.period || [p.period_start, p.period_end].filter(Boolean).join(" to ") },
                   { label: "Amount (INR)", key: "amount" }, { label: "Status", key: "status" },
@@ -739,14 +759,17 @@ export default function OwnerDashboardClient({ profile }) {
               )} />
               {loading ? skeletonStats : (
                 <StatGrid>
-                  <StatCard label="Paid out" value={formatINR(paid)} icon="wallet" color={V.confirmed} sub={`${payouts.filter((p) => p.status === "paid").length} settled`} />
-                  <StatCard label="Pending payouts" value={formatINR(pending)} icon="clock" color={V.pending} sub={`${payouts.filter((p) => p.status !== "paid").length} in progress`} />
-                  <StatCard label="Lifetime booking revenue" value={formatCompactINR(d.lifetime.revenue)} icon="rupee" color={OWNER_COLOR} sub="Confirmed + completed" />
+                  <StatCard label="Paid to you" value={formatINR(paid)} icon="wallet" color={V.confirmed} sub={`${payouts.filter((p) => p.status === "paid").length} payouts completed`} />
+                  <StatCard label="On the way" value={formatINR(pending)} icon="clock" color={V.pending} sub={`${payouts.filter((p) => p.status !== "paid").length} payouts processing`} />
+                  <StatCard label="Total earned" value={formatCompactINR(d.lifetime.revenue)} icon="rupee" color={OWNER_COLOR} sub="From confirmed and completed bookings" />
                 </StatGrid>
               )}
+              <p style={{ color: V.chalkFaint, fontSize: 12.5, margin: "-12px 0 18px" }}>
+                Payout timing is not listed here yet. This page shows payout records once they are created.
+              </p>
               {loading ? (
                 <div style={{ ...panel(), borderRadius: 16, overflow: "hidden" }}>{[...Array(3)].map((_, i) => <SkeletonRow key={i} columns={4} />)}</div>
-              ) : <DataTable columns={columns} rows={payouts} minWidth={560} empty="No payout records yet. Settlements will appear here once they're issued." />}
+              ) : <DataTable columns={columns} rows={payouts} minWidth={720} empty="No payouts yet. Once your earnings are settled, they'll show up here." />}
             </>
           );
         })()}
@@ -817,10 +840,10 @@ export default function OwnerDashboardClient({ profile }) {
 
       {declining && (
         <ConfirmModal
-          title={declining.status === "confirmed" ? "Reject this booking?" : "Decline this request?"}
-          confirmLabel={declining.status === "confirmed" ? "Reject booking" : "Decline request"}
+          title="Reject this booking?"
+          confirmLabel="Reject booking"
           busy={respondingId === declining.id}
-          message={`${declining.player}'s booking for ${declining.turf} on ${formatDayLabel(declining.date, today)} at ${formatTime12(declining.time)} will be rejected and the slot reopened. The player will be notified.`}
+          message={`${declining.player}'s booking for ${declining.turf} on ${formatBookingDate(declining.date)} at ${formatTime12(declining.time)} will be rejected and the slot reopened. The player will be notified.`}
           onConfirm={() => respond(declining, "decline")} onClose={() => setDeclining(null)}
         />
       )}

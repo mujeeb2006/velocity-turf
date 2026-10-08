@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { COLORS as V, FONT_BODY, FONT_DATA, FONT_DISPLAY, panel } from "@/lib/design-tokens";
-import { formatDelta, toCSV } from "@/lib/dashboard/format";
+import { formatDelta, formatNotificationBody, formatNotificationTitle, relativeTime, toCSV } from "@/lib/dashboard/format";
 import BrandLockup from "@/components/brand-lockup";
 
 export const font = FONT_BODY;
@@ -143,6 +143,7 @@ export function Btn({ children, variant = "secondary", size = "md", busy = false
 export function StatCard({ label, value, icon, color, sub, delta }) {
   const text = formatDelta(delta);
   const up = delta > 0;
+  const valueFont = typeof value === "string" && value.startsWith("₹") ? font : mono;
   return (
     <div className="vt-stat" style={{ ...panel(), borderRadius: 16, padding: "18px 20px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
@@ -162,7 +163,7 @@ export function StatCard({ label, value, icon, color, sub, delta }) {
           </span>
         )}
       </div>
-      <div style={{ color: V.chalk, fontWeight: 800, fontSize: 24, fontFamily: mono, letterSpacing: -0.5 }}>{value}</div>
+      <div style={{ color: V.chalk, fontWeight: 800, fontSize: 24, fontFamily: valueFont, letterSpacing: -0.5 }}>{value}</div>
       <div style={{ color: V.chalkDim, fontSize: 12.5, marginTop: 4 }}>{label}</div>
       {sub && <div style={{ color: V.chalkFaint, fontSize: 11.5, marginTop: 6, fontWeight: 600 }}>{sub}</div>}
     </div>
@@ -347,18 +348,20 @@ export function BarChart({ data, height = 170, color = V.flood, formatValue = (v
   const every = labelEvery || Math.max(1, Math.ceil(data.length / 8));
   const shown = active !== null ? data[active] : null;
   const total = data.reduce((s, d) => s + d.value, 0);
+  const totalDisplay = formatValue(total);
+  const shownDisplay = shown ? formatValue(shown.value) : "";
   return (
     <div role="img" aria-label={ariaLabel}>
       <div style={{ minHeight: 40, marginBottom: 10 }}>
         {shown ? (
           <>
-            <div style={{ color: V.chalk, fontFamily: mono, fontWeight: 800, fontSize: 20 }}>{formatValue(shown.value)}</div>
+            <div style={{ color: V.chalk, fontFamily: typeof shownDisplay === "string" && shownDisplay.startsWith("₹") ? font : mono, fontWeight: 800, fontSize: 20 }}>{shownDisplay}</div>
             <div style={{ color: V.chalkDim, fontSize: 12 }}>{shown.tooltip || shown.label}</div>
           </>
         ) : (
           <>
-            <div style={{ color: V.chalk, fontFamily: mono, fontWeight: 800, fontSize: 20 }}>{formatValue(total)}</div>
-            <div style={{ color: V.chalkDim, fontSize: 12 }}>Total for the period · hover a bar for details</div>
+            <div style={{ color: V.chalk, fontFamily: typeof totalDisplay === "string" && totalDisplay.startsWith("₹") ? font : mono, fontWeight: 800, fontSize: 20 }}>{totalDisplay}</div>
+            <div style={{ color: V.chalkDim, fontSize: 12 }}>Total for this period. Hover a bar to see the day.</div>
           </>
         )}
       </div>
@@ -404,20 +407,23 @@ export function BarList({ items, color = V.flood, formatValue = (v) => v, empty 
   if (!items.length) return <div style={{ color: V.chalkFaint, fontSize: 13, padding: "8px 0" }}>{empty}</div>;
   return (
     <div style={{ display: "grid", gap: 14 }}>
-      {items.map((item) => (
-        <div key={item.key}>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 6, fontSize: 13 }}>
-            <span style={{ color: V.chalk, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {item.label}
-              {item.sub && <span style={{ color: V.chalkFaint, fontWeight: 500 }}> · {item.sub}</span>}
-            </span>
-            <span style={{ color: V.chalk, fontFamily: mono, fontWeight: 700, fontSize: 12.5, flexShrink: 0 }}>{formatValue(item.value)}</span>
+      {items.map((item) => {
+        const value = formatValue(item.value);
+        return (
+          <div key={item.key}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 6, fontSize: 13 }}>
+              <span style={{ color: V.chalk, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {item.label}
+                {item.sub && <span style={{ color: V.chalkFaint, fontWeight: 500 }}> · {item.sub}</span>}
+              </span>
+              <span style={{ color: V.chalk, fontFamily: typeof value === "string" && value.startsWith("₹") ? font : mono, fontWeight: 700, fontSize: 12.5, flexShrink: 0 }}>{value}</span>
+            </div>
+            <div style={{ height: 6, background: V.line, borderRadius: 3 }}>
+              <div style={{ height: "100%", width: `${Math.round((item.value / max) * 100)}%`, background: color, borderRadius: 3, minWidth: item.value ? 4 : 0 }} />
+            </div>
           </div>
-          <div style={{ height: 6, background: V.line, borderRadius: 3 }}>
-            <div style={{ height: "100%", width: `${Math.round((item.value / max) * 100)}%`, background: color, borderRadius: 3, minWidth: item.value ? 4 : 0 }} />
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -582,7 +588,7 @@ export function SideNav({ items, active, onSelect, roleLabel, roleIcon = "shield
   );
 }
 
-export function NotificationsPanel({ open, onClose, notifications, unreadCount, lastSyncedAt, onMarkAll, onMarkOne, emptyText }) {
+export function NotificationsPanel({ open, onClose, notifications, unreadCount, onMarkAll, onMarkOne, emptyText }) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => { if (e.key === "Escape") onClose(); };
@@ -598,8 +604,7 @@ export function NotificationsPanel({ open, onClose, notifications, unreadCount, 
           <div>
             <div style={{ fontWeight: 800, fontSize: 13.5, color: V.chalk }}>Notifications</div>
             <div style={{ color: V.chalkFaint, fontSize: 11, marginTop: 2 }}>
-              {unreadCount > 0 ? `${unreadCount} unread` : "All caught up"}
-              {lastSyncedAt ? ` · Live ${lastSyncedAt}` : " · Syncing…"}
+              {unreadCount > 0 ? `${unreadCount} unread` : "You're all caught up"}
             </div>
           </div>
           {unreadCount > 0 && <Btn size="sm" onClick={onMarkAll}>Mark all read</Btn>}
@@ -615,10 +620,10 @@ export function NotificationsPanel({ open, onClose, notifications, unreadCount, 
               onClick={() => !n.read && onMarkOne(n.id)}
               style={{ display: "block", width: "100%", textAlign: "left", padding: "12px 16px", border: 0, borderBottom: `1px solid ${V.line}`, background: n.read ? "transparent" : V.floodDim, cursor: n.read ? "default" : "pointer", fontFamily: font }}
             >
-              <div style={{ color: V.chalk, fontWeight: 700, fontSize: 13, marginBottom: 3 }}>{n.title}</div>
-              {n.body && <div style={{ color: V.chalkDim, fontSize: 12.5, lineHeight: 1.45 }}>{n.body}</div>}
+              <div style={{ color: V.chalk, fontWeight: 700, fontSize: 13, marginBottom: 3 }}>{formatNotificationTitle(n.title)}</div>
+              {n.body && <div style={{ color: V.chalkDim, fontSize: 12.5, lineHeight: 1.45 }}>{formatNotificationBody(n.title, n.body)}</div>}
               <div style={{ color: V.chalkFaint, fontSize: 10.5, marginTop: 4 }}>
-                {new Date(n.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                {relativeTime(n.created_at)}
               </div>
             </button>
           ))
@@ -634,7 +639,6 @@ export function NotificationsPanel({ open, onClose, notifications, unreadCount, 
 export function useNotifications(supabase, userId, showToast) {
   const [notifications, setNotifications] = useState([]);
   const [open, setOpenState] = useState(false);
-  const [lastSyncedAt, setLastSyncedAt] = useState(null);
   const openRef = useRef(false);
 
   const setOpen = (value) => {
@@ -643,14 +647,11 @@ export function useNotifications(supabase, userId, showToast) {
     setOpenState(next);
   };
 
-  const stamp = () => setLastSyncedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
-
   async function refresh() {
     if (!userId) return;
     const { data, error } = await supabase.from("notifications").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(20);
     if (!error) {
       setNotifications(data || []);
-      stamp();
     }
   }
 
@@ -662,7 +663,6 @@ export function useNotifications(supabase, userId, showToast) {
       return;
     }
     setNotifications((prev) => prev.map((n) => (ids.includes(n.id) ? { ...n, read: true } : n)));
-    stamp();
   }
 
   useEffect(() => {
@@ -672,7 +672,7 @@ export function useNotifications(supabase, userId, showToast) {
       .channel(`notifications-${userId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, (payload) => {
         refresh();
-        if (payload?.new?.title && !openRef.current) showToast(payload.new.title, { type: "info" });
+        if (payload?.new?.title && !openRef.current) showToast(formatNotificationTitle(payload.new.title), { type: "info" });
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, () => refresh())
       .subscribe();
@@ -682,7 +682,7 @@ export function useNotifications(supabase, userId, showToast) {
 
   const unreadCount = notifications.filter((n) => !n.read).length;
   return {
-    notifications, unreadCount, lastSyncedAt, open, setOpen,
+    notifications, unreadCount, open, setOpen,
     markAllRead: () => markRead(notifications.filter((n) => !n.read).map((n) => n.id)),
     markOne: (id) => markRead([id]),
   };

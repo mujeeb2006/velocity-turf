@@ -6,7 +6,7 @@ import {
   pctChange, ratingSummary, revenueBy, revenueSeries, sportBreakdown, statusCounts, sumRevenue, upcomingBookings,
 } from '../lib/dashboard/analytics.js';
 import {
-  csvCell, formatCompactINR, formatDayLabel, formatDelta, formatHours, formatINR, formatTime12, relativeTime, seriesToBars, toCSV,
+  csvCell, formatBookingDate, formatCompactINR, formatDayLabel, formatDelta, formatHours, formatINR, formatNotificationBody, formatNotificationTitle, formatTime12, relativeTime, seriesToBars, toCSV,
 } from '../lib/dashboard/format.js';
 
 const b = (booking_date, price, status = 'confirmed', extra = {}) => ({ booking_date, price, status, ...extra });
@@ -21,6 +21,21 @@ test('addDays crosses month and year boundaries', () => {
   assert.equal(addDays('2026-10-31', 1), '2026-11-01');
   assert.equal(addDays('2026-01-01', -1), '2025-12-31');
   assert.equal(addDays('2026-03-01', -1), '2026-02-28');
+});
+
+test('formatBookingDate includes weekday, month, and year without timezone shifts', () => {
+  assert.equal(formatBookingDate('2026-12-04'), 'Fri, 4 Dec 2026');
+  assert.equal(formatBookingDate(''), '');
+});
+
+test('booking notifications use player-friendly copy without changing unrelated messages', () => {
+  assert.equal(formatNotificationTitle('Booking confirmed'), "You're in! Booking confirmed");
+  assert.equal(
+    formatNotificationBody('Booking confirmed', 'POWERPLAY on Sep 15 is confirmed.'),
+    'Your POWERPLAY game on Sep 15 is locked in. See you on the turf!',
+  );
+  assert.equal(formatNotificationTitle('Booking rejected'), 'Booking rejected');
+  assert.equal(formatNotificationBody('Booking rejected', 'Your booking was rejected.'), 'Your booking was rejected.');
 });
 
 test('revenueSeries returns one row per day and only counts paid bookings', () => {
@@ -63,7 +78,7 @@ test('revenueBy groups and sorts by revenue', () => {
   assert.deepEqual(rows.map((r) => [r.key, r.revenue, r.count]), [['b', 400, 1], ['a', 150, 2]]);
 });
 
-test('sportBreakdown and hourDistribution ignore declined and cancelled bookings', () => {
+test('sportBreakdown counts active bookings and hourDistribution counts paid bookings', () => {
   const list = [
     { sport: 'Football', start_time: '18:00:00', status: 'confirmed' }, { sport: 'Football', start_time: '18:00', status: 'pending' },
     { sport: 'Cricket', start_time: '07:00:00', status: 'completed' }, { sport: 'Cricket', start_time: '07:00:00', status: 'declined' },
@@ -72,7 +87,7 @@ test('sportBreakdown and hourDistribution ignore declined and cancelled bookings
   assert.deepEqual(sportBreakdown(list).map((s) => [s.key, s.count]), [['Football', 2], ['Cricket', 1]]);
   const hours = hourDistribution(list);
   assert.equal(hours.length, 24);
-  assert.equal(hours[18].count, 2);
+  assert.equal(hours[18].count, 1);
   assert.equal(hours[7].count, 1);
   assert.equal(hours[9].count, 0);
 });

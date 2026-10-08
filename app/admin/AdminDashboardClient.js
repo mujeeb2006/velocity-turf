@@ -14,7 +14,7 @@ import {
   avgResolutionHours, dateKey, monthComparison, revenueBy, revenueSeries, statusCounts,
 } from "@/lib/dashboard/analytics";
 import {
-  formatCompactINR, formatDayLabel, formatHours, formatINR, formatTime12, relativeTime, seriesToBars,
+  formatBookingDate, formatCompactINR, formatHours, formatINR, formatTime12, relativeTime, seriesToBars,
 } from "@/lib/dashboard/format";
 import {
   AttentionItem, BarChart, BarList, Btn, Card, ConfirmModal, DataTable, DetailRows, EmptyBlock, ErrorBanner,
@@ -26,6 +26,16 @@ import {
 const TABS = ["overview", "approvals", "turfs", "bookings", "users", "disputes"];
 const ROLE_COLORS = { Admin: V.violet, "Turf Owner": V.sky, Player: V.flood };
 const PAGE_SIZE = 50;
+
+function formatCityName(value) {
+  return String(value || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => `${word[0].toUpperCase()}${word.slice(1).toLowerCase()}`)
+    .join(" ");
+}
 
 async function postJson(url, body) {
   try {
@@ -157,8 +167,8 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
     });
 
     const turfs = turfsRaw.map((t) => ({
-      id: t.id, name: t.name, address: t.address, city: t.city, status: t.status,
-      owner: t.owner?.full_name || "Unknown", revenue: revenueByTurf.get(t.id) || 0,
+      id: t.id, name: t.name, address: t.address, city: formatCityName(t.city), status: t.status,
+      owner: t.owner?.full_name || "—", revenue: revenueByTurf.get(t.id) || 0,
       bookings: activeCountByTurf[t.id] || 0, rating: Number(t.rating) || 0, reviewCount: t.review_count || 0,
       sports: t.sports || [], amenities: t.amenities || [], basePrice: Number(t.base_price) || 0,
       peakPrice: Number(t.peak_price) || 0, open: t.open_time, close: t.close_time, createdAt: t.created_at,
@@ -187,7 +197,8 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
 
     const cities = {};
     turfs.forEach((t) => {
-      const c = (cities[t.city] ||= { key: t.city, label: t.city, turfs: 0, value: 0 });
+      const cityKey = t.city.toLowerCase();
+      const c = (cities[cityKey] ||= { key: cityKey, label: t.city, turfs: 0, value: 0 });
       c.turfs += 1;
       c.value += t.revenue;
     });
@@ -241,7 +252,12 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
       fetchAll();
       return;
     }
-    showToast(decision === "approve" ? `Booking for ${booking.player} approved.` : `Booking for ${booking.player} rejected.`, { type: decision === "approve" ? "success" : "info" });
+    showToast(decision === "approve"
+      ? `Booking for ${booking.player} approved.`
+      : booking.status === "confirmed"
+        ? `Booking for ${booking.player} cancelled.`
+        : `Booking for ${booking.player} rejected.`,
+    { type: decision === "approve" ? "success" : "info" });
     fetchAll();
   }
 
@@ -304,7 +320,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
       />
       <NotificationsPanel
         open={notes.open} onClose={() => notes.setOpen(false)} notifications={notes.notifications} unreadCount={notes.unreadCount}
-        lastSyncedAt={notes.lastSyncedAt} onMarkAll={notes.markAllRead} onMarkOne={notes.markOne}
+        onMarkAll={notes.markAllRead} onMarkOne={notes.markOne}
         emptyText="Nothing yet — new turf submissions and disputes will show up here."
       />
 
@@ -320,11 +336,11 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
 
         {tab === "approvals" && (
           <>
-            <TopBar title="Turf Approvals" sub={`${pendingTurfs.length} listing${pendingTurfs.length === 1 ? "" : "s"} awaiting review`} action={refreshButton} />
+            <TopBar title="Turf Approvals" sub={pendingTurfs.length ? `${pendingTurfs.length} listing${pendingTurfs.length === 1 ? "" : "s"} awaiting review` : "No turfs waiting for review"} action={refreshButton} />
             {loading ? (
               <div style={{ display: "grid", gap: 14 }}>{[...Array(2)].map((_, i) => <SkeletonCard key={i} lines={2} />)}</div>
             ) : pendingTurfs.length === 0 ? (
-              <EmptyBlock emoji="✅" title="No turfs awaiting review" subtitle="New owner submissions will appear here for approval." />
+              <EmptyBlock emoji="✅" title="You're all caught up" subtitle="When owners submit a new turf, it will show up here for your approval." />
             ) : (
               <div style={{ display: "grid", gap: 14 }}>
                 {pendingTurfs.map((t) => (
@@ -336,15 +352,15 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
                           <StatusPill status="pending" />
                         </div>
                         <div style={{ color: V.chalkDim, fontSize: 13, marginTop: 4 }}>
-                          {t.address}, {t.city} · Owner: <strong style={{ color: V.chalk }}>{t.owner}</strong> · Submitted {relativeTime(t.createdAt)}
+                          <span title={`${t.address}, ${t.city}`}>{t.address}, {t.city}</span> · Owner: <strong style={{ color: V.chalk }}>{t.owner}</strong> · Submitted {relativeTime(t.createdAt)}
                         </div>
                         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
                           {t.sports.map((s) => <Pill key={s} color={V.sky}>{s}</Pill>)}
                           {t.amenities.map((a) => <Pill key={a} color={V.chalkDim}>{a}</Pill>)}
                         </div>
                         <div style={{ display: "flex", gap: 22, flexWrap: "wrap", marginTop: 14, fontSize: 12.5, color: V.chalkDim }}>
-                          <span>Base <strong style={{ color: V.chalk, fontFamily: mono }}>{formatINR(t.basePrice)}</strong>/hr</span>
-                          <span>Peak <strong style={{ color: V.chalk, fontFamily: mono }}>{formatINR(t.peakPrice)}</strong>/hr</span>
+                          <span>Base <strong style={{ color: V.chalk, fontFamily: font }}>{formatINR(t.basePrice)}</strong>/hr</span>
+                          <span>Peak <strong style={{ color: V.chalk, fontFamily: font }}>{formatINR(t.peakPrice)}</strong>/hr</span>
                           <span>Hours <strong style={{ color: V.chalk }}>{formatTime12(t.open)} – {formatTime12(t.close)}</strong></span>
                         </div>
                       </div>
@@ -368,29 +384,29 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
             { key: "name", label: "Turf", width: "1.7fr", sortable: true, render: (t) => (
               <div style={{ minWidth: 0 }}>
                 <div style={{ color: V.chalk, fontWeight: 700, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>
-                <div style={{ color: V.chalkFaint, fontSize: 11.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.address}</div>
+                <div title={t.address} style={{ color: V.chalkFaint, fontSize: 11.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.address}</div>
               </div>
             ) },
             { key: "owner", label: "Owner", width: "1.1fr", sortable: true },
             { key: "city", label: "City", width: "0.9fr", sortable: true },
             { key: "status", label: "Status", width: "0.8fr", sortable: true, render: (t) => <StatusPill status={t.status} /> },
             { key: "bookings", label: "Bookings", width: "0.8fr", align: "right", sortable: true, render: (t) => <span style={{ fontFamily: mono }}>{t.bookings}</span> },
-            { key: "revenue", label: "Revenue", width: "1fr", align: "right", sortable: true, render: (t) => <span style={{ fontFamily: mono, color: V.chalk, fontWeight: 700 }}>{formatINR(t.revenue)}</span> },
+            { key: "revenue", label: "Revenue", width: "1fr", align: "right", sortable: true, render: (t) => <span style={{ fontFamily: font, color: V.chalk, fontWeight: 700 }}>{formatINR(t.revenue)}</span> },
             { key: "rating", label: "Rating", width: "0.9fr", align: "right", sortable: true, render: (t) => (
               t.reviewCount ? (
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: V.chalk, fontWeight: 700 }}>
                   <Icon name="star" size={13} filled color={V.pending} />{t.rating.toFixed(1)} <span style={{ color: V.chalkFaint, fontWeight: 500 }}>({t.reviewCount})</span>
                 </span>
-              ) : <span style={{ color: V.chalkFaint }}>No reviews</span>
+              ) : <span style={{ color: V.chalkFaint }}>No reviews yet</span>
             ) },
           ];
           return (
             <>
-              <TopBar title="All Turfs" sub={`${turfs.length} listing${turfs.length === 1 ? "" : "s"} on the platform`} action={
+              <TopBar title="All Turfs" sub={`${turfs.length} turf${turfs.length === 1 ? "" : "s"} on the platform`} action={
                 <Btn icon="download" size="sm" disabled={!rows.length} onClick={() => downloadCSV(`turfs-${today}.csv`, rows, [
                   { label: "Turf", key: "name" }, { label: "Owner", key: "owner" }, { label: "City", key: "city" }, { label: "Status", key: "status" },
                   { label: "Bookings", key: "bookings" }, { label: "Revenue (INR)", key: "revenue" }, { label: "Rating", key: "rating" },
-                ])}>Export CSV</Btn>
+                ])}>Export to CSV</Btn>
               } />
               <Toolbar>
                 <SearchInput value={turfQuery} onChange={setTurfQuery} placeholder="Search turf, owner or city…" label="Search turfs" />
@@ -417,27 +433,27 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
           const shown = rows.slice(0, bookingLimit);
           const c = view.bookingCounts;
           const columns = [
-            { key: "sortKey", label: "When", width: "1.1fr", sortable: true, render: (b) => (
+            { key: "sortKey", label: "When", width: "1.2fr", sortable: true, render: (b) => (
               <div>
-                <div style={{ color: V.chalk, fontWeight: 700 }}>{formatDayLabel(b.date, today)}</div>
+                <div style={{ color: V.chalk, fontWeight: 700 }}>{formatBookingDate(b.date)}</div>
                 <div style={{ color: V.chalkFaint, fontSize: 11.5 }}>{formatTime12(b.time)}</div>
               </div>
             ) },
-            { key: "turf", label: "Turf", width: "1.4fr", sortable: true, render: (b) => <span style={{ color: V.chalk, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.turf}</span> },
+            { key: "turf", label: "Turf", width: "1.5fr", sortable: true, render: (b) => <span style={{ color: V.chalk, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.turf}</span> },
             { key: "player", label: "Player", width: "1.2fr", sortable: true },
             { key: "sport", label: "Sport", width: "0.9fr" },
-            { key: "amount", label: "Amount", width: "0.9fr", align: "right", sortable: true, render: (b) => <span style={{ fontFamily: mono, color: V.chalk, fontWeight: 700 }}>{formatINR(b.amount)}</span> },
-            { key: "status", label: "Status", width: "0.9fr", sortable: true, render: (b) => <StatusPill status={b.status} /> },
+            { key: "amount", label: "Amount", width: "1.2fr", align: "right", sortable: true, render: (b) => <span style={{ fontFamily: font, color: V.chalk, fontWeight: 700 }}>{formatINR(b.amount)}</span> },
+            { key: "status", label: "Status", width: "1.1fr", sortable: true, render: (b) => <StatusPill status={b.status} /> },
             { key: "actions", label: "Actions", width: "1.5fr", render: (b) => ["pending", "confirmed"].includes(b.status) ? (
               <div style={{ display: "flex", gap: 6 }}>
-                <Btn variant="danger" size="sm" disabled={busyBookingId === b.id} onClick={() => setRejectingBooking(b)}>Reject</Btn>
+                <Btn variant="danger" size="sm" disabled={busyBookingId === b.id} onClick={() => setRejectingBooking(b)}>{b.status === "confirmed" ? "Cancel booking" : "Reject"}</Btn>
                 {b.status === "pending" && <Btn variant="primary" size="sm" busy={busyBookingId === b.id} onClick={() => decideBooking(b, "approve")}>Approve</Btn>}
               </div>
             ) : <span style={{ color: V.chalkFaint }}>—</span> },
           ];
           return (
             <>
-              <TopBar title="Bookings" sub={`${c.all} total · ${c.pending} pending · ${c.confirmed} confirmed`} action={
+              <TopBar title="Bookings" sub={`${c.all} total · ${c.pending} awaiting review · ${c.confirmed} confirmed`} action={
                 <Btn icon="download" size="sm" disabled={!rows.length} onClick={() => downloadCSV(`bookings-${today}.csv`, rows, [
                   { label: "Date", key: "date" }, { label: "Time", key: "time" }, { label: "Turf", key: "turf" }, { label: "Player", key: "player" },
                   { label: "Sport", key: "sport" }, { label: "Amount (INR)", key: "amount" }, { label: "Status", key: "status" },
@@ -480,7 +496,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
             { key: "role", label: "Role", width: "0.9fr", sortable: true, render: (u) => <Pill color={ROLE_COLORS[u.role]}>{u.role}</Pill> },
             { key: "createdTs", label: "Joined", width: "0.8fr", sortable: true, render: (u) => u.joined },
             { key: "bookings", label: "Bookings", width: "0.7fr", align: "right", sortable: true, render: (u) => <span style={{ fontFamily: mono }}>{u.bookings}</span> },
-            { key: "spent", label: "Spent", width: "0.9fr", align: "right", sortable: true, render: (u) => <span style={{ fontFamily: mono, color: V.chalk, fontWeight: 700 }}>{formatINR(u.spent)}</span> },
+            { key: "spent", label: "Spent", width: "0.9fr", align: "right", sortable: true, render: (u) => <span style={{ fontFamily: font, color: V.chalk, fontWeight: 700 }}>{formatINR(u.spent)}</span> },
           ];
           return (
             <>
@@ -538,7 +554,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
                             <span style={{ color: V.chalkFaint, fontSize: 11.5 }}>{relativeTime(d.createdAt)}</span>
                           </div>
                           <div style={{ color: V.chalk, fontWeight: 700, fontSize: 15, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{d.issue}</div>
-                          <div style={{ color: V.chalkDim, fontSize: 13, marginTop: 3 }}>{d.user} · {d.turf} · <span style={{ fontFamily: mono }}>{formatINR(d.amount)}</span></div>
+                          <div style={{ color: V.chalkDim, fontSize: 13, marginTop: 3 }}>{d.user} · {d.turf} · <span style={{ fontFamily: font }}>{formatINR(d.amount)}</span></div>
                         </div>
                         <Btn variant={d.status === "open" ? "primary" : "secondary"} onClick={() => setReviewDispute(d)}>{d.status === "open" ? "Review" : "View details"}</Btn>
                       </div>
@@ -561,10 +577,10 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
       )}
       {rejectingBooking && (
         <ConfirmModal
-          title={rejectingBooking.status === "confirmed" ? "Reject this booking?" : "Reject this request?"}
-          confirmLabel="Reject booking"
+          title={rejectingBooking.status === "confirmed" ? "Cancel this booking?" : "Reject this request?"}
+          confirmLabel={rejectingBooking.status === "confirmed" ? "Cancel booking" : "Reject request"}
           busy={busyBookingId === rejectingBooking.id}
-          message={`${rejectingBooking.player}'s booking for ${rejectingBooking.turf} on ${formatDayLabel(rejectingBooking.date, today)} at ${formatTime12(rejectingBooking.time)} will be rejected and the slot reopened. The player will be notified.`}
+          message={`${rejectingBooking.player}'s booking for ${rejectingBooking.turf} on ${formatBookingDate(rejectingBooking.date)} at ${formatTime12(rejectingBooking.time)} will be ${rejectingBooking.status === "confirmed" ? "cancelled" : "rejected"} and the slot reopened. The player will be notified.`}
           onConfirm={() => decideBooking(rejectingBooking, "reject")}
           onClose={() => setRejectingBooking(null)}
         />
@@ -591,7 +607,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
             <DetailRows rows={[
               { label: "Status", value: <StatusPill status={live.status} /> },
               { label: "Raised", value: `${relativeTime(live.createdAt)} · ${new Date(live.createdAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}` },
-              { label: "Booking", value: live.booking ? `${formatDayLabel(live.booking.booking_date, today)}, ${formatTime12(live.booking.start_time)} · ${live.booking.sport}` : undefined },
+              { label: "Booking", value: live.booking ? `${formatBookingDate(live.booking.booking_date)}, ${formatTime12(live.booking.start_time)} · ${live.booking.sport}` : undefined },
               { label: "Booking value", value: live.booking ? formatINR(live.booking.price) : undefined },
               { label: "Refund requested", value: formatINR(live.amount) },
               { label: "Resolved", value: live.resolvedAt ? new Date(live.resolvedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : undefined },
@@ -638,7 +654,7 @@ function OverviewTab({ profile, view, loading, range, setRange, refreshButton, g
 
   return (
     <>
-      <TopBar title={`Welcome, ${profile?.full_name || "Admin"}`} sub="Platform overview across all cities" action={refreshButton} />
+      <TopBar title={`Welcome, ${profile?.full_name || "Admin"}`} sub="Everything happening across Velocity Turf." action={refreshButton} />
 
       {loading ? (
         <StatGrid>{[...Array(5)].map((_, i) => <SkeletonCard key={i} lines={1} />)}</StatGrid>
@@ -656,16 +672,16 @@ function OverviewTab({ profile, view, loading, range, setRange, refreshButton, g
                 action={<Btn variant="primary" size="sm" onClick={() => goTo("disputes")}>Resolve</Btn>} />
             )}
             {pendingTurfs.length === 0 && openDisputes.length === 0 && (
-              <AttentionItem icon="check" tone={V.confirmed} title="You're all caught up" subtitle="No approvals or disputes need attention right now." />
+              <AttentionItem icon="check" tone={V.confirmed} title="You're all caught up" subtitle="No approvals or disputes waiting for you." />
             )}
           </div>
 
           <StatGrid>
             <StatCard label="Revenue this month" value={formatCompactINR(month.revenue)} icon="rupee" color={V.sky} delta={month.revenueChange} sub="Confirmed + completed bookings" />
-            <StatCard label="Bookings this month" value={month.count.toLocaleString("en-IN")} icon="calendar" color={V.aqua} delta={month.countChange} sub="Played so far" />
-            <StatCard label="Live turfs" value={liveTurfs} icon="building" color={V.confirmed} sub={`${pendingTurfs.length} pending approval`} />
-            <StatCard label="Total users" value={userCounts.all.toLocaleString("en-IN")} icon="users" color={V.pending} sub={`${userCounts.Player} players · ${userCounts["Turf Owner"]} owners`} />
-            <StatCard label="Open disputes" value={openDisputes.length} icon="alert" color={V.danger} sub={avgResolve === null ? "None resolved yet" : `Avg. resolution ${formatHours(avgResolve)}`} />
+            <StatCard label="Bookings this month" value={month.count.toLocaleString("en-IN")} icon="calendar" color={V.aqua} delta={month.countChange} sub="Games played so far" />
+            <StatCard label="Live turfs" value={liveTurfs} icon="building" color={V.confirmed} sub={pendingTurfs.length ? `${pendingTurfs.length} waiting for approval` : "None waiting for approval"} />
+            <StatCard label="Total users" value={userCounts.all.toLocaleString("en-IN")} icon="users" color={V.pending} sub={`${userCounts.Player} players · ${userCounts["Turf Owner"]} owners · ${userCounts.Admin} admins`} />
+            <StatCard label="Open disputes" value={openDisputes.length} icon="alert" color={V.danger} sub={openDisputes.length === 0 ? "Nothing to resolve" : avgResolve === null ? "Needs attention" : `Avg. resolution ${formatHours(avgResolve)}`} />
           </StatGrid>
         </>
       )}
@@ -674,24 +690,24 @@ function OverviewTab({ profile, view, loading, range, setRange, refreshButton, g
         <Card>
           <SectionTitle action={
             <Segmented label="Chart range" value={range} onChange={setRange} options={[{ id: 7, label: "7d" }, { id: 30, label: "30d" }, { id: 90, label: "90d" }]} />
-          }>Revenue</SectionTitle>
+          }>Revenue · last {range} days</SectionTitle>
           {loading ? <SkeletonCard lines={3} /> : (
             <BarChart data={seriesToBars(series, range)} formatValue={formatINR} ariaLabel={`Daily revenue for the last ${range} days`} />
           )}
         </Card>
         <Card>
-          <SectionTitle>Top turfs by revenue</SectionTitle>
+          <SectionTitle>Top turfs by all-time revenue</SectionTitle>
           {loading ? <SkeletonCard lines={3} /> : <BarList items={topTurfs} formatValue={formatCompactINR} empty="Revenue will rank here once bookings are confirmed." />}
         </Card>
       </div>
 
       <div className="vt-even-col">
         <Card>
-          <SectionTitle>Revenue by city</SectionTitle>
+          <SectionTitle>All-time revenue by city</SectionTitle>
           {loading ? <SkeletonCard lines={3} /> : <BarList items={cityList.slice(0, 6)} color={V.sky} formatValue={formatCompactINR} empty="City breakdown appears once turfs are listed." />}
         </Card>
         <Card>
-          <SectionTitle action={<Btn variant="ghost" size="sm" onClick={() => goTo("bookings")}>View all</Btn>}>Latest bookings</SectionTitle>
+          <SectionTitle action={<Btn variant="ghost" size="sm" onClick={() => goTo("bookings")}>View all bookings</Btn>}>Latest bookings</SectionTitle>
           {loading ? <SkeletonCard lines={3} /> : recent.length === 0 ? (
             <div style={{ color: V.chalkFaint, fontSize: 13 }}>No bookings yet.</div>
           ) : (
@@ -700,10 +716,10 @@ function OverviewTab({ profile, view, loading, range, setRange, refreshButton, g
                 <div key={b.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: i < recent.length - 1 ? `1px solid ${V.line}` : "none" }}>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ color: V.chalk, fontWeight: 700, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.player} · {b.turf}</div>
-                    <div style={{ color: V.chalkFaint, fontSize: 12 }}>{formatDayLabel(b.date, today)}, {formatTime12(b.time)} · {b.sport}</div>
+                    <div style={{ color: V.chalkFaint, fontSize: 12 }}>{formatBookingDate(b.date)}, {formatTime12(b.time)} · {b.sport}</div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-                    <span style={{ fontFamily: mono, fontWeight: 700, fontSize: 12.5, color: V.chalk }}>{formatINR(b.amount)}</span>
+                    <span style={{ fontFamily: font, fontWeight: 700, fontSize: 12.5, color: V.chalk }}>{formatINR(b.amount)}</span>
                     <StatusPill status={b.status} />
                   </div>
                 </div>

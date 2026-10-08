@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getProfile } from "@/lib/supabase/server";
 import { normalizeUserRole } from "@/lib/auth/validation";
 import { notifyUser, readJson, UUID_PATTERN } from "@/lib/admin/server";
+import { formatBookingDate, formatTime12 } from "@/lib/dashboard/format";
 
 export async function POST(request) {
   const profile = await getProfile();
@@ -68,12 +69,13 @@ export async function POST(request) {
 
   if (decision === "reject") {
     const turfName = booking.turf?.name || "the turf";
-    const bookingTime = String(booking.start_time || "").slice(0, 5);
+    const wasConfirmed = booking.status === "confirmed";
+    const action = wasConfirmed ? "cancelled" : "rejected";
     await notifyUser(
       admin,
       booking.player_id,
-      "Booking rejected",
-      `Your booking at ${turfName} on ${booking.booking_date} at ${bookingTime} was rejected by the ${role === "owner" ? "turf owner" : "admin"}. The slot is available again.`,
+      wasConfirmed ? "Booking cancelled" : "Booking rejected",
+      `Your booking at ${turfName} on ${formatBookingDate(booking.booking_date)} at ${formatTime12(booking.start_time)} was ${action} by the ${role === "owner" ? "turf owner" : "admin"}. The slot is available again.`,
     );
   }
 

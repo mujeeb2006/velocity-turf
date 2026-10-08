@@ -14,10 +14,10 @@ export default function AuthShell({ title, subtitle, children }) {
           <div className="vt-auth-art-copy">
             <span className="vt-auth-eyebrow"><span /> THE GAME STARTS HERE</span>
             <p className="vt-auth-art-title">Your next<br /><em>great game.</em></p>
-            <p className="vt-auth-art-description">Find the pitch. Bring your people. Make it a night worth remembering.</p>
+            <p className="vt-auth-art-description">Find a turf. Bring your squad. Make it a night to remember.</p>
           </div>
           <div className="vt-auth-art-footer">
-            <span>01 — FIND YOUR PITCH</span>
+            <span>01 — FIND YOUR TURF</span>
             <span>02 — GET IN THE GAME</span>
           </div>
         </section>

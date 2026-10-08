@@ -76,24 +76,24 @@ export default function SignupPage() {
 
   if (done) {
     return (
-      <AuthShell title="Check your email" subtitle="We've sent you a confirmation link">
+      <AuthShell title="Check your inbox" subtitle="One more step to activate your account">
         <p style={{ color: V.chalkDim, fontSize: 14.5, textAlign: "center", fontFamily: "'Manrope', sans-serif" }}>
-          Click the link in your email to activate your account, then come back and sign in.
+          Open the confirmation link in your email, then log in to start booking.
         </p>
         <Link href="/login" style={{ ...buttonStyle, display: "block", textAlign: "center", marginTop: 22, textDecoration: "none", boxSizing: "border-box" }}>
-          Go to login
+          Go to log in
         </Link>
       </AuthShell>
     );
   }
 
   return (
-    <AuthShell title="Join as a player" subtitle="Create your player account to find and book a pitch">
+    <AuthShell title="Create your player account" subtitle="Find nearby turfs, book open slots, and earn rewards.">
       {error && <div role="alert" style={{ ...errorStyle, marginBottom: 18 }}>{error}</div>}
 
       <form onSubmit={handleSignup} style={{ display: "grid", gap: 14 }}>
         <p style={{ color: V.chalkDim, fontSize: 13, lineHeight: 1.5, fontFamily: "'Manrope', sans-serif" }}>
-          Turf owner accounts are available by admin invitation.
+          Player accounts are open to everyone. Turf owner access is provided by an administrator.
         </p>
         <input
           type="text"
@@ -107,8 +107,8 @@ export default function SignupPage() {
         />
         <input
           type="email"
-          aria-label="Email"
-          placeholder="Email"
+          aria-label="Email address"
+          placeholder="Email address"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -118,7 +118,7 @@ export default function SignupPage() {
         <input
           type="password"
           aria-label="Password"
-          placeholder="Password (at least 6 characters)"
+          placeholder="Create a password (at least 6 characters)"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
@@ -146,7 +146,7 @@ export default function SignupPage() {
       <p style={{ color: V.chalkDim, fontSize: 13.5, lineHeight: 1.6, marginTop: 22, textAlign: "center", fontFamily: "'Manrope', sans-serif" }}>
         Already have an account?{" "}
         <Link href="/login" style={linkStyle}>
-          Sign in
+          Log in
         </Link>
       </p>
     </AuthShell>

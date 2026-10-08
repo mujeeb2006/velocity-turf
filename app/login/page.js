@@ -46,13 +46,13 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthShell title="Welcome back" subtitle="Sign in to your Velocity Turf account">
+    <AuthShell title="Welcome back" subtitle="Sign in and book your next game.">
       {error && <div style={errorStyle}>{error}</div>}
 
       <form onSubmit={handleLogin}>
         <input
           type="email"
-          placeholder="Email"
+          placeholder="Email address"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -60,7 +60,7 @@ export default function LoginPage() {
         />
         <input
           type="password"
-          placeholder="Password"
+          placeholder="Your password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
@@ -72,9 +72,9 @@ export default function LoginPage() {
       </form>
 
       <p style={{ color: V.chalkDim, fontSize: 13.5, marginTop: 22, textAlign: "center", fontFamily: "'Manrope', sans-serif" }}>
-        Don't have an account?{" "}
+        New here?{" "}
         <Link href="/signup" style={linkStyle}>
-          Sign up
+          Create your account
         </Link>
       </p>
     </AuthShell>

@@ -6,6 +6,8 @@ import { QRCodeSVG } from "qrcode.react";
 import { createClient } from "@/lib/supabase/client";
 import { validateBookingRequest } from "@/lib/booking/validation";
 import { canSubmitBooking } from "@/lib/booking/policy";
+import { dateKey } from "@/lib/dashboard/analytics";
+import { formatBookingDate, formatNotificationBody, formatNotificationTitle, relativeTime } from "@/lib/dashboard/format";
 import { useToast } from "@/components/ui/toast";
 import { SkeletonGrid, SkeletonCard, Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -16,7 +18,37 @@ import BrandLockup from "@/components/brand-lockup";
 import { SPORT_OPTIONS } from "@/lib/sports";
 
 function todayStr() {
-  return new Date().toISOString().slice(0, 10);
+  return dateKey();
+}
+
+function sportIcon(sport) {
+  return {
+    Football: "⚽",
+    Basketball: "🏀",
+    Cricket: "🏏",
+    Badminton: "🏸",
+    Swimming: "🏊",
+  }[sport] || "🏟️";
+}
+
+function formatTurfLocation(address, city) {
+  const street = String(address || "").trim();
+  const town = String(city || "").trim();
+  if (!street) return town;
+  if (!town || street.toLowerCase().endsWith(town.toLowerCase())) return street;
+  return `${street}, ${town}`;
+}
+
+function isUpcomingBooking(booking, now = new Date()) {
+  const today = dateKey(now);
+  if (booking.bookingDate > today) return true;
+  if (booking.bookingDate < today) return false;
+  const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  return booking.time >= currentTime;
+}
+
+function isPlayedBooking(booking, now = new Date()) {
+  return ["confirmed", "completed"].includes(booking.status) && !isUpcomingBooking(booking, now);
 }
 
 // Rounds a Supabase "HH:MM:SS" time string down to "HH:MM" for display.
@@ -145,18 +177,18 @@ function TurfCard({ turf, onBook, onMatch, index = 0 }) {
         <img src={coverImage} alt={`${turf.sports[0]} venue`} loading="lazy" onError={e => { e.currentTarget.style.display = "none"; }} />
         <div className="vt-venue-cover-shade" />
         <span className={`vt-venue-status ${hasAvailability ? "" : "unavailable"}`}>
-          {hasAvailability ? "Slots available today" : "No slots available today"}
+          {hasAvailability ? "Open slots today" : "No slots today"}
         </span>
         {isDynamic && (
-          <span className="vt-venue-demand">
-            HIGH DEMAND
-          </span>
-        )}
-        <div className="vt-venue-occupancy">
-          <span>Today’s demand</span>
-          <span>{turf.occupancy}%</span>
-          <div><i style={{ width: `${turf.occupancy}%` }} /></div>
-        </div>
+            <span className="vt-venue-demand">Filling fast</span>
+          )}
+          {turf.occupancy > 0 && (
+            <div className="vt-venue-occupancy" aria-label={`${turf.occupancy}% of today's slots are booked`}>
+              <span>Slots booked today</span>
+              <span>{turf.occupancy}%</span>
+              <div><i style={{ width: `${turf.occupancy}%` }} /></div>
+            </div>
+          )}
       </div>
 
       <div className="vt-venue-content">
@@ -165,12 +197,12 @@ function TurfCard({ turf, onBook, onMatch, index = 0 }) {
             <h3 className="vt-venue-name">{turf.name}</h3>
             <div className="vt-venue-location">
               <Icon name="map" size={14} color={V.chalkFaint} />
-              {turf.location}
+              <span title={turf.location}>{turf.location}</span>
             </div>
           </div>
           <div className="vt-venue-price">
             <strong>₹{price}</strong>
-            <span>/ hour</span>
+            <span>/ hr</span>
           </div>
         </div>
 
@@ -335,7 +367,7 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast }
               <div style={{ marginTop: 16, padding: "12px 16px", background: V.pitchCardRaised, borderRadius: 12, border: `1px solid ${V.line}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ color: V.chalkDim, fontSize: 13, fontFamily: FONT_BODY }}>Price / hour</span>
-                  <span style={{ color: V.chalk, fontWeight: 700, fontFamily: FONT_DATA }}>₹{price}</span>
+                  <span style={{ color: V.chalk, fontWeight: 700, fontFamily: FONT_BODY }}>₹{price}</span>
                 </div>
                 {turf.occupancy > 70 && (
                   <div style={{ marginTop: 4, fontSize: 11, color: V.pending, fontFamily: FONT_BODY }}>Peak pricing — high demand</div>
@@ -382,7 +414,7 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast }
                 <div style={{ height: 1, background: V.line, margin: "12px 0" }} />
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ color: V.chalkDim, fontSize: 15, fontWeight: 600, fontFamily: FONT_BODY }}>Total</span>
-                  <span style={{ color: V.flood, fontSize: 20, fontWeight: 800, fontFamily: FONT_DATA }}>₹{price}</span>
+                  <span style={{ color: V.flood, fontSize: 20, fontWeight: 800, fontFamily: FONT_BODY }}>₹{price}</span>
                 </div>
                 <div style={{ marginTop: 8, fontSize: 12, color: V.confirmed, fontFamily: FONT_BODY }}>
                   +{points} reward points earned on this booking
@@ -524,16 +556,16 @@ function DiscoverSection({ turfs, onBook, onMatch, isLoading, initialSearch = ""
         <div className="vt-discover-heading">
           <div>
             <span className="vt-section-eyebrow">PLAY NEAR YOU</span>
-            <h2>Find your next venue</h2>
-            <p>From football and badminton to swimming and more, find a venue that fits your game.</p>
+            <h2>Find your next turf</h2>
+            <p>Football, cricket, badminton and more. Find a turf that fits your game.</p>
           </div>
           <span className="vt-venue-count">
-            {isLoading ? "Updating venues" : `${filtered.length} ${filtered.length === 1 ? "venue" : "venues"}`}
+            {isLoading ? "Updating turfs…" : `${filtered.length} ${filtered.length === 1 ? "turf" : "turfs"}`}
           </span>
         </div>
 
         <div className="vt-discover-controls">
-          <div className="vt-sport-filters" aria-label="Filter venues by sport">
+          <div className="vt-sport-filters" aria-label="Filter turfs by sport">
             {sports.map(s => (
               <button key={s} onClick={() => setFilter(s)} className={`vt-sport-filter ${filter === s ? "active" : ""}`} aria-pressed={filter === s}>
                 {s}
@@ -546,8 +578,8 @@ function DiscoverSection({ turfs, onBook, onMatch, isLoading, initialSearch = ""
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search by venue, area, or sport"
-              aria-label="Search venues"
+              placeholder="Search turf, area, or sport"
+              aria-label="Search turf, area, or sport"
             />
             {search && (
               <button type="button" onClick={() => setSearch("")} aria-label="Clear search">×</button>
@@ -578,16 +610,16 @@ function DiscoverSection({ turfs, onBook, onMatch, isLoading, initialSearch = ""
 // ============================================================
 // MATCHMAKING SECTION
 // ============================================================
-function MatchmakingSection({ matches, onJoin, onLeave, isLoading, joinedMatchIds }) {
+function MatchmakingSection({ matches, onJoin, onLeave, onFindTurf, isLoading, joinedMatchIds }) {
   return (
     <div className="vt-match-section" style={{ padding: "60px 24px" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
         <div style={{ marginBottom: 32 }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: V.floodDim, border: `1px solid ${V.flood}4D`, borderRadius: 8, padding: "5px 14px", marginBottom: 12 }}>
-            <span style={{ color: V.flood, fontSize: 12, fontWeight: 700, fontFamily: FONT_BODY, letterSpacing: 0.4 }}>MATCHMAKING</span>
+            <span style={{ color: V.flood, fontSize: 12, fontWeight: 700, fontFamily: FONT_BODY, letterSpacing: 0.4 }}>PLAY WITH OTHERS</span>
           </div>
-          <h2 style={{ color: V.chalk, fontFamily: FONT_DISPLAY, fontSize: 38, fontWeight: 400, margin: 0 }}>Join a game</h2>
-          <p style={{ color: V.chalkFaint, margin: "6px 0 0", fontFamily: FONT_BODY }}>Grouped with players close to your skill level</p>
+          <h2 style={{ color: V.chalk, fontFamily: FONT_DISPLAY, fontSize: 38, fontWeight: 400, margin: 0 }}>Jump into a game</h2>
+          <p style={{ color: V.chalkFaint, margin: "6px 0 0", fontFamily: FONT_BODY }}>Play with people at your level.</p>
         </div>
 
         {isLoading ? (
@@ -597,8 +629,9 @@ function MatchmakingSection({ matches, onJoin, onLeave, isLoading, joinedMatchId
         ) : matches.length === 0 ? (
           <EmptyState
             icon="🎮"
-            title="No open matches right now"
-            subtitle="Check back soon, or start your own game and invite players."
+            title="No games open right now"
+            subtitle="No games are open to join right now. Check back soon, or find a turf to book your own game."
+            action={<button type="button" onClick={onFindTurf} style={buttonStyle("primary", "md")}>Find a turf →</button>}
             accent={V.flood}
           />
         ) : (
@@ -681,7 +714,7 @@ function MatchmakingSection({ matches, onJoin, onLeave, isLoading, joinedMatchId
 // ============================================================
 // LOYALTY LEDGER
 // ============================================================
-function LoyaltySection({ isLoading, leaderboard, myPoints }) {
+function LoyaltySection({ isLoading, leaderboard, myPoints, gamesPlayed }) {
   const nextMilestone = 2000;
   const progress = Math.min(1, myPoints / nextMilestone);
   const myRank = leaderboard.find(p => p.isYou)?.rank;
@@ -691,9 +724,9 @@ function LoyaltySection({ isLoading, leaderboard, myPoints }) {
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
         <div style={{ marginBottom: 32 }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: V.floodDim, border: `1px solid ${V.flood}4D`, borderRadius: 8, padding: "5px 14px", marginBottom: 12 }}>
-            <span style={{ color: V.flood, fontSize: 12, fontWeight: 700, fontFamily: FONT_BODY, letterSpacing: 0.4 }}>GAMIFICATION</span>
+            <span style={{ color: V.flood, fontSize: 12, fontWeight: 700, fontFamily: FONT_BODY, letterSpacing: 0.4 }}>REWARDS</span>
           </div>
-          <h2 style={{ color: V.chalk, fontFamily: FONT_DISPLAY, fontSize: 38, fontWeight: 400, margin: 0 }}>Loyalty ledger</h2>
+          <h2 style={{ color: V.chalk, fontFamily: FONT_DISPLAY, fontSize: 38, fontWeight: 400, margin: 0 }}>Your rewards</h2>
         </div>
 
         {isLoading ? (
@@ -705,24 +738,26 @@ function LoyaltySection({ isLoading, leaderboard, myPoints }) {
         <div className="vt-loyalty-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
           {/* My Points Card */}
           <div style={{ ...panel(true), borderRadius: 16, padding: 28 }}>
-            <div style={{ color: V.chalkFaint, fontSize: 13, marginBottom: 8, fontFamily: FONT_BODY }}>Your balance</div>
+            <div style={{ color: V.chalkFaint, fontSize: 13, marginBottom: 8, fontFamily: FONT_BODY }}>Your points</div>
             <div style={{ color: V.chalk, fontFamily: FONT_DATA, fontSize: 44, fontWeight: 700, lineHeight: 1 }}>
               {myPoints.toLocaleString()}
               <span style={{ fontSize: 16, color: V.flood, marginLeft: 8 }}>pts</span>
             </div>
             <div style={{ margin: "20px 0 8px", display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: V.chalkFaint, fontSize: 12, fontFamily: FONT_BODY }}>Progress to gold</span>
+              <span style={{ color: V.chalkFaint, fontSize: 12, fontFamily: FONT_BODY }}>Progress to Gold</span>
               <span style={{ color: V.flood, fontSize: 12, fontWeight: 700, fontFamily: FONT_BODY }}>{Math.round(progress * 100)}%</span>
             </div>
             <div style={{ height: 6, background: V.line, borderRadius: 4 }}>
               <div style={{ height: "100%", width: `${progress * 100}%`, background: V.flood, borderRadius: 4 }} />
             </div>
-            <div style={{ color: V.chalkFaint, fontSize: 11, marginTop: 6, fontFamily: FONT_BODY }}>{Math.max(0, nextMilestone - myPoints)} pts to next milestone</div>
+            <div style={{ color: V.chalkFaint, fontSize: 11, marginTop: 6, fontFamily: FONT_BODY }}>
+              {myPoints >= nextMilestone ? "You've reached Gold" : `${(nextMilestone - myPoints).toLocaleString()} pts to reach Gold`}
+            </div>
 
             <div style={{ marginTop: 24, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               {[
-                { label: "Your rank", value: myRank ? `#${myRank}` : "Unranked" },
-                { label: "Points balance", value: myPoints.toLocaleString() },
+                { label: "Leaderboard rank", value: myRank ? `#${myRank}` : "Not ranked yet" },
+                { label: "Games played", value: gamesPlayed.toLocaleString() },
               ].map(s => (
                 <div key={s.label} style={{ background: V.pitchCardRaised, borderRadius: 10, padding: 12, border: `1px solid ${V.line}` }}>
                   <div style={{ color: V.chalkFaint, fontSize: 11, fontFamily: FONT_BODY }}>{s.label}</div>
@@ -734,9 +769,9 @@ function LoyaltySection({ isLoading, leaderboard, myPoints }) {
 
           {/* Leaderboard */}
           <div style={{ ...panel(), borderRadius: 16, padding: 28 }}>
-            <div style={{ color: V.chalkFaint, fontSize: 13, marginBottom: 16, fontFamily: FONT_BODY }}>Community leaderboard</div>
+            <div style={{ color: V.chalkFaint, fontSize: 13, marginBottom: 16, fontFamily: FONT_BODY }}>Top players</div>
             {leaderboard.length === 0 ? (
-              <EmptyState icon="🏆" title="No points on the board yet" subtitle="Complete a booking to start earning loyalty points." accent={V.flood} />
+              <EmptyState icon="🏆" title="The leaderboard is empty" subtitle="Book a game to earn your first points and start climbing the leaderboard." accent={V.flood} />
             ) : (
             <div style={{ display: "grid", gap: 10 }}>
               {leaderboard.map(p => (
@@ -773,15 +808,16 @@ function LoyaltySection({ isLoading, leaderboard, myPoints }) {
 // DASHBOARD
 // ============================================================
 function DashboardSection({ isLoading, bookings, matchesJoined, onCancel, onReview, onDispute, onViewQr }) {
-  const upcoming = bookings.filter(b => ["pending", "confirmed"].includes(b.status));
-  const pastBookings = bookings.filter(b => b.bookingDate < todayStr() && ["confirmed", "completed"].includes(b.status));
+  const now = new Date();
+  const upcoming = bookings.filter(b => ["pending", "confirmed"].includes(b.status) && isUpcomingBooking(b, now));
+  const pastBookings = bookings.filter((booking) => isPlayedBooking(booking, now));
   const totalSpent = bookings.filter(b => ["confirmed", "completed"].includes(b.status)).reduce((sum, b) => sum + b.price, 0);
-  const hoursPlayed = bookings.filter(b => b.status === "completed").length;
+  const gamesPlayed = pastBookings.length;
 
   return (
     <div className="vt-dashboard-section" style={{ padding: "60px 24px" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-        <h2 style={{ color: V.chalk, fontFamily: FONT_DISPLAY, fontSize: 38, fontWeight: 400, margin: "0 0 32px" }}>My dashboard</h2>
+        <h2 style={{ color: V.chalk, fontFamily: FONT_DISPLAY, fontSize: 38, fontWeight: 400, margin: "0 0 32px" }}>My games</h2>
 
         {isLoading ? (
           <>
@@ -799,8 +835,8 @@ function DashboardSection({ isLoading, bookings, matchesJoined, onCancel, onRevi
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
           {[
             { label: "Total spent", value: `₹${totalSpent.toLocaleString()}`, icon: "trending" },
-            { label: "Completed bookings", value: hoursPlayed, icon: "clock" },
-            { label: "Matches joined", value: matchesJoined, icon: "trophy" },
+            { label: "Games played", value: gamesPlayed, icon: "clock" },
+            { label: "Games joined", value: matchesJoined, icon: "trophy" },
             { label: "Upcoming", value: upcoming.length, icon: "calendar" },
           ].map(s => (
             <div key={s.label} style={{ ...panel(), borderRadius: 14, padding: "20px 22px", transition: "transform 0.2s, border-color 0.2s" }}
@@ -812,14 +848,14 @@ function DashboardSection({ isLoading, bookings, matchesJoined, onCancel, onRevi
                   <Icon name={s.icon} size={18} color={V.flood} />
                 </div>
               </div>
-              <div style={{ color: V.chalk, fontWeight: 700, fontSize: 24, fontFamily: FONT_DATA }}>{s.value}</div>
+              <div style={{ color: V.chalk, fontWeight: 700, fontSize: 24, fontFamily: typeof s.value === "string" && s.value.startsWith("₹") ? FONT_BODY : FONT_DATA }}>{s.value}</div>
               <div style={{ color: V.chalkFaint, fontSize: 12, marginTop: 4, fontFamily: FONT_BODY }}>{s.label}</div>
             </div>
           ))}
         </div>
 
         {/* Upcoming Bookings */}
-        <h3 style={{ color: V.chalkDim, fontSize: 14, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.5, margin: "0 0 16px", fontFamily: FONT_BODY }}>Upcoming bookings</h3>
+        <h3 style={{ color: V.chalkDim, fontSize: 14, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.5, margin: "0 0 16px", fontFamily: FONT_BODY }}>Coming up</h3>
         {upcoming.length === 0 ? (
           <EmptyState
             icon="📅"
@@ -835,28 +871,28 @@ function DashboardSection({ isLoading, bookings, matchesJoined, onCancel, onRevi
             >
               <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
                 <div style={{ width: 44, height: 44, borderRadius: 10, background: V.pitchCardRaised, border: `1px solid ${V.line}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
-                  {b.sport === "Football" ? "⚽" : "🏀"}
+                  {sportIcon(b.sport)}
                 </div>
                 <div>
                   <div style={{ color: V.chalk, fontWeight: 700, fontSize: 16, fontFamily: FONT_BODY }}>{b.turf}</div>
-                  <div style={{ color: V.chalkFaint, fontSize: 13, fontFamily: FONT_BODY }}>{b.date} · {b.time} · {b.sport}</div>
+                  <div style={{ color: V.chalkFaint, fontSize: 13, fontFamily: FONT_BODY }}>{formatBookingDate(b.bookingDate)} · {b.time} · {b.sport}</div>
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                <span style={{ fontFamily: FONT_DATA, color: V.chalk, fontWeight: 700 }}>₹{b.price}</span>
+                <span style={{ fontFamily: FONT_BODY, color: V.chalk, fontWeight: 700 }}>₹{b.price}</span>
                 <span style={{
                   padding: "4px 12px", borderRadius: 6, fontSize: 12, fontWeight: 700, fontFamily: FONT_BODY,
                   background: "transparent",
                   color: b.status === "confirmed" ? V.confirmed : V.pending,
                   border: `1px solid currentColor`,
                 }}>
-                  {b.status === "confirmed" ? "Confirmed" : "Pending"}
+                  {b.status === "confirmed" ? "Confirmed" : "Awaiting confirmation"}
                 </span>
                 <button onClick={() => onViewQr(b)} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, padding: "8px 14px", color: V.chalkDim, cursor: "pointer", fontSize: 13, fontFamily: FONT_BODY, transition: "border-color 0.2s" }}
                   onMouseEnter={e => e.currentTarget.style.borderColor = V.lineStrong}
                   onMouseLeave={e => e.currentTarget.style.borderColor = V.line}
                 >
-                  View QR
+                  Show entry QR
                 </button>
                 <button onClick={() => { if (window.confirm(`Cancel your booking at ${b.turf}?`)) onCancel(b.id); }} style={{ background: "transparent", border: `1px solid ${V.danger}55`, borderRadius: 8, padding: "8px 14px", color: V.danger, cursor: "pointer", fontSize: 13, fontFamily: FONT_BODY, transition: "background 0.2s" }}
                   onMouseEnter={e => e.currentTarget.style.background = "rgba(240,85,74,0.1)"}
@@ -865,7 +901,7 @@ function DashboardSection({ isLoading, bookings, matchesJoined, onCancel, onRevi
                   Cancel
                 </button>
                 <button onClick={() => onDispute(b)} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, padding: "8px 14px", color: V.chalkDim, cursor: "pointer", fontSize: 13, fontFamily: FONT_BODY }}>
-                  Report issue
+                  Need help?
                 </button>
               </div>
             </div>
@@ -873,20 +909,20 @@ function DashboardSection({ isLoading, bookings, matchesJoined, onCancel, onRevi
         </div>
         )}
 
-        <h3 style={{ color: V.chalkDim, fontSize: 14, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.5, margin: "32px 0 16px", fontFamily: FONT_BODY }}>Past bookings</h3>
+        <h3 style={{ color: V.chalkDim, fontSize: 14, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.5, margin: "32px 0 16px", fontFamily: FONT_BODY }}>Past games</h3>
         {pastBookings.length === 0 ? (
-          <EmptyState icon="📝" title="No completed bookings yet" subtitle="After your booking date, you can leave a review or report an issue here." />
+          <EmptyState icon="📝" title="No past games yet" subtitle="After you play, you can rate the turf and share your experience." />
         ) : (
           <div style={{ display: "grid", gap: 12 }}>
             {pastBookings.map(b => (
               <div key={b.id} style={{ ...panel(), borderRadius: 12, padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
                 <div>
                   <div style={{ color: V.chalk, fontWeight: 700, fontSize: 15, fontFamily: FONT_BODY }}>{b.turf}</div>
-                  <div style={{ color: V.chalkFaint, fontSize: 13, marginTop: 3, fontFamily: FONT_BODY }}>{b.date} · {b.time} · ₹{b.price}</div>
+                  <div style={{ color: V.chalkFaint, fontSize: 13, marginTop: 3, fontFamily: FONT_BODY }}>{formatBookingDate(b.bookingDate)} · {b.time} · ₹{b.price}</div>
                 </div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <button onClick={() => onReview(b)} style={{ background: V.flood, border: "none", borderRadius: 8, padding: "8px 14px", color: "#ffffff", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: FONT_BODY }}>Leave review</button>
-                  <button onClick={() => onDispute(b)} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, padding: "8px 14px", color: V.chalkDim, cursor: "pointer", fontSize: 13, fontFamily: FONT_BODY }}>Report issue</button>
+                  <button onClick={() => onReview(b)} style={{ background: V.flood, border: "none", borderRadius: 8, padding: "8px 14px", color: "#ffffff", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: FONT_BODY }}>Rate this turf</button>
+                  <button onClick={() => onDispute(b)} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, padding: "8px 14px", color: V.chalkDim, cursor: "pointer", fontSize: 13, fontFamily: FONT_BODY }}>Get help</button>
                 </div>
               </div>
             ))}
@@ -1081,7 +1117,6 @@ export default function PlayerAppClient({ profile }) {
   const [matchesJoinedCount, setMatchesJoinedCount] = useState(0);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [lastSyncedAt, setLastSyncedAt] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [joinedMatchIds, setJoinedMatchIds] = useState(new Set());
 
@@ -1103,12 +1138,12 @@ export default function PlayerAppClient({ profile }) {
       if (slotsError) {
         availabilityFailed = true;
         console.error(`could not load slot availability for turf ${t.id}`, slotsError);
-        return { ...t, location: t.address, reviews: t.review_count, slots: [], occupancy: 0 };
+        return { ...t, location: formatTurfLocation(t.address, t.city), reviews: t.review_count, slots: [], occupancy: 0 };
       }
       const slotList = (slots || []).map(s => ({ time: fmtTime(s.slot_time), raw_time: s.slot_time, status: s.status }));
       const bookedCount = slotList.filter(s => s.status !== "available").length;
       const occupancy = slotList.length ? Math.round((bookedCount / slotList.length) * 100) : 0;
-      return { ...t, location: t.address, reviews: t.review_count, slots: slotList, occupancy };
+      return { ...t, location: formatTurfLocation(t.address, t.city), reviews: t.review_count, slots: slotList, occupancy };
     }));
     setTurfs(withSlots);
     if (availabilityFailed) {
@@ -1128,14 +1163,13 @@ export default function PlayerAppClient({ profile }) {
       setMatchesLoading(false);
       return;
     }
-    const today = todayStr();
     setMatches((data || []).map(m => ({
       id: m.id,
       sport: m.sport,
       turf: m.turf?.name || "Turf",
       turf_id: m.turf_id,
       time: fmtTime(m.start_time),
-      date: m.match_date === today ? "Today" : m.match_date,
+      date: formatBookingDate(m.match_date),
       players: m.participant_count,
       max: m.max_players,
       skill: m.skill_level,
@@ -1174,7 +1208,7 @@ export default function PlayerAppClient({ profile }) {
       id: b.id,
       turfId: b.turf_id,
       turf: b.turf?.name || "Turf",
-      date: b.booking_date === today ? "Today" : b.booking_date,
+      date: formatBookingDate(b.booking_date),
       bookingDate: b.booking_date,
       time: fmtTime(b.start_time),
       sport: b.sport,
@@ -1200,7 +1234,6 @@ export default function PlayerAppClient({ profile }) {
       .limit(20);
     if (!error) {
       setNotifications(data || []);
-      setLastSyncedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
     }
   }
 
@@ -1227,7 +1260,6 @@ export default function PlayerAppClient({ profile }) {
     }
 
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    setLastSyncedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
   };
 
   const toggleNotifications = async () => {
@@ -1285,7 +1317,7 @@ export default function PlayerAppClient({ profile }) {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${profile?.id}` }, (payload) => {
         fetchNotifications();
         if (payload?.new?.title && !showNotifications) {
-          showToast(`${payload.new.title} — live update`, { type: "info" });
+          showToast(formatNotificationTitle(payload.new.title), { type: "info" });
         }
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "notifications", filter: `user_id=eq.${profile?.id}` }, () => fetchNotifications())
@@ -1344,7 +1376,7 @@ export default function PlayerAppClient({ profile }) {
     { id: "home", label: "Home", icon: "home" },
     { id: "discover", label: "Discover", icon: "search" },
     { id: "matches", label: "Matches", icon: "users" },
-    { id: "loyalty", label: "Loyalty", icon: "trophy" },
+    { id: "loyalty", label: "Rewards", icon: "trophy" },
     { id: "dashboard", label: "Dashboard", icon: "calendar" },
   ];
 
@@ -1504,8 +1536,7 @@ export default function PlayerAppClient({ profile }) {
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 13, color: V.chalk, fontFamily: FONT_BODY }}>Notifications</div>
                   <div style={{ marginTop: 3, fontSize: 10.5, color: V.chalkFaint, fontFamily: FONT_BODY }}>
-                    {unreadCount > 0 ? `${unreadCount} unread` : "All caught up"}
-                    {lastSyncedAt ? ` · Live ${lastSyncedAt}` : " · Syncing..."}
+                    {unreadCount > 0 ? `${unreadCount} unread` : "You're all caught up"}
                   </div>
                 </div>
                 {unreadCount > 0 && (
@@ -1516,18 +1547,20 @@ export default function PlayerAppClient({ profile }) {
               </div>
               {notifications.length === 0 ? (
                 <div style={{ padding: "28px 16px", textAlign: "center", color: V.chalkFaint, fontSize: 13, fontFamily: FONT_BODY }}>
-                  Nothing yet — booking updates will show up here.
+                  Your booking updates will show up here.
                 </div>
               ) : (
                 notifications.map(n => (
                   <div key={n.id} style={{ padding: "12px 16px", borderBottom: `1px solid ${V.line}`, background: n.read ? "transparent" : V.floodDim }}>
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center" }}>
-                      <div style={{ color: V.chalk, fontWeight: 700, fontSize: 13, fontFamily: FONT_BODY, marginBottom: 3 }}>{n.title}</div>
+                      <div style={{ color: V.chalk, fontWeight: 700, fontSize: 13, fontFamily: FONT_BODY, marginBottom: 3 }}>
+                        {formatNotificationTitle(n.title)}
+                      </div>
                       {!n.read && <span style={{ width: 7, height: 7, borderRadius: "50%", background: V.flood, display: "inline-block" }} />}
                     </div>
-                    {n.body && <div style={{ color: V.chalkDim, fontSize: 12.5, fontFamily: FONT_BODY, lineHeight: 1.4 }}>{n.body}</div>}
+                    {n.body && <div style={{ color: V.chalkDim, fontSize: 12.5, fontFamily: FONT_BODY, lineHeight: 1.4 }}>{formatNotificationBody(n.title, n.body)}</div>}
                     <div style={{ color: V.chalkFaint, fontSize: 10.5, marginTop: 4, fontFamily: FONT_BODY }}>
-                      {new Date(n.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                      {relativeTime(n.created_at)}
                     </div>
                   </div>
                 ))
@@ -1559,9 +1592,9 @@ export default function PlayerAppClient({ profile }) {
             </>
           )}
           {activeTab === "discover" && <DiscoverSection turfs={turfs} onBook={handleBook} onMatch={(turf) => { setActiveTab("matches"); showToast(`Showing open matches — look for ones at ${turf.name}.`, { type: "info" }); }} isLoading={isTabLoading("discover")} initialSearch={searchQuery} />}
-          {activeTab === "matches" && <MatchmakingSection onJoin={handleJoin} onLeave={handleLeaveMatch} isLoading={isTabLoading("matches")} matches={matches} joinedMatchIds={joinedMatchIds} />}
+          {activeTab === "matches" && <MatchmakingSection onJoin={handleJoin} onLeave={handleLeaveMatch} onFindTurf={() => setActiveTab("discover")} isLoading={isTabLoading("matches")} matches={matches} joinedMatchIds={joinedMatchIds} />}
           {activeTab === "loyalty" && (profile?.id
-            ? <LoyaltySection isLoading={isTabLoading("loyalty")} leaderboard={leaderboard} myPoints={leaderboard.find(p => p.isYou)?.points ?? 0} />
+            ? <LoyaltySection isLoading={isTabLoading("loyalty") || myBookingsLoading} leaderboard={leaderboard} myPoints={leaderboard.find(p => p.isYou)?.points ?? 0} gamesPlayed={myBookings.filter((booking) => isPlayedBooking(booking)).length} />
             : <GuestPrompt icon="🏆" title="Track your rewards" body="Sign up to earn loyalty points on every booking and see where you rank." router={router} />
           )}
           {activeTab === "dashboard" && (profile?.id

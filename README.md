@@ -11,7 +11,8 @@ Auth and accounts are handled by **Supabase** (free tier is enough). Hosting is 
 > Booking requests, owner payout/review records, player reviews, and disputes use
 > Supabase queries. Checkout is still a demo flow and does not process payments.
 > `supabase/schema.sql` creates the marketplace tables and their row-level security
-> policies for a new Supabase project.
+> policies for a new Supabase project. Past bookings are automatically deleted
+> after seven days unless a review or dispute references them.
 
 ---
 
@@ -21,7 +22,9 @@ Auth and accounts are handled by **Supabase** (free tier is enough). Hosting is 
 2. Once it's created, open **SQL Editor** and paste in the contents of
   `supabase/schema.sql` from this repo, then click **Run**. This creates the
   profiles, marketplace, booking, review, match, notification, and payout tables,
-  their access policies, slot/booking database functions, and the signup trigger.
+  their access policies, slot/booking database functions, signup trigger, and a
+  daily job that removes past bookings older than seven days. Bookings referenced
+  by reviews or disputes are retained.
 3. Go to **Authentication → Providers → Email** and, for quick testing,
    turn **off** "Confirm email" (so signup logs you in immediately instead of
    waiting on a confirmation email). Turn it back on before going fully live.

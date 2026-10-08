@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { QRCodeSVG } from "qrcode.react";
 import { createClient } from "@/lib/supabase/client";
 import { validateBookingRequest } from "@/lib/booking/validation";
 import { canSubmitBooking } from "@/lib/booking/policy";
@@ -100,6 +101,19 @@ function SlotGrid({ slots, onSelect, selected }) {
         );
       })}
     </div>
+  );
+}
+
+function BookingQrCode({ bookingId, size = 140 }) {
+  return (
+    <QRCodeSVG
+      value={`velocity-turf:booking:${bookingId}`}
+      size={size}
+      level="H"
+      includeMargin
+      title={`QR ticket for booking ${bookingId}`}
+      style={{ display: "block", maxWidth: "100%", height: "auto" }}
+    />
   );
 }
 
@@ -208,22 +222,13 @@ function TurfCard({ turf, onBook, onMatch, index = 0 }) {
 function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast }) {
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [step, setStep] = useState(1); // 1: slot, 2: confirm, 3: success
-  const [timer, setTimer] = useState(600);
   const [submitting, setSubmitting] = useState(false);
+  const [bookingId, setBookingId] = useState(null);
   const [bookingPrice, setBookingPrice] = useState(null);
   const price = bookingPrice ?? (turf ? calcPrice(turf, turf.occupancy) : 0);
   const points = Math.floor(price * 0.1);
 
-  useEffect(() => {
-    if (step === 2 && timer > 0) {
-      const t = setInterval(() => setTimer(p => p - 1), 1000);
-      return () => clearInterval(t);
-    }
-  }, [step, timer]);
-
   if (!turf) return null;
-
-  const formatTimer = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
 
   const handlePay = async () => {
     const validation = validateBookingRequest({ profile, turf, selectedSlot });
@@ -240,27 +245,50 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast }
 
     setSubmitting(true);
     const slot = policyValidation.slot;
-    const { data, error } = await supabase.from("bookings").insert({
-      turf_id: turf.id,
-      player_id: profile.id,
-      booking_date: todayStr(),
-      start_time: slot.raw_time,
-      sport: turf.sports[0],
-      players_count: 1,
-    }).select("price").single();
+    let data;
+    let error;
+    try {
+      ({ data, error } = await supabase.from("bookings").insert({
+        turf_id: turf.id,
+        player_id: profile.id,
+        booking_date: todayStr(),
+        start_time: slot.raw_time,
+        sport: turf.sports[0],
+        players_count: 1,
+      }).select("id, price").single());
+    } catch (requestError) {
+      console.error("booking creation request failed", requestError);
+      showToast("Couldn't complete the booking. Check your connection and try again.", { type: "error" });
+      setSubmitting(false);
+      return;
+    }
     setSubmitting(false);
 
     if (error) {
-      if (error.code === "23505") {
+      console.error("booking creation failed", error);
+      if (error.code === "23505" || error.message?.includes("This slot is not available")) {
         showToast("That slot was just taken — pick another.", { type: "error" });
         setStep(1);
+      } else if ([
+        "This turf is not available for booking.",
+        "Bookings cannot be made for a past date.",
+        "This sport is not offered at this turf.",
+      ].includes(error.message)) {
+        showToast(error.message, { type: "error" });
       } else {
         showToast("Couldn't complete the booking. Try again.", { type: "error" });
       }
       return;
     }
 
-    const finalPrice = Number(data?.price ?? price);
+    if (!data?.id) {
+      console.error("booking creation returned no booking ID", data);
+      showToast("The booking was saved, but its ticket could not be loaded. Refresh your bookings.", { type: "error" });
+      return;
+    }
+
+    const finalPrice = Number(data.price ?? price);
+    setBookingId(data.id);
     setBookingPrice(finalPrice);
     setStep(3);
   };
@@ -278,7 +306,7 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast }
         <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${V.line}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <h2 style={{ color: V.chalk, margin: 0, fontSize: 24, fontFamily: FONT_DISPLAY, fontWeight: 400 }}>
-              {step === 3 ? "Booking confirmed" : `Book ${turf.name}`}
+              {step === 3 ? "Booking request submitted" : `Book ${turf.name}`}
             </h2>
             <p style={{ color: V.chalkFaint, margin: "4px 0 0", fontSize: 13, fontFamily: FONT_BODY }}>{turf.location}</p>
           </div>
@@ -299,6 +327,11 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast }
                 </div>
               </div>
               <SlotGrid slots={turf.slots} onSelect={setSelectedSlot} selected={selectedSlot} />
+              {turf.slots.length === 0 && (
+                <p style={{ color: V.chalkFaint, fontSize: 13, fontFamily: FONT_BODY, textAlign: "center", margin: "12px 0 0" }}>
+                  No slots are available to show for today.
+                </p>
+              )}
               <div style={{ marginTop: 16, padding: "12px 16px", background: V.pitchCardRaised, borderRadius: 12, border: `1px solid ${V.line}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ color: V.chalkDim, fontSize: 13, fontFamily: FONT_BODY }}>Price / hour</span>
@@ -310,7 +343,7 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast }
               </div>
               <button
                 disabled={selectedSlot === null}
-                onClick={() => { setStep(2); setTimer(600); }}
+                onClick={() => setStep(2)}
                 style={{
                   marginTop: 16, width: "100%", padding: "14px", borderRadius: 12,
                   background: selectedSlot !== null ? V.flood : V.line,
@@ -325,14 +358,10 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast }
 
           {step === 2 && (
             <>
-              {/* Slot Lock Timer */}
-              <div style={{ background: "rgba(245,166,35,0.1)", border: `1px solid ${V.pending}4D`, borderRadius: 12, padding: "12px 16px", marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ background: "rgba(245,166,35,0.1)", border: `1px solid ${V.pending}4D`, borderRadius: 12, padding: "12px 16px", marginBottom: 20 }}>
                 <div>
-                  <div style={{ color: V.pending, fontWeight: 700, fontSize: 13, fontFamily: FONT_BODY }}>Slot locked for you</div>
-                  <div style={{ color: V.chalkDim, fontSize: 12, marginTop: 2, fontFamily: FONT_BODY }}>Demo checkout only. No payment will be processed.</div>
-                </div>
-                <div style={{ color: V.pending, fontWeight: 800, fontSize: 24, fontFamily: FONT_DATA }}>
-                  {formatTimer(timer)}
+                  <div style={{ color: V.pending, fontWeight: 700, fontSize: 13, fontFamily: FONT_BODY }}>Availability check</div>
+                  <div style={{ color: V.chalkDim, fontSize: 12, marginTop: 2, fontFamily: FONT_BODY }}>This slot is secured only when your booking request is submitted. Demo checkout; no payment is processed.</div>
                 </div>
               </div>
 
@@ -381,15 +410,14 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast }
                 <Icon name="check" size={28} color={V.flood} />
               </div>
               <h3 style={{ color: V.chalk, fontFamily: FONT_DISPLAY, fontSize: 26, fontWeight: 400, marginBottom: 8 }}>You're all set</h3>
-              <p style={{ color: V.chalkDim, marginBottom: 24, fontFamily: FONT_BODY, fontSize: 14 }}>Your slot at {turf.name} has been confirmed. A QR code has been sent to your email.</p>
-
-              {/* QR Placeholder */}
-              <div style={{ background: V.chalk, width: 140, height: 140, margin: "0 auto 20px", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column" }}>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 2, padding: 12 }}>
-                  {[...Array(25)].map((_, i) => (
-                    <div key={i} style={{ width: 8, height: 8, background: Math.random() > 0.4 ? V.pitch : "transparent", borderRadius: 1 }} />
-                  ))}
-                </div>
+              <p style={{ color: V.chalkDim, marginBottom: 24, fontFamily: FONT_BODY, fontSize: 14 }}>
+                Your booking request for {turf.name} is pending owner approval. Your unique booking QR ticket is ready below.
+              </p>
+              <div style={{ background: V.chalk, width: 164, height: 164, padding: 12, margin: "0 auto 20px", borderRadius: 14, display: "grid", placeItems: "center" }}>
+                {bookingId && <BookingQrCode bookingId={bookingId} size={140} />}
+              </div>
+              <div style={{ color: V.chalkFaint, fontSize: 11, fontFamily: FONT_DATA, marginBottom: 20, wordBreak: "break-all" }}>
+                Booking ID: {bookingId}
               </div>
 
               <div style={{ background: V.floodDim, border: `1px solid ${V.flood}4D`, borderRadius: 12, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
@@ -744,7 +772,7 @@ function LoyaltySection({ isLoading, leaderboard, myPoints }) {
 // ============================================================
 // DASHBOARD
 // ============================================================
-function DashboardSection({ isLoading, bookings, matchesJoined, onCancel, onReview, onDispute }) {
+function DashboardSection({ isLoading, bookings, matchesJoined, onCancel, onReview, onDispute, onViewQr }) {
   const upcoming = bookings.filter(b => ["pending", "confirmed"].includes(b.status));
   const pastBookings = bookings.filter(b => b.bookingDate < todayStr() && ["confirmed", "completed"].includes(b.status));
   const totalSpent = bookings.filter(b => ["confirmed", "completed"].includes(b.status)).reduce((sum, b) => sum + b.price, 0);
@@ -800,8 +828,8 @@ function DashboardSection({ isLoading, bookings, matchesJoined, onCancel, onRevi
           />
         ) : (
         <div style={{ display: "grid", gap: 12 }}>
-          {upcoming.map((b, i) => (
-            <div key={i} style={{ ...panel(), borderRadius: 12, padding: "18px 22px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, transition: "border-color 0.2s" }}
+          {upcoming.map((b) => (
+            <div key={b.id} style={{ ...panel(), borderRadius: 12, padding: "18px 22px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, transition: "border-color 0.2s" }}
               onMouseEnter={e => e.currentTarget.style.borderColor = V.lineStrong}
               onMouseLeave={e => e.currentTarget.style.borderColor = V.line}
             >
@@ -824,7 +852,7 @@ function DashboardSection({ isLoading, bookings, matchesJoined, onCancel, onRevi
                 }}>
                   {b.status === "confirmed" ? "Confirmed" : "Pending"}
                 </span>
-                <button style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, padding: "8px 14px", color: V.chalkDim, cursor: "pointer", fontSize: 13, fontFamily: FONT_BODY, transition: "border-color 0.2s" }}
+                <button onClick={() => onViewQr(b)} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, padding: "8px 14px", color: V.chalkDim, cursor: "pointer", fontSize: 13, fontFamily: FONT_BODY, transition: "border-color 0.2s" }}
                   onMouseEnter={e => e.currentTarget.style.borderColor = V.lineStrong}
                   onMouseLeave={e => e.currentTarget.style.borderColor = V.line}
                 >
@@ -865,6 +893,37 @@ function DashboardSection({ isLoading, bookings, matchesJoined, onCancel, onRevi
           </div>
         )}
         </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function BookingQrModal({ booking, onClose }) {
+  if (!booking) return null;
+
+  return (
+    <div role="presentation" onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.8)", display: "grid", placeItems: "center", padding: 16 }}>
+      <div role="dialog" aria-modal="true" aria-labelledby="booking-qr-title" onClick={event => event.stopPropagation()} style={{ ...panel(true), width: "100%", maxWidth: 380, padding: 24, textAlign: "center" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <h2 id="booking-qr-title" style={{ color: V.chalk, fontSize: 22, fontFamily: FONT_DISPLAY, fontWeight: 400, margin: 0 }}>Booking QR ticket</h2>
+          <button type="button" onClick={onClose} aria-label="Close QR ticket" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 34, height: 34, cursor: "pointer", color: V.chalk }}>
+            <Icon name="x" size={16} />
+          </button>
+        </div>
+        <div style={{ color: V.chalkDim, fontFamily: FONT_BODY, fontSize: 14, marginBottom: 16 }}>
+          {booking.turf} · {booking.date} · {booking.time}
+        </div>
+        <div style={{ display: "inline-grid", placeItems: "center", background: V.chalk, padding: 12, borderRadius: 12 }}>
+          <BookingQrCode bookingId={booking.id} size={220} />
+        </div>
+        <div style={{ color: V.chalkFaint, fontSize: 11, fontFamily: FONT_DATA, marginTop: 16, wordBreak: "break-all" }}>
+          Booking ID: {booking.id}
+        </div>
+        {booking.status === "pending" && (
+          <p style={{ color: V.pending, fontSize: 12, fontFamily: FONT_BODY, margin: "14px 0 0" }}>
+            This booking is awaiting owner approval.
+          </p>
         )}
       </div>
     </div>
@@ -1007,6 +1066,7 @@ export default function PlayerAppClient({ profile }) {
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState("home");
   const [bookingTurf, setBookingTurf] = useState(null);
+  const [bookingQr, setBookingQr] = useState(null);
   const [reviewBooking, setReviewBooking] = useState(null);
   const [disputeBooking, setDisputeBooking] = useState(null);
 
@@ -1037,14 +1097,23 @@ export default function PlayerAppClient({ profile }) {
       return;
     }
     const date = todayStr();
+    let availabilityFailed = false;
     const withSlots = await Promise.all((data || []).map(async (t) => {
-      const { data: slots } = await supabase.rpc("turf_slots", { p_turf_id: t.id, p_date: date });
+      const { data: slots, error: slotsError } = await supabase.rpc("turf_slots", { p_turf_id: t.id, p_date: date });
+      if (slotsError) {
+        availabilityFailed = true;
+        console.error(`could not load slot availability for turf ${t.id}`, slotsError);
+        return { ...t, location: t.address, reviews: t.review_count, slots: [], occupancy: 0 };
+      }
       const slotList = (slots || []).map(s => ({ time: fmtTime(s.slot_time), raw_time: s.slot_time, status: s.status }));
       const bookedCount = slotList.filter(s => s.status !== "available").length;
       const occupancy = slotList.length ? Math.round((bookedCount / slotList.length) * 100) : 0;
       return { ...t, location: t.address, reviews: t.review_count, slots: slotList, occupancy };
     }));
     setTurfs(withSlots);
+    if (availabilityFailed) {
+      showToast("Couldn't load availability for some turfs. Please refresh or try again later.", { type: "error" });
+    }
     setTurfsLoading(false);
   }
 
@@ -1258,7 +1327,7 @@ export default function PlayerAppClient({ profile }) {
 
   const handleBookingConfirmed = () => {
     handleBookingClose();
-    showToast("Booking confirmed! Check your email for QR code. 🎉", { type: "success" });
+    showToast("Booking request submitted. Your QR ticket is available in your dashboard.", { type: "success" });
     fetchTurfs();
     fetchMyBookings();
   };
@@ -1505,7 +1574,7 @@ export default function PlayerAppClient({ profile }) {
             : <GuestPrompt icon="🏆" title="Track your rewards" body="Sign up to earn loyalty points on every booking and see where you rank." router={router} />
           )}
           {activeTab === "dashboard" && (profile?.id
-            ? <DashboardSection isLoading={isTabLoading("dashboard")} bookings={myBookings} matchesJoined={matchesJoinedCount} onCancel={handleCancelBooking} onReview={setReviewBooking} onDispute={setDisputeBooking} />
+            ? <DashboardSection isLoading={isTabLoading("dashboard")} bookings={myBookings} matchesJoined={matchesJoinedCount} onCancel={handleCancelBooking} onReview={setReviewBooking} onDispute={setDisputeBooking} onViewQr={setBookingQr} />
             : <GuestPrompt icon="📅" title="Your dashboard lives here" body="Sign up to see your bookings, track spend, and manage upcoming games." router={router} />
           )}
         </main>
@@ -1539,6 +1608,7 @@ export default function PlayerAppClient({ profile }) {
         {bookingTurf && (
           <BookingModal turf={bookingTurf} profile={profile} supabase={supabase} onClose={handleBookingClose} onConfirm={handleBookingConfirmed} showToast={showToast} />
         )}
+        {bookingQr && <BookingQrModal booking={bookingQr} onClose={() => setBookingQr(null)} />}
         {reviewBooking && <ReviewModal booking={reviewBooking} profile={profile} supabase={supabase} onClose={() => setReviewBooking(null)} showToast={showToast} />}
         {disputeBooking && <DisputeModal booking={disputeBooking} profile={profile} supabase={supabase} onClose={() => setDisputeBooking(null)} showToast={showToast} />}
 

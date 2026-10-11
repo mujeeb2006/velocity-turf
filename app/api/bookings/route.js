@@ -6,14 +6,38 @@ import { readJson, UUID_PATTERN } from "@/lib/admin/server";
 import { dateKey } from "@/lib/dashboard/analytics";
 
 export async function POST(request) {
+  let userId = null;
+  let userName = "A player";
+
   const profile = await getProfile();
-  if (!profile?.id) {
-    return NextResponse.json({ error: "Please sign in to book a turf." }, { status: 401 });
+  if (profile?.id) {
+    const role = normalizeUserRole(profile.role);
+    if (role !== "player" && role !== "admin") {
+      return NextResponse.json({ error: "Only player accounts can book turfs." }, { status: 403 });
+    }
+    userId = profile.id;
+    userName = profile.full_name || userName;
+  } else {
+    // Fallback: check Authorization Bearer token header if cookie is missing/delayed
+    const authHeader = request.headers.get("authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.slice(7);
+      const admin = createAdminClient();
+      const { data: { user: authUser } } = await admin.auth.getUser(token);
+      if (authUser?.id) {
+        const { data: p } = await admin.from("profiles").select("id, role, full_name").eq("id", authUser.id).maybeSingle();
+        const role = normalizeUserRole(p?.role);
+        if (role !== "player" && role !== "admin") {
+          return NextResponse.json({ error: "Only player accounts can book turfs." }, { status: 403 });
+        }
+        userId = authUser.id;
+        userName = p?.full_name || userName;
+      }
+    }
   }
 
-  const role = normalizeUserRole(profile.role);
-  if (role !== "player" && role !== "admin") {
-    return NextResponse.json({ error: "Only player accounts can book turfs." }, { status: 403 });
+  if (!userId) {
+    return NextResponse.json({ error: "Please sign in to book a turf." }, { status: 401 });
   }
 
   const body = await readJson(request);
@@ -80,7 +104,7 @@ export async function POST(request) {
     .from("bookings")
     .insert({
       turf_id: turfId,
-      player_id: profile.id,
+      player_id: userId,
       booking_date: bookingDate,
       start_time: targetSlot.slot_time,
       sport,
@@ -105,7 +129,7 @@ export async function POST(request) {
       await admin.from("notifications").insert({
         user_id: turf.owner_id,
         title: "New booking confirmed",
-        body: `${profile.full_name || "A player"} booked ${sport} at ${turf.name} for ${startTime.slice(0, 5)}.`,
+        body: `${userName} booked ${sport} at ${turf.name} for ${startTime.slice(0, 5)}.`,
       });
     }
   } catch (notifErr) {

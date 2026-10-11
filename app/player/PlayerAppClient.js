@@ -278,9 +278,14 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast }
     setSubmitting(true);
     const slot = policyValidation.slot;
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
       const response = await fetch("/api/bookings", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           turfId: turf.id,
           startTime: slot.raw_time,

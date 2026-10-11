@@ -1,10 +1,10 @@
 // ==============================================================================
 // Velocity Turf - Production Progressive Web App Service Worker
-// Version: 1.0.0
+// Version: 2.0.0
 // Conforms to Lighthouse / Web.dev criteria for PWA Installability & Reliability
 // ==============================================================================
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const STATIC_CACHE_NAME = `velocity-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE_NAME = `velocity-dynamic-${CACHE_VERSION}`;
 const OFFLINE_CACHE_NAME = `velocity-offline-${CACHE_VERSION}`;
@@ -14,6 +14,7 @@ const PRECACHE_ASSETS = [
   '/',
   '/offline.html',
   '/manifest.json',
+  '/icons/icon.svg',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
   '/icons/icon-192x192-maskable.png',
@@ -56,6 +57,9 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
+  // Bypass cache on localhost during development so changes appear immediately
+  if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') return;
+
   // Ignore non-HTTP(S) schemes (e.g. chrome-extension://, file://)
   if (!url.protocol.startsWith('http')) return;
 
@@ -76,7 +80,6 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((networkResponse) => {
-          // If network is available and response is OK, cache a copy for future offline access
           if (networkResponse && networkResponse.status === 200) {
             const responseClone = networkResponse.clone();
             caches.open(DYNAMIC_CACHE_NAME).then((cache) => {
@@ -86,7 +89,6 @@ self.addEventListener('fetch', (event) => {
           return networkResponse;
         })
         .catch(async () => {
-          // Network failed: Attempt to serve cached page, else fallback to offline.html
           const cachedPage = await caches.match(request);
           if (cachedPage) return cachedPage;
 
@@ -97,7 +99,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // B. STATIC ASSETS (_next/static, images, fonts, styles): Stale-While-Revalidate
+  // B. STATIC ASSETS: Network-First with cache fallback to guarantee fresh bundles
   const isStaticAsset =
     url.pathname.startsWith('/_next/static/') ||
     url.pathname.startsWith('/icons/') ||
@@ -108,21 +110,17 @@ self.addEventListener('fetch', (event) => {
 
   if (isStaticAsset) {
     event.respondWith(
-      caches.match(request).then((cachedResponse) => {
-        const fetchPromise = fetch(request)
-          .then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200) {
-              const responseClone = networkResponse.clone();
-              caches.open(STATIC_CACHE_NAME).then((cache) => {
-                cache.put(request, responseClone);
-              });
-            }
-            return networkResponse;
-          })
-          .catch(() => cachedResponse);
-
-        return cachedResponse || fetchPromise;
-      })
+      fetch(request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
+            caches.open(STATIC_CACHE_NAME).then((cache) => {
+              cache.put(request, responseClone);
+            });
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match(request))
     );
     return;
   }

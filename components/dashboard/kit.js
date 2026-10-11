@@ -95,15 +95,17 @@ export const STATUS_COLORS = {
   open: V.pending,
   rejected: V.danger,
   declined: V.danger,
+  failed: V.danger,
   cancelled: V.cancelled || V.chalkFaint,
   refunded: V.refunded || V.violet,
+  archived: V.chalkFaint,
 };
 
 export function StatusPill({ status }) {
   const norm = String(status || "").toLowerCase();
   const glyph = norm === "confirmed" || norm === "completed" || norm === "resolved" || norm === "paid"
     ? "✓" : norm === "pending" || norm === "processing" || norm === "open"
-    ? "⏳" : norm === "rejected" || norm === "declined"
+    ? "⏳" : norm === "rejected" || norm === "declined" || norm === "failed"
     ? "✕" : norm === "cancelled"
     ? "—" : norm === "refunded"
     ? "↩" : "•";
@@ -113,6 +115,7 @@ export function StatusPill({ status }) {
       <span aria-hidden="true" style={{ marginRight: 4, fontWeight: 800 }}>{glyph}</span>
       {status || "—"}
     </Pill>
+
   );
 }
 

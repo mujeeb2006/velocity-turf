@@ -10,6 +10,7 @@ export const viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
+  viewportFit: "cover",
 };
 
 export const metadata = {
@@ -48,6 +49,12 @@ export default function RootLayout({ children }) {
         <script
           dangerouslySetInnerHTML={{
             __html: `
+              window.__velocityTurfInstallPromptListener = true;
+              window.addEventListener('beforeinstallprompt', function(event) {
+                event.preventDefault();
+                window.__velocityTurfInstallPrompt = event;
+                window.dispatchEvent(new Event('velocityturf:beforeinstallprompt'));
+              });
               if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
                 navigator.serviceWorker.register('/sw.js', { scope: '/' })
                   .then(function(reg) {

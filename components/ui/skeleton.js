@@ -1,39 +1,17 @@
 import { COLORS as V } from "@/lib/design-tokens";
 
-// Shared skeleton/shimmer primitives used while dashboard data "loads".
-// Kept dependency-free (no hooks) so it can be dropped into any client component.
-
-const shimmerKeyframes = `
-  @keyframes skeletonShimmer {
-    0% { background-position: -300px 0; }
-    100% { background-position: 300px 0; }
-  }
-`;
-
-let injected = false;
-function ensureKeyframes() {
-  if (injected || typeof document === "undefined") return;
-  const tag = document.createElement("style");
-  tag.setAttribute("data-skeleton-keyframes", "true");
-  tag.innerHTML = shimmerKeyframes;
-  if (!document.head.querySelector("style[data-skeleton-keyframes]")) {
-    document.head.appendChild(tag);
-  }
-  injected = true;
-}
+// Shared skeleton/shimmer primitives used while dashboard data loads.
+// Keyframes are defined in globals.css (.skeleton-shimmer) so this
+// component is free of imperative DOM manipulation and hydration risk.
 
 export function Skeleton({ width = "100%", height = 14, radius = 8, style = {} }) {
-  ensureKeyframes();
   return (
     <div
+      className="vt-skeleton"
       style={{
         width,
         height,
         borderRadius: radius,
-        background:
-          "linear-gradient(90deg, rgba(22,33,40,0.04) 25%, rgba(22,33,40,0.09) 37%, rgba(22,33,40,0.04) 63%)",
-        backgroundSize: "600px 100%",
-        animation: "skeletonShimmer 1.4s ease infinite",
         ...style,
       }}
     />
@@ -42,7 +20,7 @@ export function Skeleton({ width = "100%", height = 14, radius = 8, style = {} }
 
 // A generic card-shaped skeleton: matches the glass-card padding used across
 // the app (stat cards, turf cards, list rows).
-export function SkeletonCard({ lines = 3, height = 160 }) {
+export function SkeletonCard({ lines = 3 }) {
   return (
     <div
       style={{
@@ -83,7 +61,7 @@ export function SkeletonRow({ columns = 4 }) {
   );
 }
 
-export function SkeletonGrid({ count = 3, cardHeight = 160, minColWidth = 300 }) {
+export function SkeletonGrid({ count = 3, minColWidth = 300 }) {
   return (
     <div
       style={{
@@ -93,7 +71,7 @@ export function SkeletonGrid({ count = 3, cardHeight = 160, minColWidth = 300 })
       }}
     >
       {[...Array(count)].map((_, i) => (
-        <SkeletonCard key={i} height={cardHeight} />
+        <SkeletonCard key={i} />
       ))}
     </div>
   );

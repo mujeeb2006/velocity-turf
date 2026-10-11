@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/supabase/server";
 import { resolveRoleRedirect } from "@/lib/auth/guards";
@@ -13,5 +14,9 @@ export default async function PlayerPage() {
     if (redirectTo) redirect(redirectTo);
   }
 
-  return <PlayerAppClient profile={profile} />;
+  return (
+    <Suspense fallback={null}>
+      <PlayerAppClient profile={profile} />
+    </Suspense>
+  );
 }

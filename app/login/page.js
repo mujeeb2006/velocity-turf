@@ -1,21 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { normalizeEmail, isValidEmail, isStrongPassword } from "@/lib/auth/validation";
 import AuthShell from "../auth-shell";
 import { inputStyle, buttonStyle, errorStyle, linkStyle } from "../auth-styles";
 import { COLORS as V } from "@/lib/design-tokens";
 
-export default function LoginPage() {
+import { sanitizeRedirectPath } from "@/lib/auth/url";
+import {
+  decodeBookingIntent,
+  encodeBookingIntent,
+  getStoredBookingIntent,
+  saveBookingIntent,
+} from "@/lib/booking/intent";
+
+function LoginForm() {
   const supabase = createClient();
-  const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const urlError = searchParams?.get("error");
+  const rawIntentParam = searchParams?.get("bookingIntent");
+  const rawNextParam = searchParams?.get("next");
+  const [error, setError] = useState(urlError ? decodeURIComponent(urlError) : "");
   const [loading, setLoading] = useState(false);
+  const [bookingIntent, setBookingIntent] = useState(null);
+
+  useEffect(() => {
+    const decoded = decodeBookingIntent(rawIntentParam) || getStoredBookingIntent();
+    if (decoded) {
+      setBookingIntent(decoded);
+      saveBookingIntent(decoded);
+    }
+  }, [rawIntentParam]);
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -36,26 +56,71 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
     setLoading(false);
     if (error) {
-      setError(error.message);
+      if (error.message.toLowerCase().includes("invalid login credentials")) {
+        setError(
+          "Invalid login credentials. If you are an invited turf owner, please click the invitation link in your email to set your password."
+        );
+      } else {
+        setError(error.message);
+      }
     } else {
-      // A hard navigation (not router.push) forces a brand-new request,
-      // so the server is guaranteed to see the freshly-set session cookie
-      // instead of racing a stale client-side route cache.
-      window.location.href = "/";
+      // Hard navigation ensures session cookie is fresh on server
+      if (bookingIntent) {
+        const encoded = encodeBookingIntent(bookingIntent);
+        window.location.href = `/player?resumeBooking=${encoded}`;
+      } else if (rawNextParam) {
+        window.location.href = sanitizeRedirectPath(rawNextParam, "/");
+      } else {
+        window.location.href = "/";
+      }
     }
   }
 
-  return (
-    <AuthShell title="Welcome back" subtitle="Sign in and book your next game.">
-      {error && <div style={errorStyle}>{error}</div>}
+  const signupHref = bookingIntent
+    ? `/signup?bookingIntent=${encodeBookingIntent(bookingIntent)}${rawNextParam ? `&next=${encodeURIComponent(rawNextParam)}` : ""}`
+    : (rawNextParam ? `/signup?next=${encodeURIComponent(rawNextParam)}` : "/signup");
 
-      <form onSubmit={handleLogin}>
+  return (
+    <AuthShell
+      title="Welcome back"
+      subtitle={bookingIntent ? "Sign in to complete your booking." : "Sign in and book your next game."}
+    >
+      {bookingIntent && (
+        <div
+          role="status"
+          style={{
+            background: "rgba(31, 155, 108, 0.12)",
+            border: `1px solid ${V.flood}55`,
+            borderRadius: 12,
+            padding: "11px 14px",
+            marginBottom: 16,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <span style={{ fontSize: 18 }}>⚡</span>
+          <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "'Manrope', sans-serif" }}>
+              Resuming your booking
+            </div>
+            <div style={{ color: "rgba(255,255,255,0.72)", fontSize: 12, marginTop: 2, fontFamily: "'Manrope', sans-serif" }}>
+              {bookingIntent.turfName || "Selected pitch"} · {bookingIntent.bookingDate} at {bookingIntent.timeLabel || bookingIntent.startTime}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {error && <div style={{ ...errorStyle, marginBottom: 16 }}>{error}</div>}
+
+      <form onSubmit={handleLogin} style={{ display: "grid", gap: 14 }}>
         <input
           type="email"
           placeholder="Email address"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
+          autoComplete="email"
           style={inputStyle}
         />
         <input
@@ -64,19 +129,41 @@ export default function LoginPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
+          autoComplete="current-password"
           style={inputStyle}
         />
         <button type="submit" disabled={loading} style={buttonStyle}>
-          {loading ? "Signing in…" : "Sign in"}
+          {loading ? "Signing in…" : (bookingIntent ? "Sign in & Continue Booking →" : "Sign in")}
         </button>
       </form>
 
-      <p style={{ color: V.chalkDim, fontSize: 13.5, marginTop: 22, textAlign: "center", fontFamily: "'Manrope', sans-serif" }}>
-        New here?{" "}
-        <Link href="/signup" style={linkStyle}>
-          Create your account
-        </Link>
-      </p>
+      <div style={{ marginTop: 22, textAlign: "center", display: "grid", gap: 8 }}>
+        <p style={{ color: V.chalkDim, fontSize: 13.5, margin: 0, fontFamily: "'Manrope', sans-serif" }}>
+          New here?{" "}
+          <Link href={signupHref} style={linkStyle}>
+            Create your account
+          </Link>
+        </p>
+        <p style={{ color: V.chalkFaint, fontSize: 12.5, margin: 0, fontFamily: "'Manrope', sans-serif" }}>
+          Invited turf owner? Check your email to set your password.
+        </p>
+      </div>
     </AuthShell>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <AuthShell title="Welcome back" subtitle="Sign in and book your next game.">
+          <div style={{ textAlign: "center", padding: "24px 0", color: "rgba(255,255,255,0.6)" }}>
+            Loading…
+          </div>
+        </AuthShell>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

@@ -12,8 +12,10 @@ Auth and accounts are handled by **Supabase** (free tier is enough). Hosting is 
 > booking afterward, which reopens its slot and notifies the player. Checkout is
 > still a demo flow and does not process payments.
 > `supabase/schema.sql` creates the marketplace tables and their row-level security
-> policies for a new Supabase project. Past bookings are automatically deleted
-> after seven days unless a review or dispute references them.
+> policies for a new Supabase project. The initial schema's seven-day booking
+> cleanup is replaced by `20261011_booking_safety.sql`, which archives eligible
+> old bookings after 90 days. Turf listings are archived rather than hard-deleted
+> so historical bookings and financial records remain intact.
 
 ---
 
@@ -103,14 +105,69 @@ supabase/schema.sql     → run this once in Supabase's SQL editor
 
 ## Deployment notes
 
-The checked-in schema is intended for a new Supabase project. For existing
-projects, apply the SQL files in `supabase/migrations/` using the SQL Editor.
-Review and migrate existing data and policies before applying the full schema;
-`create table if not exists` does not modify existing table definitions. Apply
-the instant-booking migration in `supabase/migrations/` to existing projects.
-Checkout remains a demo flow and does not connect to a payment provider.
+The `supabase/schema.sql` file is intended **only for new Supabase projects**.
+For existing projects, apply only the numbered files in `supabase/migrations/` using the Supabase SQL Editor. Do not run `schema.sql` on a live project — it will silently skip existing tables but will still re-run functions, triggers, and grants.
+
+---
+
+## Database migration guide
+
+### New project setup
+1. Open Supabase SQL Editor → paste `supabase/schema.sql` → Run.
+2. Then apply **all** migration files in order (see below). They are idempotent.
+3. Record each applied migration in `public._migrations` (the preflight script creates this table).
+
+### Existing project upgrade
+Apply **only the migrations you have not yet applied**, in filename order:
+
+```
+20261006_add_notify_admins.sql
+20261007_player_only_public_signup.sql
+20261009_expire_old_bookings.sql
+20261009_instant_booking_rejection.sql
+20261011_booking_safety.sql          ← adds audit log, idempotency, soft-archive
+20261011_turf_archiving_a.sql        ← adds owner/admin-authorized turf archiving
+```
+
+Before applying any migration:
+1. Run `preflight_validation.sql` (read-only) and review all outputs.
+2. Verify no slot conflicts, orphaned FKs, or invalid status values exist.
+3. Create a manual backup (Supabase Dashboard → Settings → Database → Backups).
+
+After applying each migration, record it:
+```sql
+insert into public._migrations (filename, notes)
+values ('20261011_turf_archiving_a.sql', 'Applied manually')
+on conflict (filename) do nothing;
+```
+
+To archive the verified T Turf record in the configured project, first apply
+`20261011_turf_archiving_a.sql`, then run
+`supabase/scripts/archive_t_turf.sql` in **Supabase Dashboard → SQL Editor**.
+The script checks the turf and owner UUIDs and changes only that turf's
+`archived_at`; its confirmed booking and related history are retained.
+
+### Migration naming convention
+All migration files use the format `YYYYMMDD_short_description.sql`. When two migrations share the same date prefix, append `_a`, `_b` etc. to guarantee deterministic sort order. **Never rename a migration that has already been applied to any environment.**
+
+### Rollback
+Each migration has a matching rollback script in the artifacts directory. Read the safety checks at the top of each rollback file before executing. Prefer forward-fix migrations over rollback when audit data already exists.
+
+### What is never stored in Git
+- Database dumps (`pg_dump` output)
+- Production connection strings or service-role keys
+- `.env.local` files
+- Any file containing real user PII
+
+Add these patterns to `.gitignore` if not already present:
+```
+*.dump
+*.sql.gz
+.env.local
+.env.production
+```
 
 For anything admin-only that needs to read *all* rows regardless of owner
-   (e.g. the Users table, All Turfs table), use `createAdminClient()` from
-   `lib/supabase/admin.js` inside `app/admin/page.js` (a Server Component) —
-   never import it into a Client Component, since it holds the service role key.
+(e.g. the Users table, All Turfs table), use `createAdminClient()` from
+`lib/supabase/admin.js` inside `app/admin/page.js` (a Server Component) —
+never import it into a Client Component, since it holds the service role key.

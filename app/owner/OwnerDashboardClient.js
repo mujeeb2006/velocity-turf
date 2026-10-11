@@ -269,6 +269,103 @@ function RequestCard({ r, today, busy, onAccept, onDecline }) {
   );
 }
 
+function OwnerRejectModal({ booking, busy, onClose, onConfirm }) {
+  const [reasonPreset, setReasonPreset] = useState("Pitch maintenance / turf repair");
+  const [customText, setCustomText] = useState("");
+  const presets = [
+    "Pitch maintenance / turf repair",
+    "Conflicting offline tournament / reservation",
+    "Adverse weather / waterlogged turf",
+    "Operational closure / power outage",
+    "Other reason",
+  ];
+
+  const effectiveReason = reasonPreset === "Other reason"
+    ? customText.trim()
+    : (customText.trim() ? `${reasonPreset}: ${customText.trim()}` : reasonPreset);
+
+  return (
+    <Modal
+      title={booking.status === "confirmed" ? "Cancel confirmed booking" : "Reject booking request"}
+      subtitle={`${booking.player} · ${booking.turf}`}
+      onClose={onClose}
+      maxWidth={480}
+      footer={
+        <>
+          <Btn onClick={onClose} disabled={busy}>Keep booking</Btn>
+          <Btn
+            variant="danger"
+            busy={busy}
+            disabled={!effectiveReason}
+            onClick={() => onConfirm(effectiveReason)}
+          >
+            {busy ? "Rejecting…" : booking.status === "confirmed" ? "Confirm cancellation" : "Confirm rejection"}
+          </Btn>
+        </>
+      }
+    >
+      <div style={{ display: "grid", gap: 14 }}>
+        <div style={{
+          background: "rgba(239, 68, 68, 0.08)",
+          border: `1px solid ${V.danger}44`,
+          borderRadius: 10,
+          padding: "12px 14px",
+          fontSize: 13,
+          color: V.danger,
+          lineHeight: 1.5,
+        }}>
+          <strong>Slot reopening notice:</strong> This booking for <strong>{formatBookingDate(booking.date)}</strong> at <strong>{formatTime12(booking.time)}</strong> will be {booking.status === "confirmed" ? "cancelled" : "rejected"}. The slot will <strong>immediately become available</strong> again for other players to book.
+        </div>
+
+        <div>
+          <span style={labelStyle}>Select reason (sent to player notification)</span>
+          <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
+            {presets.map((p) => {
+              const active = reasonPreset === p;
+              return (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setReasonPreset(p)}
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    textAlign: "left",
+                    fontSize: 13,
+                    fontFamily: font,
+                    fontWeight: active ? 700 : 500,
+                    cursor: "pointer",
+                    background: active ? V.floodDim : "rgba(255,255,255,0.03)",
+                    border: `1px solid ${active ? V.flood : V.line}`,
+                    color: active ? V.flood : V.chalk,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <span style={{ fontSize: 13 }}>{active ? "●" : "○"}</span>
+                  {p}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <label>
+          <span style={labelStyle}>{reasonPreset === "Other reason" ? "Explain reason (required)" : "Additional note for the player (optional)"}</span>
+          <textarea
+            rows={2}
+            value={customText}
+            onChange={(e) => setCustomText(e.target.value)}
+            placeholder={reasonPreset === "Other reason" ? "Please specify why this slot cannot be fulfilled..." : "e.g., Please book an alternate slot or call turf manager..."}
+            style={{ ...inputStyle, resize: "vertical" }}
+          />
+        </label>
+      </div>
+    </Modal>
+  );
+}
+
 // =================================================================== dashboard
 export default function OwnerDashboardClient({ profile }) {
   const router = useRouter();
@@ -295,6 +392,8 @@ export default function OwnerDashboardClient({ profile }) {
   const [declining, setDeclining] = useState(null);
   const [showAddTurf, setShowAddTurf] = useState(false);
   const [slotsTurf, setSlotsTurf] = useState(null);
+  const [archivingTurf, setArchivingTurf] = useState(null);
+  const [archivingTurfId, setArchivingTurfId] = useState(null);
 
   useEffect(() => {
     const fromHash = window.location.hash.replace("#", "");
@@ -361,6 +460,38 @@ export default function OwnerDashboardClient({ profile }) {
     setUpdatedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
     setLoading(false);
   }
+
+  async function archiveTurf() {
+    if (!archivingTurf || archivingTurfId) return;
+    setArchivingTurfId(archivingTurf.id);
+    try {
+      const { data, error } = await supabase.rpc("archive_turf", { p_turf_id: archivingTurf.id });
+      if (error) {
+        console.error("Turf archive failed", { turfId: archivingTurf.id, code: error.code, message: error.message });
+        showToast(
+          error.code === "42501"
+            ? "Only the turf owner or an admin can archive this listing."
+            : ["42883", "PGRST202"].includes(error.code)
+              ? "Turf archiving is not enabled yet. Ask an administrator to apply the turf archiving migration."
+              : "Couldn't archive this turf. Check your connection and try again.",
+          { type: "error" },
+        );
+        return;
+      }
+      if (!data) {
+        showToast("This turf could not be found. Refresh the list and try again.", { type: "error" });
+        return;
+      }
+      setArchivingTurf(null);
+      showToast("Turf archived. Existing bookings and financial history were preserved.", { type: "success" });
+      await fetchAll();
+    } catch (error) {
+      console.error("Turf archive request failed", { turfId: archivingTurf.id, error });
+      showToast("Couldn't reach the database to archive this turf. Check your connection and try again.", { type: "error" });
+    } finally {
+      setArchivingTurfId(null);
+    }
+  }
   const refreshSoon = useDebounced(fetchAll, 400);
 
   useEffect(() => {
@@ -378,6 +509,7 @@ export default function OwnerDashboardClient({ profile }) {
 
   // ---- derived data
   const today = dateKey();
+  const activeTurfs = turfs.filter((t) => !t.archived_at);
   const d = useMemo(() => {
     const turfById = Object.fromEntries(turfs.map((t) => [t.id, t]));
     const rows = bookings.map((b) => ({
@@ -397,7 +529,7 @@ export default function OwnerDashboardClient({ profile }) {
     const requests = rows.filter((r) => r.status === "pending").sort((a, b) => a.sortKey.localeCompare(b.sortKey));
     const upcoming = upcomingBookings(bookings, today).map((b) => rows.find((r) => r.id === b.id)).filter(Boolean);
     const history = rows.filter((r) => r.status !== "pending" && !(r.status === "confirmed" && r.date >= today)).sort((a, b) => b.sortKey.localeCompare(a.sortKey));
-    const live = turfRows.filter((t) => t.status === "live");
+    const live = turfRows.filter((t) => t.status === "live" && !t.archived_at);
     const rating = ratingSummary(reviews);
 
     return {
@@ -419,14 +551,18 @@ export default function OwnerDashboardClient({ profile }) {
     router.refresh();
   }
 
-  async function respond(request, action) {
+  async function respond(request, action, reason = null) {
     if (respondingId) return;
     setRespondingId(request.id);
     try {
       const response = await fetch("/api/bookings/decision", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookingId: request.id, decision: action === "accept" ? "approve" : "reject" }),
+        body: JSON.stringify({
+          bookingId: request.id,
+          decision: action === "accept" ? "approve" : "reject",
+          ...(reason ? { reason } : {}),
+        }),
       });
       let data = {};
       try { data = await response.json(); } catch { /* empty body */ }
@@ -438,7 +574,12 @@ export default function OwnerDashboardClient({ profile }) {
 
       const status = action === "accept" ? "confirmed" : "declined";
       setBookings((prev) => prev.map((b) => (b.id === request.id ? { ...b, status } : b)));
-      showToast(action === "accept" ? `Confirmed ${request.player}'s booking for ${request.turf}` : `Rejected ${request.player}'s booking for ${request.turf}`, { type: action === "accept" ? "success" : "info" });
+      showToast(
+        action === "accept"
+          ? `Confirmed ${request.player}'s booking for ${request.turf}.`
+          : `Rejected ${request.player}'s booking for ${request.turf}. The slot has reopened.`,
+        { type: action === "accept" ? "success" : "info" }
+      );
     } catch (error) {
       console.error("Booking response failed", error);
       showToast("Couldn't reach the server. Check your connection and try again.", { type: "error" });
@@ -482,15 +623,15 @@ export default function OwnerDashboardClient({ profile }) {
         {/* ------------------------------------------------------------ overview */}
         {tab === "overview" && (() => {
           const m = d.month;
-          const awaiting = d.turfRows.filter((t) => t.status === "pending");
-          const rejected = d.turfRows.filter((t) => t.status === "rejected");
+          const awaiting = d.turfRows.filter((t) => !t.archived_at && t.status === "pending");
+          const rejected = d.turfRows.filter((t) => !t.archived_at && t.status === "rejected");
           const todayBookingCount = d.turfRows.reduce((sum, turf) => sum + turf.todayBookings, 0);
           const firstOverdueRequest = d.requests.find((request) => isOverdueRequest(request, today));
           const requestToReview = firstOverdueRequest || d.requests[0];
           return (
             <>
               <TopBar title={`Welcome back, ${profile?.full_name || "Owner"}`} sub="Here's how your turfs are doing today." action={<>{refreshButton}{addTurfButton}</>} />
-              {loading ? skeletonStats : turfs.length === 0 ? (
+              {loading ? skeletonStats : activeTurfs.length === 0 ? (
                 <div style={{ marginBottom: 28 }}>
                   <EmptyBlock emoji="🏟️" title="No turfs yet" subtitle="List your first turf to start receiving bookings and managing schedules."
                     action={<Btn variant="primary" onClick={() => setShowAddTurf(true)}>Add your first turf</Btn>} />
@@ -525,7 +666,7 @@ export default function OwnerDashboardClient({ profile }) {
                 </>
               )}
 
-              {turfs.length > 0 && (
+              {activeTurfs.length > 0 && (
                 <>
                   <div className="vt-two-col">
                     <Card>
@@ -572,14 +713,14 @@ export default function OwnerDashboardClient({ profile }) {
         {/* ------------------------------------------------------------ turfs */}
         {tab === "turfs" && (
           <>
-            <TopBar title="My Turfs" sub={`${turfs.length} listing${turfs.length === 1 ? "" : "s"}`} action={addTurfButton} />
+            <TopBar title="My Turfs" sub={`${activeTurfs.length} listing${activeTurfs.length === 1 ? "" : "s"}`} action={addTurfButton} />
             {loading ? (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 18 }}>{[...Array(2)].map((_, i) => <SkeletonCard key={i} lines={3} />)}</div>
-            ) : turfs.length === 0 ? (
+            ) : activeTurfs.length === 0 ? (
               <EmptyBlock emoji="🏟️" title="No turfs listed yet" subtitle="Add your first turf to start taking bookings. New listings need admin approval before they go live." />
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 18 }}>
-                {d.turfRows.map((t) => (
+                {d.turfRows.filter((t) => !t.archived_at).map((t) => (
                   <Card key={t.id} className="vt-stat">
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 12 }}>
                       <div style={{ minWidth: 0 }}>
@@ -631,7 +772,10 @@ export default function OwnerDashboardClient({ profile }) {
                         <div style={{ color: V.chalk, fontWeight: 800, fontSize: 14, fontFamily: font }}>{formatINR(t.revenue)}</div>
                       </div>
                     </div>
-                    <Btn style={{ marginTop: 14, width: "100%" }} icon="calendar" onClick={() => setSlotsTurf(t)}>Manage slots</Btn>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 14 }}>
+                      <Btn icon="calendar" onClick={() => setSlotsTurf(t)}>Manage slots</Btn>
+                      <Btn variant="danger" onClick={() => setArchivingTurf(t)}>Archive</Btn>
+                    </div>
                   </Card>
                 ))}
               </div>
@@ -839,12 +983,21 @@ export default function OwnerDashboardClient({ profile }) {
       </main>
 
       {declining && (
-        <ConfirmModal
-          title="Reject this booking?"
-          confirmLabel="Reject booking"
+        <OwnerRejectModal
+          booking={declining}
           busy={respondingId === declining.id}
-          message={`${declining.player}'s booking for ${declining.turf} on ${formatBookingDate(declining.date)} at ${formatTime12(declining.time)} will be rejected and the slot reopened. The player will be notified.`}
-          onConfirm={() => respond(declining, "decline")} onClose={() => setDeclining(null)}
+          onClose={() => setDeclining(null)}
+          onConfirm={(reason) => respond(declining, "decline", reason)}
+        />
+      )}
+      {archivingTurf && (
+        <ConfirmModal
+          title={`Archive ${archivingTurf.name}?`}
+          message="This removes the turf from public listings and My Turfs, and prevents new bookings. Existing bookings, reviews, disputes, and payout history will remain available."
+          confirmLabel="Archive turf"
+          busy={archivingTurfId === archivingTurf.id}
+          onClose={() => { if (!archivingTurfId) setArchivingTurf(null); }}
+          onConfirm={archiveTurf}
         />
       )}
       {showAddTurf && <AddTurfModal profile={profile} supabase={supabase} onClose={() => setShowAddTurf(false)} onCreated={fetchAll} showToast={showToast} />}

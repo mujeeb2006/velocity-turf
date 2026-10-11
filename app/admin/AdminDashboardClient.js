@@ -23,7 +23,7 @@ import {
   useNotifications,
 } from "@/components/dashboard/kit";
 
-const TABS = ["overview", "approvals", "turfs", "bookings", "users", "disputes"];
+const TABS = ["overview", "approvals", "turfs", "bookings", "users", "payouts", "disputes"];
 const ROLE_COLORS = { Admin: V.violet, "Turf Owner": V.sky, Player: V.flood };
 const PAGE_SIZE = 50;
 
@@ -46,6 +46,114 @@ async function postJson(url, body) {
   } catch {
     return { ok: false, data: { error: "Couldn't reach the server. Check your connection and try again." } };
   }
+}
+
+function AdminRejectBookingModal({ booking, busy, onClose, onConfirm }) {
+  const isConfirmed = booking.status === "confirmed";
+  const [reasonPreset, setReasonPreset] = useState(
+    isConfirmed ? "Admin intervention / turf maintenance" : "Scheduling conflict / turf unavailable"
+  );
+  const [customText, setCustomText] = useState("");
+  const presets = isConfirmed
+    ? [
+        "Admin intervention / turf maintenance",
+        "Dispute resolution / booking cancellation",
+        "Safety or operational grounds",
+        "Player requested cancellation via support",
+        "Other administrative reason",
+      ]
+    : [
+        "Scheduling conflict / turf unavailable",
+        "Pitch maintenance or repair",
+        "Unverified player or payment issue",
+        "Owner operational request",
+        "Other administrative reason",
+      ];
+
+  const effectiveReason = reasonPreset.includes("Other")
+    ? customText.trim()
+    : (customText.trim() ? `${reasonPreset}: ${customText.trim()}` : reasonPreset);
+
+  return (
+    <Modal
+      title={isConfirmed ? "Cancel confirmed booking" : "Reject booking request"}
+      subtitle={`${booking.player} · ${booking.turf}`}
+      onClose={onClose}
+      maxWidth={480}
+      footer={
+        <>
+          <Btn onClick={onClose} disabled={busy}>Keep booking</Btn>
+          <Btn
+            variant="danger"
+            busy={busy}
+            disabled={!effectiveReason}
+            onClick={() => onConfirm(effectiveReason)}
+          >
+            {busy ? "Processing…" : isConfirmed ? "Confirm cancellation" : "Confirm rejection"}
+          </Btn>
+        </>
+      }
+    >
+      <div style={{ display: "grid", gap: 14 }}>
+        <div style={{
+          background: "rgba(239, 68, 68, 0.08)",
+          border: `1px solid ${V.danger}44`,
+          borderRadius: 10,
+          padding: "12px 14px",
+          fontSize: 13,
+          color: V.danger,
+          lineHeight: 1.5,
+        }}>
+          <strong>Audit & Slot Reopening:</strong> {isConfirmed ? "Cancelling this confirmed reservation" : "Rejecting this request"} for <strong>{formatBookingDate(booking.date)}</strong> at <strong>{formatTime12(booking.time)}</strong> will immediately reopen the slot for other players. This action will be recorded in the audit log and the player will be notified.
+        </div>
+
+        <div>
+          <span style={labelStyle}>Reason code</span>
+          <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
+            {presets.map((p) => {
+              const active = reasonPreset === p;
+              return (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setReasonPreset(p)}
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    textAlign: "left",
+                    fontSize: 13,
+                    fontFamily: font,
+                    fontWeight: active ? 700 : 500,
+                    cursor: "pointer",
+                    background: active ? V.floodDim : "rgba(255,255,255,0.03)",
+                    border: `1px solid ${active ? V.flood : V.line}`,
+                    color: active ? V.flood : V.chalk,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <span style={{ fontSize: 13 }}>{active ? "●" : "○"}</span>
+                  {p}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <label>
+          <span style={labelStyle}>{reasonPreset.includes("Other") ? "Specify administrative reason (required)" : "Additional notes (optional)"}</span>
+          <textarea
+            rows={2}
+            value={customText}
+            onChange={(e) => setCustomText(e.target.value)}
+            placeholder={reasonPreset.includes("Other") ? "State reason for audit log..." : "Optional details for player and audit log..."}
+            style={{ ...inputStyle, resize: "vertical" }}
+          />
+        </label>
+      </div>
+    </Modal>
+  );
 }
 
 export default function AdminDashboardClient({ profile, initialUsers = [], usersError = false }) {
@@ -82,11 +190,33 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
   const [rejectingBooking, setRejectingBooking] = useState(null);
   const [rejecting, setRejecting] = useState(null);
   const [reviewDispute, setReviewDispute] = useState(null);
+  const [disputeConfirmAction, setDisputeConfirmAction] = useState(null);
   const [busyDispute, setBusyDispute] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [invite, setInvite] = useState({ name: "", email: "" });
   const [inviteError, setInviteError] = useState("");
   const [inviting, setInviting] = useState(false);
+  const [payoutsRaw, setPayoutsRaw] = useState([]);
+  const [payoutOwnersRaw, setPayoutOwnersRaw] = useState([]);
+  const [payoutsLoading, setPayoutsLoading] = useState(false);
+  const [payoutTabSub, setPayoutTabSub] = useState("history");
+  const [payoutFilterStatus, setPayoutFilterStatus] = useState("all");
+  const [payoutQuery, setPayoutQuery] = useState("");
+  const [payoutSort, setPayoutSort] = useState({ key: "created_at", dir: "desc" });
+  const [ownerSort, setOwnerSort] = useState({ key: "pendingBalance", dir: "desc" });
+  const [ownerQuery, setOwnerQuery] = useState("");
+  const [showPayoutModal, setShowPayoutModal] = useState(false);
+  const [payoutForm, setPayoutForm] = useState({
+    ownerId: "",
+    amount: "",
+    periodStart: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+    periodEnd: new Date().toISOString().slice(0, 10),
+    status: "paid",
+  });
+  const [payoutSubmitting, setPayoutSubmitting] = useState(false);
+  const [payoutSubmitError, setPayoutSubmitError] = useState("");
+  const [viewBankOwner, setViewBankOwner] = useState(null);
+  const [updatingPayoutId, setUpdatingPayoutId] = useState(null);
 
   // ---- tab <-> URL hash, so a refresh keeps you where you were
   useEffect(() => {
@@ -142,20 +272,119 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
     }
   }
 
-  const refreshAll = () => { fetchAll(); fetchUsers(); };
-  const refreshSoon = useDebounced(fetchAll, 400);
+  async function fetchPayouts() {
+    setPayoutsLoading(true);
+    try {
+      const response = await fetch("/api/admin/payouts");
+      if (!response.ok) throw new Error(String(response.status));
+      const { payouts, owners } = await response.json();
+      setPayoutsRaw(payouts || []);
+      setPayoutOwnersRaw(owners || []);
+    } catch (error) {
+      console.error("Could not load admin payouts", error);
+    } finally {
+      setPayoutsLoading(false);
+    }
+  }
+
+  const refreshAll = () => { fetchAll(); fetchUsers(); fetchPayouts(); };
+  const refreshSoon = useDebounced(() => { fetchAll(); fetchPayouts(); }, 400);
 
   useEffect(() => {
     fetchAll();
+    fetchPayouts();
     const channel = supabase
       .channel("admin-live-updates")
       .on("postgres_changes", { event: "*", schema: "public", table: "turfs" }, refreshSoon)
       .on("postgres_changes", { event: "*", schema: "public", table: "disputes" }, refreshSoon)
       .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, refreshSoon)
+      .on("postgres_changes", { event: "*", schema: "public", table: "payouts" }, refreshSoon)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ---- payout derived data
+  const payoutView = useMemo(() => {
+    const ownersMap = Object.fromEntries(payoutOwnersRaw.map((o) => [o.id, o]));
+    const rows = payoutsRaw.map((p) => {
+      const owner = ownersMap[p.owner_id] || {};
+      return {
+        ...p,
+        ownerName: owner.full_name || "—",
+        bankDetails: owner.bankDetails || {},
+        periodDisplay: p.period || [p.period_start, p.period_end].filter(Boolean).join(" – ") || "—",
+      };
+    });
+    const ownersRows = payoutOwnersRaw.map((o) => ({
+      ...o,
+      pendingBalance: o.pendingBalance || 0,
+      totalRevenue: o.totalRevenue || 0,
+      totalPaid: o.totalPaid || 0,
+    }));
+    return { rows, ownersRows };
+  }, [payoutsRaw, payoutOwnersRaw]);
+
+  // ---- render payouts tab
+  const renderPayoutsTab = () => {
+    const { rows, ownersRows } = payoutView;
+    const paidTotal = rows.filter((p) => p.status === "paid").reduce((s, p) => s + Number(p.amount || 0), 0);
+    const pendingTotal = rows.filter((p) => p.status !== "paid").reduce((s, p) => s + Number(p.amount || 0), 0);
+
+
+    const ownerColumns = [
+      { key: "ownerName", label: "Owner", width: "1.5fr" },
+      { key: "bankDetails", label: "Bank", width: "2fr", render: o => (
+        <span>{o.bankDetails?.bank_name || "—"} • {o.bankDetails?.account_number || "—"}</span>
+      ) },
+      { key: "pendingBalance", label: "Pending", width: "1fr", align: "right", render: o => <span style={{ fontFamily: font, color: V.chalk, fontWeight: 700 }}>{formatINR(o.pendingBalance)}</span> },
+      { key: "totalRevenue", label: "Revenue", width: "1fr", align: "right", render: o => <span style={{ fontFamily: font, color: V.chalk, fontWeight: 700 }}>{formatINR(o.totalRevenue)}</span> },
+      { key: "totalPaid", label: "Paid", width: "1fr", align: "right", render: o => <span style={{ fontFamily: font, color: V.chalk, fontWeight: 700 }}>{formatINR(o.totalPaid)}</span> },
+];
+const payoutColumns = [
+  { key: "payout_number", label: "#", width: "1fr" },
+  { key: "ownerName", label: "Owner", width: "1.5fr" },
+  { key: "periodStart", label: "Start", width: "1fr" },
+  { key: "periodEnd", label: "End", width: "1fr" },
+  { key: "amount", label: "Amount", width: "1fr", align: "right", render: p => <span style={{ fontFamily: font, color: V.chalk, fontWeight: 700 }}>{formatINR(p.amount)}</span> },
+  { key: "status", label: "Status", width: "1fr", render: p => <StatusPill status={p.status} /> },
+];
+
+
+    const filteredOwners = ownerQuery ? ownersRows.filter(o => o.full_name?.toLowerCase().includes(ownerQuery.toLowerCase())) : ownersRows;
+    const sortedOwners = sortRows(filteredOwners, ownerSort.key, ownerSort.dir);
+
+    return (
+      <>
+        <TopBar title="Payouts" sub="Money paid out to owners" action={
+          <Btn variant="primary" icon="plus" size="sm" onClick={() => setShowPayoutModal(true)}>
+            New Payout
+          </Btn>
+        } />
+        <StatGrid>
+          <StatCard label="Paid to owners" value={formatINR(paidTotal)} icon="wallet" color={V.confirmed} sub={`${rows.filter(p=>p.status==="paid").length} payouts completed`} />
+          <StatCard label="Processing" value={formatINR(pendingTotal)} icon="clock" color={V.pending} sub={`${rows.filter(p=>p.status!=="paid").length} payouts pending`} />
+        </StatGrid>
+        <Segmented label="View" value={payoutTabSub} onChange={setPayoutTabSub} options={[{ id: "history", label: "History" }, { id: "banks", label: "Banks" }]} />
+        {payoutTabSub === "history" ? (
+          <DataTable columns={payoutColumns} rows={rows} minWidth={720} empty="No payouts yet." />
+        ) : (
+          <>
+            <Toolbar>
+              <SearchInput value={ownerQuery} onChange={setOwnerQuery} placeholder="Search owner…" label="Search owners" />
+              <Segmented label="Sort" value={ownerSort.key} onChange={setOwnerSort} options={[
+                { id: "ownerName", label: "Owner" },
+                { id: "pendingBalance", label: "Pending" },
+                { id: "totalRevenue", label: "Revenue" },
+                { id: "totalPaid", label: "Paid" },
+              ]} />
+            </Toolbar>
+            <DataTable columns={ownerColumns} rows={sortedOwners} sort={ownerSort} onSort={toggleSort(setOwnerSort)} minWidth={720} empty="No owners found." />
+          </>
+        )}
+      </>
+    );
+  };
 
   // ---- derived data
   const today = dateKey();
@@ -215,7 +444,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
       bookingCounts: statusCounts(bookings),
       liveTurfs: turfs.filter((t) => t.status === "live").length,
     };
-  }, [turfsRaw, bookings, disputesRaw, usersRaw, range, today]);
+  }, [turfsRaw, bookings, disputesRaw, usersRaw, range]);
 
   const { turfs, users, disputes, pendingTurfs, openDisputes } = view;
 
@@ -241,10 +470,14 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
     fetchAll();
   }
 
-  async function decideBooking(booking, decision) {
+  async function decideBooking(booking, decision, reason = null) {
     if (busyBookingId) return;
     setBusyBookingId(booking.id);
-    const { ok, data } = await postJson("/api/bookings/decision", { bookingId: booking.id, decision });
+    const { ok, data } = await postJson("/api/bookings/decision", {
+      bookingId: booking.id,
+      decision,
+      ...(reason ? { reason } : {}),
+    });
     setBusyBookingId(null);
     setRejectingBooking(null);
     if (!ok) {
@@ -255,8 +488,8 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
     showToast(decision === "approve"
       ? `Booking for ${booking.player} approved.`
       : booking.status === "confirmed"
-        ? `Booking for ${booking.player} cancelled.`
-        : `Booking for ${booking.player} rejected.`,
+        ? `Booking for ${booking.player} cancelled. Slot reopened.`
+        : `Booking for ${booking.player} rejected. Slot reopened.`,
     { type: decision === "approve" ? "success" : "info" });
     fetchAll();
   }
@@ -292,8 +525,81 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
     fetchUsers();
   }
 
+  async function handleCreatePayout(event) {
+    if (event?.preventDefault) event.preventDefault();
+    if (!payoutForm.ownerId || !payoutForm.amount || !payoutForm.periodStart || !payoutForm.periodEnd) {
+      setPayoutSubmitError("Please fill in all required fields.");
+      return;
+    }
+    setPayoutSubmitting(true);
+    setPayoutSubmitError("");
+    try {
+      const res = await fetch("/api/admin/payouts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payoutForm),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPayoutSubmitError(data.error || "Failed to create payout.");
+        setPayoutSubmitting(false);
+        return;
+      }
+      showToast(`Payout ${data.payout?.payout_number || ""} created successfully!`, { type: "success" });
+      setShowPayoutModal(false);
+      setPayoutForm({
+        ownerId: "",
+        amount: "",
+        periodStart: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+        periodEnd: new Date().toISOString().slice(0, 10),
+        status: "paid",
+      });
+      fetchPayouts();
+    } catch {
+      setPayoutSubmitError("Network error while creating payout.");
+    } finally {
+      setPayoutSubmitting(false);
+    }
+  }
+
+  async function handleMarkPaid(payoutId) {
+    if (updatingPayoutId) return;
+    setUpdatingPayoutId(payoutId);
+    try {
+      const res = await fetch("/api/admin/payouts", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payoutId, status: "paid" }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || "Failed to update payout.", { type: "error" });
+      } else {
+        showToast("Payout marked as paid and owner notified!", { type: "success" });
+        fetchPayouts();
+      }
+    } catch {
+      showToast("Network error updating payout.", { type: "error" });
+    } finally {
+      setUpdatingPayoutId(null);
+    }
+  }
+
+  function openPayoutModalForOwner(owner) {
+    setPayoutForm({
+      ownerId: owner?.id || "",
+      amount: owner?.pendingBalance > 0 ? String(owner.pendingBalance) : "",
+      periodStart: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      periodEnd: new Date().toISOString().slice(0, 10),
+      status: "paid",
+    });
+    setPayoutSubmitError("");
+    setShowPayoutModal(true);
+  }
+
   // Numeric/date columns start high-to-low; text columns start A-Z.
-  const NUMERIC_SORT_KEYS = ["revenue", "bookings", "spent", "amount", "rating", "createdTs", "sortKey"];
+  const NUMERIC_SORT_KEYS = ["revenue", "bookings", "spent", "amount", "rating", "createdTs", "sortKey", "totalPaid", "pendingBalance", "totalRevenue"];
+  const processingPayoutsCount = payoutsRaw.filter((p) => p.status === "processing").length;
   const toggleSort = (setter) => (key) => setter((s) => (
     s.key === key
       ? { key, dir: s.dir === "asc" ? "desc" : "asc" }
@@ -306,6 +612,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
     { id: "turfs", label: "All Turfs", icon: "map" },
     { id: "bookings", label: "Bookings", icon: "list" },
     { id: "users", label: "Users", icon: "users" },
+    { id: "payouts", label: "Payouts & Banks", icon: "wallet", badge: processingPayoutsCount || undefined },
     { id: "disputes", label: "Disputes & Refunds", icon: "alert", badge: openDisputes.length || undefined },
   ];
 
@@ -565,6 +872,8 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
             </>
           );
         })()}
+
+        {tab === "payouts" && renderPayoutsTab()}
       </main>
 
       {rejecting && (
@@ -576,13 +885,11 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
         />
       )}
       {rejectingBooking && (
-        <ConfirmModal
-          title={rejectingBooking.status === "confirmed" ? "Cancel this booking?" : "Reject this request?"}
-          confirmLabel={rejectingBooking.status === "confirmed" ? "Cancel booking" : "Reject request"}
+        <AdminRejectBookingModal
+          booking={rejectingBooking}
           busy={busyBookingId === rejectingBooking.id}
-          message={`${rejectingBooking.player}'s booking for ${rejectingBooking.turf} on ${formatBookingDate(rejectingBooking.date)} at ${formatTime12(rejectingBooking.time)} will be ${rejectingBooking.status === "confirmed" ? "cancelled" : "rejected"} and the slot reopened. The player will be notified.`}
-          onConfirm={() => decideBooking(rejectingBooking, "reject")}
           onClose={() => setRejectingBooking(null)}
+          onConfirm={(reason) => decideBooking(rejectingBooking, "reject", reason)}
         />
       )}
 
@@ -592,14 +899,46 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
         const open = live.status === "open";
         return (
           <Modal
-            title={`Dispute ${live.id}`} subtitle={`${live.user} · ${live.turf}`} onClose={() => setReviewDispute(null)}
+            title={`Dispute ${live.id}`} subtitle={`${live.user} · ${live.turf}`} onClose={() => { setReviewDispute(null); setDisputeConfirmAction(null); }}
             footer={open ? (
-              <>
-                <Btn disabled={busyDispute} onClick={() => resolveDispute(live, "dismiss")}>Resolve without refund</Btn>
-                <Btn variant="primary" busy={busyDispute} onClick={() => resolveDispute(live, "refund")}>Approve refund {formatINR(live.amount)}</Btn>
-              </>
-            ) : <Btn onClick={() => setReviewDispute(null)}>Close</Btn>}
+              disputeConfirmAction ? (
+                <>
+                  <Btn disabled={busyDispute} onClick={() => setDisputeConfirmAction(null)}>Back</Btn>
+                  <Btn
+                    variant={disputeConfirmAction === "refund" ? "primary" : "danger"}
+                    busy={busyDispute}
+                    onClick={() => {
+                      resolveDispute(live, disputeConfirmAction);
+                      setDisputeConfirmAction(null);
+                    }}
+                  >
+                    {busyDispute ? "Confirming…" : disputeConfirmAction === "refund" ? `Confirm Refund of ${formatINR(live.amount)}` : "Confirm Dismissal"}
+                  </Btn>
+                </>
+              ) : (
+                <>
+                  <Btn disabled={busyDispute} onClick={() => setDisputeConfirmAction("dismiss")}>Resolve without refund</Btn>
+                  <Btn variant="primary" busy={busyDispute} onClick={() => setDisputeConfirmAction("refund")}>Approve refund {formatINR(live.amount)}</Btn>
+                </>
+              )
+            ) : <Btn onClick={() => { setReviewDispute(null); setDisputeConfirmAction(null); }}>Close</Btn>}
           >
+            {disputeConfirmAction && (
+              <div style={{
+                background: disputeConfirmAction === "refund" ? V.floodDim : "rgba(239, 68, 68, 0.08)",
+                border: `1px solid ${disputeConfirmAction === "refund" ? V.flood : V.danger}55`,
+                borderRadius: 10,
+                padding: "12px 14px",
+                marginBottom: 16,
+                fontSize: 13,
+                color: disputeConfirmAction === "refund" ? V.flood : V.danger,
+                lineHeight: 1.5,
+              }}>
+                <strong>Confirm Action:</strong> {disputeConfirmAction === "refund"
+                  ? `Are you sure you want to approve a refund of ${formatINR(live.amount)} to ${live.user}? The dispute will be marked resolved and the player notified.`
+                  : `Are you sure you want to dismiss this dispute without a refund? The dispute will be closed and the player notified.`}
+              </div>
+            )}
             <div style={{ background: V.pitchCardRaised, border: `1px solid ${V.line}`, borderRadius: 12, padding: 14, marginBottom: 18 }}>
               <div style={{ color: V.chalkFaint, fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>Player's report</div>
               <div style={{ color: V.chalk, fontSize: 14, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{live.issue}</div>
@@ -636,6 +975,39 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
               <Btn onClick={() => setShowInvite(false)} disabled={inviting}>Cancel</Btn>
               <Btn variant="primary" busy={inviting} type="submit">{inviting ? "Sending…" : "Send invitation"}</Btn>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {showPayoutModal && (
+        <Modal title="New Payout" subtitle="Create a payout for an owner" onClose={() => setShowPayoutModal(false)} maxWidth={460}>
+          <form onSubmit={handleCreatePayout} style={{ display: "grid", gap: 14 }}>
+            <label>
+              <span style={labelStyle}>Owner</span>
+              <select required value={payoutForm.ownerId} onChange={e => setPayoutForm(f => ({ ...f, ownerId: e.target.value }))} style={inputStyle}>
+                <option value="" disabled>Select owner</option>
+                {payoutView.ownersRows.map(o => (
+                  <option key={o.id} value={o.id}>{o.full_name || o.ownerName || "—"}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span style={labelStyle}>Amount (₹)</span>
+              <input required type="number" min="0" value={payoutForm.amount} onChange={e => setPayoutForm(f => ({ ...f, amount: e.target.value }))} style={inputStyle} />
+            </label>
+            <label>
+              <span style={labelStyle}>Period Start</span>
+              <input required type="date" value={payoutForm.periodStart} onChange={e => setPayoutForm(f => ({ ...f, periodStart: e.target.value }))} style={inputStyle} />
+            </label>
+            <label>
+              <span style={labelStyle}>Period End</span>
+              <input required type="date" value={payoutForm.periodEnd} onChange={e => setPayoutForm(f => ({ ...f, periodEnd: e.target.value }))} style={inputStyle} />
+            </label>
+            {payoutSubmitError && <p role="alert" style={{ color: V.danger, fontSize: 12.5, margin: 0 }}>{payoutSubmitError}</p>}
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <Btn onClick={() => setShowPayoutModal(false)} disabled={payoutSubmitting}>Cancel</Btn>
+              <Btn variant="primary" busy={payoutSubmitting} type="submit">{payoutSubmitting ? "Creating…" : "Create payout"}</Btn>
             </div>
           </form>
         </Modal>

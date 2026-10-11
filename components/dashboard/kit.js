@@ -87,27 +87,42 @@ export function Pill({ children, color = V.chalkDim }) {
 export const STATUS_COLORS = {
   live: V.confirmed,
   confirmed: V.confirmed,
-  completed: V.info,
+  completed: V.completed || V.confirmed,
   resolved: V.confirmed,
   paid: V.confirmed,
+  processing: V.pending,
   pending: V.pending,
   open: V.pending,
   rejected: V.danger,
   declined: V.danger,
-  cancelled: V.chalkFaint,
+  cancelled: V.cancelled || V.chalkFaint,
+  refunded: V.refunded || V.violet,
 };
 
 export function StatusPill({ status }) {
-  return <Pill color={STATUS_COLORS[status] || V.chalkDim}>{status || "—"}</Pill>;
+  const norm = String(status || "").toLowerCase();
+  const glyph = norm === "confirmed" || norm === "completed" || norm === "resolved" || norm === "paid"
+    ? "✓" : norm === "pending" || norm === "processing" || norm === "open"
+    ? "⏳" : norm === "rejected" || norm === "declined"
+    ? "✕" : norm === "cancelled"
+    ? "—" : norm === "refunded"
+    ? "↩" : "•";
+  const color = STATUS_COLORS[norm] || V.chalkDim;
+  return (
+    <Pill color={color}>
+      <span aria-hidden="true" style={{ marginRight: 4, fontWeight: 800 }}>{glyph}</span>
+      {status || "—"}
+    </Pill>
+  );
 }
 
 // variants: primary | secondary | danger | ghost    sizes: sm | md
 export function Btn({ children, variant = "secondary", size = "md", busy = false, disabled = false, icon, style, ...rest }) {
-  const sizes = { sm: { padding: "7px 12px", fontSize: 12.5 }, md: { padding: "10px 16px", fontSize: 13 } };
+  const sizes = { sm: { padding: "7px 12px", fontSize: 12.5, minHeight: 36 }, md: { padding: "10px 16px", fontSize: 13, minHeight: 44 } };
   const variants = {
-    primary: { background: V.flood, color: "#fff", border: "1px solid transparent" },
+    primary: { background: V.floodButton || V.flood, color: "#fff", border: "1px solid transparent" },
     secondary: { background: V.pitchCard, color: V.chalk, border: `1px solid ${V.lineStrong}` },
-    danger: { background: "rgba(228,93,93,0.08)", color: V.danger, border: "1px solid rgba(228,93,93,0.35)" },
+    danger: { background: "rgba(220,38,38,0.08)", color: V.danger, border: "1px solid rgba(220,38,38,0.3)" },
     ghost: { background: "transparent", color: V.chalkDim, border: "1px solid transparent" },
   };
   const inactive = disabled || busy;
@@ -126,7 +141,7 @@ export function Btn({ children, variant = "secondary", size = "md", busy = false
         fontWeight: 700,
         fontFamily: font,
         cursor: inactive ? (busy ? "wait" : "not-allowed") : "pointer",
-        opacity: disabled ? 0.5 : busy ? 0.75 : 1,
+        opacity: disabled ? 0.5 : busy ? 0.8 : 1,
         whiteSpace: "nowrap",
         ...sizes[size],
         ...variants[variant],
@@ -134,7 +149,20 @@ export function Btn({ children, variant = "secondary", size = "md", busy = false
       }}
       {...rest}
     >
-      {icon ? <Icon name={icon} size={size === "sm" ? 13 : 14} /> : null}
+      {busy && (
+        <span
+          style={{
+            width: 12,
+            height: 12,
+            border: "2px solid currentColor",
+            borderRightColor: "transparent",
+            borderRadius: "50%",
+            display: "inline-block",
+            animation: "spin 0.7s linear infinite",
+          }}
+        />
+      )}
+      {icon && !busy && <Icon name={icon} size={size === "sm" ? 14 : 16} />}
       {children}
     </button>
   );

@@ -6,13 +6,13 @@ import { QRCodeSVG } from "qrcode.react";
 import { createClient } from "@/lib/supabase/client";
 import { validateBookingRequest } from "@/lib/booking/validation";
 import { canSubmitBooking } from "@/lib/booking/policy";
-import { dateKey } from "@/lib/dashboard/analytics";
+import { dateKey, addDays } from "@/lib/dashboard/analytics";
 import { formatBookingDate, formatNotificationBody, formatNotificationTitle, relativeTime } from "@/lib/dashboard/format";
 import { useToast } from "@/components/ui/toast";
 import { SkeletonGrid, SkeletonCard, Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { RankBadge } from "@/components/ui/rank-badge";
-import { COLORS as V, NAV_ACCENTS, FONT_DISPLAY, FONT_BODY, FONT_DATA, panel, floodGlow, buttonStyle } from "@/lib/design-tokens";
+import { COLORS as V, NAV_ACCENTS, FONT_DISPLAY, FONT_BODY, FONT_DATA, panel, floodGlow, buttonStyle, statusBadge } from "@/lib/design-tokens";
 import StadiumScene from "@/components/StadiumScene";
 import BrandLockup from "@/components/brand-lockup";
 import { SPORT_OPTIONS } from "@/lib/sports";
@@ -98,37 +98,125 @@ const Icon = ({ name, size = 20, color = "currentColor", filled = false }) => {
 // ============================================================
 // SLOT GRID COMPONENT
 // ============================================================
-function SlotGrid({ slots, onSelect, selected }) {
+// SLOT GRID COMPONENT
+// ============================================================
+function SlotGrid({ slots = [], onSelect, selected, loading = false, price }) {
+  if (loading) {
+    return (
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(84px, 1fr))", gap: 10, padding: "8px 0" }}>
+        {[...Array(8)].map((_, i) => (
+          <Skeleton key={i} height={56} radius={12} />
+        ))}
+      </div>
+    );
+  }
+
+  if (slots.length === 0) {
+    return (
+      <div style={{ textAlign: "center", padding: "28px 16px", background: V.pitchCardRaised, borderRadius: 12, border: `1px solid ${V.line}` }}>
+        <p style={{ color: V.chalkFaint, fontSize: 13, fontFamily: FONT_BODY, margin: 0 }}>
+          No time slots are listed for this date. Please pick another day.
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+    <div
+      role="group"
+      aria-label="Available time slots"
+      style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(84px, 1fr))", gap: 10 }}
+    >
       {slots.map((slot, i) => {
         const isSelected = selected === i;
-        const color = slot.status === "booked" ? V.chalkFaint : slot.status === "locked" ? V.pending : V.flood;
-        const bg = slot.status === "available" ? (isSelected ? V.flood : V.floodDim) : (slot.status === "locked" ? "rgba(245,166,35,0.12)" : "rgba(245,247,242,0.04)");
+        const isAvailable = slot.status === "available";
+        const isLocked = slot.status === "locked";
+        const isBooked = slot.status === "booked";
+
+        const bg = isSelected
+          ? V.floodButton || V.flood
+          : isAvailable
+          ? "rgba(27, 158, 102, 0.08)"
+          : isLocked
+          ? "rgba(180, 83, 9, 0.08)"
+          : "rgba(17, 24, 39, 0.04)";
+
+        const borderColor = isSelected
+          ? V.floodButton || V.flood
+          : isAvailable
+          ? "rgba(27, 158, 102, 0.35)"
+          : isLocked
+          ? "rgba(180, 83, 9, 0.35)"
+          : V.line;
+
+        const textColor = isSelected
+          ? "#ffffff"
+          : isAvailable
+          ? V.chalk
+          : isLocked
+          ? V.pending
+          : V.chalkFaint;
+
+        const statusLabel = isSelected
+          ? "Selected"
+          : isAvailable
+          ? "Open"
+          : isLocked
+          ? "Held"
+          : "Taken";
+
+        const ariaStatus = isSelected
+          ? "selected slot"
+          : isAvailable
+          ? `available slot, ₹${price} per hour`
+          : isLocked
+          ? "temporarily locked slot"
+          : "booked slot, unavailable";
+
         return (
           <button
-            key={i}
-            onClick={() => slot.status === "available" && onSelect(i)}
-            disabled={slot.status !== "available"}
+            key={slot.raw_time || i}
+            type="button"
+            onClick={() => isAvailable && onSelect(i)}
+            disabled={!isAvailable}
+            aria-pressed={isSelected}
+            aria-label={`${slot.time}, ${ariaStatus}`}
             style={{
-              padding: "10px 4px",
-              borderRadius: 10,
-              border: `1px solid ${isSelected ? V.flood : color + "40"}`,
+              padding: "10px 6px",
+              minHeight: 56,
+              borderRadius: 12,
+              border: `1.5px solid ${borderColor}`,
               background: bg,
-              color: isSelected ? V.pitch : color,
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: slot.status === "available" ? "pointer" : "not-allowed",
-              transition: "all 0.2s",
-              fontFamily: FONT_DATA,
-              position: "relative",
-              overflow: "hidden",
+              color: textColor,
+              cursor: isAvailable ? "pointer" : "not-allowed",
+              transition: "transform 0.15s, background 0.15s, border-color 0.15s",
+              fontFamily: FONT_BODY,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 3,
+              boxShadow: isSelected ? "0 4px 14px rgba(21, 128, 81, 0.28)" : "none",
             }}
           >
-            {slot.time}
-            {slot.status === "locked" && (
-              <div style={{ fontSize: 9, color: V.pending, marginTop: 2 }}>LOCKED</div>
-            )}
+            <span style={{ fontSize: 13.5, fontWeight: 800, fontFamily: FONT_DATA }}>
+              {slot.time}
+            </span>
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: 0.2,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 2,
+                opacity: isSelected ? 0.95 : 0.85,
+              }}
+            >
+              {isSelected && <span aria-hidden="true">✓</span>}
+              {isLocked && <span aria-hidden="true">🔒</span>}
+              {statusLabel}
+            </span>
           </button>
         );
       })}
@@ -249,38 +337,115 @@ function TurfCard({ turf, onBook, onMatch, index = 0 }) {
 }
 
 // ============================================================
-// BOOKING MODAL
+// BOOKING MODAL & CANCELLATION MODAL
 // ============================================================
-function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast }) {
+function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, onGoToDashboard }) {
+  const [selectedDate, setSelectedDate] = useState(() => todayStr());
   const [selectedSlot, setSelectedSlot] = useState(null);
-  const [step, setStep] = useState(1); // 1: slot, 2: confirm, 3: success
+  const [modalSlots, setModalSlots] = useState(() => turf?.slots || []);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotConflictMsg, setSlotConflictMsg] = useState("");
+  const [step, setStep] = useState(1); // 1: date & slot, 2: review, 3: authoritative confirmation
   const [submitting, setSubmitting] = useState(false);
   const [bookingId, setBookingId] = useState(null);
   const [bookingPrice, setBookingPrice] = useState(null);
-  const price = bookingPrice ?? (turf ? calcPrice(turf, turf.occupancy) : 0);
+  const [copiedId, setCopiedId] = useState(false);
+
+  // Client-side idempotency key for this booking session
+  const [idempotencyKey] = useState(() =>
+    typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `vt-book-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+  );
+
+  const bookedSlotsCount = modalSlots.filter(s => s.status !== "available").length;
+  const occupancy = modalSlots.length ? Math.round((bookedSlotsCount / modalSlots.length) * 100) : 0;
+  const isDynamic = occupancy > 70;
+  const price = bookingPrice ?? (turf ? calcPrice(turf, occupancy) : 0);
   const points = Math.floor(price * 0.1);
+
+  // Generate 7 upcoming days
+  const today = todayStr();
+  const dateOptions = Array.from({ length: 7 }, (_, i) => {
+    const key = addDays(today, i);
+    const [y, m, d] = key.split("-").map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    const weekday = i === 0 ? "Today" : i === 1 ? "Tomorrow" : dateObj.toLocaleDateString("en-GB", { weekday: "short" });
+    const dayMonth = dateObj.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+    return { key, weekday, dayMonth };
+  });
+
+  // Fetch slots whenever the date changes
+  useEffect(() => {
+    let active = true;
+    async function loadDateSlots() {
+      setSlotsLoading(true);
+      setSlotConflictMsg("");
+      setSelectedSlot(null);
+      try {
+        const { data: slots, error } = await supabase.rpc("turf_slots", {
+          p_turf_id: turf.id,
+          p_date: selectedDate,
+        });
+        if (!active) return;
+        if (error) {
+          console.error("Could not fetch slots for date", error);
+          setSlotConflictMsg("Couldn't refresh slot availability. Please try another date.");
+        } else {
+          const list = (slots || []).map(s => ({
+            time: fmtTime(s.slot_time),
+            raw_time: s.slot_time,
+            status: s.status,
+          }));
+          setModalSlots(list);
+        }
+      } catch (err) {
+        if (active) setSlotConflictMsg("Network error loading slots. Please retry.");
+      } finally {
+        if (active) setSlotsLoading(false);
+      }
+    }
+    loadDateSlots();
+    return () => { active = false; };
+  }, [selectedDate, turf.id, supabase]);
 
   if (!turf) return null;
 
+  const handleCopyId = () => {
+    if (!bookingId) return;
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(bookingId);
+      setCopiedId(true);
+      setTimeout(() => setCopiedId(false), 2000);
+    }
+  };
+
   const handlePay = async () => {
-    const validation = validateBookingRequest({ profile, turf, selectedSlot });
-    const policyValidation = canSubmitBooking({ profile, turf, selectedSlot });
+    const syntheticTurf = { ...turf, slots: modalSlots };
+    const validation = validateBookingRequest({ profile, turf: syntheticTurf, selectedSlot });
+    const policyValidation = canSubmitBooking({ profile, turf: syntheticTurf, selectedSlot });
 
     if (!validation.ok || !policyValidation.ok) {
       const message = validation.error || policyValidation.error || "Booking unavailable.";
       showToast(message, { type: "error" });
       if (message.includes("just taken") || message.includes("no longer available")) {
+        setSlotConflictMsg("That slot was just booked by another player. Please select another slot.");
         setStep(1);
+        setSelectedSlot(null);
       }
       return;
     }
 
     setSubmitting(true);
+    setSlotConflictMsg("");
     const slot = policyValidation.slot;
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
-      const headers = { "Content-Type": "application/json" };
+      const headers = {
+        "Content-Type": "application/json",
+        "x-idempotency-key": idempotencyKey,
+      };
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
       const response = await fetch("/api/bookings", {
@@ -290,7 +455,8 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast }
           turfId: turf.id,
           startTime: slot.raw_time,
           sport: turf.sports?.[0],
-          bookingDate: todayStr(),
+          bookingDate: selectedDate,
+          idempotencyKey,
         }),
       });
 
@@ -300,15 +466,28 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast }
         const message = result?.error || "Couldn't complete the booking. Try again.";
         showToast(message, { type: "error" });
         if (response.status === 409 || message.includes("just taken") || message.includes("no longer available")) {
+          setSlotConflictMsg("That slot was just booked by another player. We've refreshed the schedule below.");
           setStep(1);
+          setSelectedSlot(null);
+          // Refresh slots immediately
+          const { data: freshSlots } = await supabase.rpc("turf_slots", {
+            p_turf_id: turf.id,
+            p_date: selectedDate,
+          });
+          if (freshSlots) {
+            setModalSlots(freshSlots.map(s => ({
+              time: fmtTime(s.slot_time),
+              raw_time: s.slot_time,
+              status: s.status,
+            })));
+          }
         }
         setSubmitting(false);
         return;
       }
 
       if (!result?.id) {
-        console.error("booking creation returned no booking ID", result);
-        showToast("The booking was saved, but its ticket could not be loaded. Refresh your bookings.", { type: "error" });
+        showToast("The booking was saved, but its confirmation details could not be loaded. Please check your bookings dashboard.", { type: "error" });
         setSubmitting(false);
         return;
       }
@@ -318,157 +497,615 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast }
       setBookingPrice(finalPrice);
       setStep(3);
     } catch (requestError) {
-      console.error("booking creation request failed", requestError);
-      showToast("Couldn't complete the booking. Check your connection and try again.", { type: "error" });
+      console.error("Booking creation request failed", requestError);
+      showToast("Couldn't reach the server. Check your connection and try again.", { type: "error" });
     } finally {
       setSubmitting(false);
     }
   };
 
+  const selectedSlotData = selectedSlot !== null ? modalSlots[selectedSlot] : null;
+
   return (
-    <div style={{
-      position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(8px)",
-      display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 16,
-    }} onClick={onClose}>
-      <div style={{
-        ...panel(true), borderRadius: 18, width: "100%", maxWidth: 500, maxHeight: "85vh", overflowY: "auto",
-        animation: "slideUp 0.3s ease",
-      }} onClick={e => e.stopPropagation()}>
+    <div
+      role="presentation"
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(10, 18, 14, 0.72)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1100,
+        padding: 16,
+      }}
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="booking-modal-title"
+        style={{
+          ...panel(true),
+          borderRadius: 20,
+          width: "100%",
+          maxWidth: 520,
+          maxHeight: "90vh",
+          display: "flex",
+          flexDirection: "column",
+          animation: "slideUp 0.25s ease",
+          boxShadow: "0 24px 60px rgba(0,0,0,0.35)",
+          overflow: "hidden",
+        }}
+        onClick={e => e.stopPropagation()}
+      >
         {/* Header */}
-        <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${V.line}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{
+          padding: "18px 22px",
+          borderBottom: `1px solid ${V.line}`,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          background: V.pitchCard,
+        }}>
           <div>
-            <h2 style={{ color: V.chalk, margin: 0, fontSize: 24, fontFamily: FONT_DISPLAY, fontWeight: 400 }}>
-            {step === 3 ? "Booking confirmed" : `Book ${turf.name}`}
+            <h2 id="booking-modal-title" style={{ color: V.chalk, margin: 0, fontSize: 22, fontFamily: FONT_DISPLAY, fontWeight: 700 }}>
+              {step === 3 ? "Booking Confirmed" : step === 2 ? "Review Booking" : `Book ${turf.name}`}
             </h2>
-            <p style={{ color: V.chalkFaint, margin: "4px 0 0", fontSize: 13, fontFamily: FONT_BODY }}>{turf.location}</p>
+            <p style={{ color: V.chalkFaint, margin: "2px 0 0", fontSize: 13, fontFamily: FONT_BODY }}>
+              {turf.location} · {turf.sports?.[0] || "All sports"}
+            </p>
           </div>
-          <button onClick={onClose} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 34, height: 34, cursor: "pointer", color: V.chalk, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Icon name="x" size={16} />
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close booking modal"
+            style={{
+              background: "transparent",
+              border: `1px solid ${V.lineStrong}`,
+              borderRadius: 10,
+              width: 36,
+              height: 36,
+              cursor: "pointer",
+              color: V.chalk,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Icon name="x" size={17} />
           </button>
         </div>
 
-        <div style={{ padding: 24 }}>
+        {/* Content Body */}
+        <div style={{ padding: 22, overflowY: "auto", flex: 1 }}>
           {step === 1 && (
             <>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
-                <span style={{ color: V.chalkDim, fontSize: 14, fontFamily: FONT_BODY }}>Select time slot</span>
-                <div style={{ display: "flex", gap: 12, fontSize: 11, fontFamily: FONT_BODY }}>
-                  <span style={{ color: V.flood }}>● Available</span>
-                  <span style={{ color: V.pending }}>● Locked</span>
-                  <span style={{ color: V.chalkFaint }}>● Booked</span>
+              {/* Conflict Alert Banner if stale slot */}
+              {slotConflictMsg && (
+                <div role="alert" style={{
+                  background: "rgba(220, 38, 38, 0.08)",
+                  border: "1px solid rgba(220, 38, 38, 0.3)",
+                  borderRadius: 12,
+                  padding: "12px 14px",
+                  marginBottom: 16,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  fontSize: 13,
+                  color: V.danger,
+                  fontWeight: 600,
+                }}>
+                  <Icon name="alert" size={18} color={V.danger} />
+                  <span>{slotConflictMsg}</span>
                 </div>
-              </div>
-              <SlotGrid slots={turf.slots} onSelect={setSelectedSlot} selected={selectedSlot} />
-              {turf.slots.length === 0 && (
-                <p style={{ color: V.chalkFaint, fontSize: 13, fontFamily: FONT_BODY, textAlign: "center", margin: "12px 0 0" }}>
-                  No slots are available to show for today.
-                </p>
               )}
-              <div style={{ marginTop: 16, padding: "12px 16px", background: V.pitchCardRaised, borderRadius: 12, border: `1px solid ${V.line}` }}>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: V.chalkDim, fontSize: 13, fontFamily: FONT_BODY }}>Price / hour</span>
-                  <span style={{ color: V.chalk, fontWeight: 700, fontFamily: FONT_BODY }}>₹{price}</span>
+
+              {/* Date Selector Pills */}
+              <div style={{ marginBottom: 18 }}>
+                <label style={{ display: "block", color: V.chalkDim, fontSize: 13, fontWeight: 700, marginBottom: 8, fontFamily: FONT_BODY }}>
+                  1. Choose Date
+                </label>
+                <div
+                  role="tablist"
+                  aria-label="Select match date"
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    overflowX: "auto",
+                    paddingBottom: 4,
+                    scrollbarWidth: "none",
+                  }}
+                >
+                  {dateOptions.map(opt => {
+                    const isDateSelected = selectedDate === opt.key;
+                    return (
+                      <button
+                        key={opt.key}
+                        type="button"
+                        role="tab"
+                        aria-selected={isDateSelected}
+                        onClick={() => setSelectedDate(opt.key)}
+                        style={{
+                          flex: "0 0 auto",
+                          padding: "10px 14px",
+                          borderRadius: 12,
+                          border: `1.5px solid ${isDateSelected ? V.floodButton || V.flood : V.lineStrong}`,
+                          background: isDateSelected ? "rgba(21, 128, 81, 0.1)" : V.pitchCard,
+                          color: isDateSelected ? V.floodButton || V.flood : V.chalk,
+                          cursor: "pointer",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          gap: 2,
+                          minWidth: 72,
+                          fontFamily: FONT_BODY,
+                          transition: "all 0.15s",
+                        }}
+                      >
+                        <span style={{ fontSize: 12, fontWeight: isDateSelected ? 800 : 600 }}>{opt.weekday}</span>
+                        <span style={{ fontSize: 11, color: isDateSelected ? V.floodButton || V.flood : V.chalkFaint, fontWeight: 500 }}>{opt.dayMonth}</span>
+                      </button>
+                    );
+                  })}
                 </div>
-                {turf.occupancy > 70 && (
-                  <div style={{ marginTop: 4, fontSize: 11, color: V.pending, fontFamily: FONT_BODY }}>Peak pricing — high demand</div>
-                )}
               </div>
+
+              {/* Slot Legend & Grid */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 6 }}>
+                <span style={{ color: V.chalkDim, fontSize: 13, fontWeight: 700, fontFamily: FONT_BODY }}>
+                  2. Select Time Slot
+                </span>
+                <div style={{ display: "flex", gap: 10, fontSize: 11, fontFamily: FONT_BODY }}>
+                  <span style={{ color: V.floodButton || V.flood, display: "inline-flex", alignItems: "center", gap: 3 }}>● Open</span>
+                  <span style={{ color: V.pending, display: "inline-flex", alignItems: "center", gap: 3 }}>● Held</span>
+                  <span style={{ color: V.chalkFaint, display: "inline-flex", alignItems: "center", gap: 3 }}>● Taken</span>
+                </div>
+              </div>
+
+              <SlotGrid
+                slots={modalSlots}
+                onSelect={setSelectedSlot}
+                selected={selectedSlot}
+                loading={slotsLoading}
+                price={price}
+              />
+
+              {/* Price & Occupancy Callout */}
+              <div style={{
+                marginTop: 18,
+                padding: "14px 16px",
+                background: V.pitchCard,
+                borderRadius: 14,
+                border: `1px solid ${V.lineStrong}`,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}>
+                <div>
+                  <span style={{ color: V.chalkDim, fontSize: 13, fontFamily: FONT_BODY, display: "block" }}>
+                    Standard Rate
+                  </span>
+                  {isDynamic && (
+                    <span style={{ fontSize: 11, color: V.pending, fontWeight: 700, fontFamily: FONT_BODY }}>
+                      🔥 High demand: Peak price applied
+                    </span>
+                  )}
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <span style={{ color: V.chalk, fontSize: 18, fontWeight: 800, fontFamily: FONT_BODY }}>
+                    ₹{price}
+                  </span>
+                  <span style={{ color: V.chalkFaint, fontSize: 12 }}> / hour</span>
+                </div>
+              </div>
+
+              {/* Proceed to Review */}
               <button
+                type="button"
                 disabled={selectedSlot === null}
                 onClick={() => setStep(2)}
                 style={{
-                  marginTop: 16, width: "100%", padding: "14px", borderRadius: 12,
-                  background: selectedSlot !== null ? V.flood : V.line,
-                  color: selectedSlot !== null ? V.pitch : V.chalkFaint, border: "none", fontWeight: 800, fontSize: 15, cursor: selectedSlot !== null ? "pointer" : "not-allowed",
-                  fontFamily: FONT_BODY,
+                  marginTop: 18,
+                  width: "100%",
+                  ...buttonStyle("primary", "lg", selectedSlot === null),
                 }}
               >
-                Review booking →
+                {selectedSlot !== null
+                  ? `Review Slot (${modalSlots[selectedSlot]?.time}) →`
+                  : "Select a slot above"}
               </button>
             </>
           )}
 
-          {step === 2 && (
+          {step === 2 && selectedSlotData && (
             <>
-              <div style={{ background: `${V.flood}14`, border: `1px solid ${V.flood}4D`, borderRadius: 12, padding: "12px 16px", marginBottom: 20 }}>
+              {/* Trust Badge */}
+              <div style={{
+                background: "rgba(21, 128, 81, 0.08)",
+                border: "1px solid rgba(21, 128, 81, 0.25)",
+                borderRadius: 14,
+                padding: "14px 16px",
+                marginBottom: 18,
+                display: "flex",
+                gap: 12,
+                alignItems: "flex-start",
+              }}>
+                <div style={{ width: 28, height: 28, borderRadius: "50%", background: V.floodButton || V.flood, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontWeight: 800, fontSize: 14 }}>
+                  ✓
+                </div>
                 <div>
-                  <div style={{ color: V.confirmed, fontWeight: 700, fontSize: 13, fontFamily: FONT_BODY }}>Instant booking</div>
-                  <div style={{ color: V.chalkDim, fontSize: 12, marginTop: 2, fontFamily: FONT_BODY }}>Your slot is confirmed as soon as you book. Demo checkout; no payment is processed.</div>
+                  <div style={{ color: V.confirmed, fontWeight: 800, fontSize: 14, fontFamily: FONT_BODY }}>
+                    Instant Confirmation Guaranteed
+                  </div>
+                  <div style={{ color: V.chalkDim, fontSize: 12.5, marginTop: 2, fontFamily: FONT_BODY, lineHeight: 1.4 }}>
+                    Your booking slot is held exclusively. This is a demo checkout; no real card charge will be made.
+                  </div>
                 </div>
               </div>
 
-              {/* Booking Summary */}
-              <div style={{ background: V.pitchCardRaised, borderRadius: 12, padding: 16, marginBottom: 16, border: `1px solid ${V.line}` }}>
-                <h4 style={{ color: V.chalkFaint, fontSize: 12, fontWeight: 600, margin: "0 0 12px", textTransform: "uppercase", letterSpacing: 1, fontFamily: FONT_BODY }}>Booking summary</h4>
+              {/* Detailed Booking Summary */}
+              <div style={{
+                background: V.pitchCard,
+                borderRadius: 14,
+                padding: 18,
+                marginBottom: 18,
+                border: `1px solid ${V.lineStrong}`,
+              }}>
+                <h4 style={{
+                  color: V.chalkFaint,
+                  fontSize: 11.5,
+                  fontWeight: 800,
+                  margin: "0 0 14px",
+                  textTransform: "uppercase",
+                  letterSpacing: 0.8,
+                  fontFamily: FONT_BODY,
+                }}>
+                  Booking Summary
+                </h4>
+
                 {[
-                  ["Turf", turf.name],
+                  ["Turf Venue", turf.name],
                   ["Location", turf.location],
-                  ["Time slot", turf.slots[selectedSlot]?.time + " - " + (parseInt(turf.slots[selectedSlot]?.time) + 1) + ":00"],
-                  ["Duration", "1 hour"],
-                ].map(([k, v]) => (
-                  <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                    <span style={{ color: V.chalkFaint, fontSize: 13, fontFamily: FONT_BODY }}>{k}</span>
-                    <span style={{ color: V.chalk, fontSize: 13, fontWeight: 600, fontFamily: FONT_BODY }}>{v}</span>
+                  ["Sport", turf.sports?.[0] || "Sports"],
+                  ["Date", formatBookingDate(selectedDate)],
+                  ["Time Slot", `${selectedSlotData.time} – ${(parseInt(selectedSlotData.time) + 1)}:00`],
+                  ["Duration", "1 hour match"],
+                ].map(([label, val]) => (
+                  <div key={label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 10, fontSize: 13.5 }}>
+                    <span style={{ color: V.chalkDim, fontFamily: FONT_BODY }}>{label}</span>
+                    <span style={{ color: V.chalk, fontWeight: 700, fontFamily: FONT_BODY, textAlign: "right" }}>{val}</span>
                   </div>
                 ))}
-                <div style={{ height: 1, background: V.line, margin: "12px 0" }} />
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: V.chalkDim, fontSize: 15, fontWeight: 600, fontFamily: FONT_BODY }}>Total</span>
-                  <span style={{ color: V.flood, fontSize: 20, fontWeight: 800, fontFamily: FONT_BODY }}>₹{price}</span>
+
+                <div style={{ height: 1, background: V.lineStrong, margin: "14px 0" }} />
+
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ color: V.chalk, fontSize: 16, fontWeight: 800, fontFamily: FONT_BODY }}>Total Payable</span>
+                  <span style={{ color: V.floodButton || V.flood, fontSize: 22, fontWeight: 800, fontFamily: FONT_BODY }}>₹{price}</span>
                 </div>
-                <div style={{ marginTop: 8, fontSize: 12, color: V.confirmed, fontFamily: FONT_BODY }}>
-                  +{points} reward points earned on this booking
+                <div style={{ marginTop: 8, fontSize: 12, color: V.confirmed, fontWeight: 700, fontFamily: FONT_BODY, display: "flex", alignItems: "center", gap: 4 }}>
+                  <span>🎁</span> +{points} loyalty reward points will be credited upon confirmation
                 </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                <button onClick={() => setStep(1)} style={{ padding: "13px", borderRadius: 12, background: "transparent", border: `1px solid ${V.line}`, color: V.chalk, fontWeight: 600, cursor: "pointer", fontFamily: FONT_BODY }}>
+              {/* Action Buttons */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1.6fr", gap: 10 }}>
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => setStep(1)}
+                  style={buttonStyle("secondary", "lg", submitting)}
+                >
                   ← Back
                 </button>
-                <button disabled={submitting} onClick={handlePay} style={{
-                  padding: "13px", borderRadius: 12, background: V.flood,
-                  border: "none", color: "#ffffff", fontWeight: 800, cursor: submitting ? "wait" : "pointer", fontFamily: FONT_BODY,
-                  opacity: submitting ? 0.7 : 1,
-                }}>
-                  {submitting ? "Confirming..." : `Confirm booking · ₹${price}`}
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={handlePay}
+                  style={buttonStyle("primary", "lg", submitting)}
+                >
+                  {submitting ? (
+                    <>
+                      <span
+                        style={{
+                          width: 14,
+                          height: 14,
+                          border: "2px solid #ffffff",
+                          borderRightColor: "transparent",
+                          borderRadius: "50%",
+                          display: "inline-block",
+                          animation: "spin 0.7s linear infinite",
+                        }}
+                      />
+                      <span>Confirming slot…</span>
+                    </>
+                  ) : (
+                    `Confirm & Book · ₹${price}`
+                  )}
                 </button>
               </div>
             </>
           )}
 
           {step === 3 && (
-            <div style={{ textAlign: "center", padding: "20px 0" }}>
-              <div style={{ width: 64, height: 64, borderRadius: "50%", background: V.floodDim, border: `1px solid ${V.flood}55`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
-                <Icon name="check" size={28} color={V.flood} />
-              </div>
-              <h3 style={{ color: V.chalk, fontFamily: FONT_DISPLAY, fontSize: 26, fontWeight: 400, marginBottom: 8 }}>You're all set</h3>
-              <p style={{ color: V.chalkDim, marginBottom: 24, fontFamily: FONT_BODY, fontSize: 14 }}>
-                Your booking at {turf.name} is confirmed. Your unique booking QR ticket is ready below.
-              </p>
-              <div style={{ background: V.chalk, width: 164, height: 164, padding: 12, margin: "0 auto 20px", borderRadius: 14, display: "grid", placeItems: "center" }}>
-                {bookingId && <BookingQrCode bookingId={bookingId} size={140} />}
-              </div>
-              <div style={{ color: V.chalkFaint, fontSize: 11, fontFamily: FONT_DATA, marginBottom: 20, wordBreak: "break-all" }}>
-                Booking ID: {bookingId}
-              </div>
-
-              <div style={{ background: V.floodDim, border: `1px solid ${V.flood}4D`, borderRadius: 12, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-                <span style={{ color: V.chalkDim, fontSize: 14, fontFamily: FONT_BODY }}>Reward points earned</span>
-                <span style={{ color: V.flood, fontWeight: 800, fontSize: 20, fontFamily: FONT_DATA }}>+{points} pts</span>
-              </div>
-
-              <button onClick={onConfirm} style={{
-                width: "100%", padding: "14px", borderRadius: 12,
-                background: V.flood,
-                border: "none", color: "#ffffff", fontWeight: 800, fontSize: 15, cursor: "pointer",
-                fontFamily: FONT_BODY,
+            <div style={{ textAlign: "center", padding: "12px 0" }}>
+              <div style={{
+                width: 68,
+                height: 68,
+                borderRadius: "50%",
+                background: "rgba(21, 128, 81, 0.12)",
+                border: "2px solid rgba(21, 128, 81, 0.35)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 16px",
+                color: V.floodButton || V.flood,
               }}>
-                Done
-              </button>
+                <Icon name="check" size={32} color={V.floodButton || V.flood} />
+              </div>
+
+              <h3 style={{ color: V.chalk, fontFamily: FONT_DISPLAY, fontSize: 28, fontWeight: 700, marginBottom: 6 }}>
+                You're All Set!
+              </h3>
+              <p style={{ color: V.chalkDim, marginBottom: 20, fontFamily: FONT_BODY, fontSize: 14, lineHeight: 1.5 }}>
+                Your booking is officially confirmed. Show your entry pass or QR ticket at the pitch reception.
+              </p>
+
+              {/* Booking Pass Card */}
+              <div style={{
+                background: V.pitchCard,
+                borderRadius: 16,
+                padding: 20,
+                border: `1px solid ${V.lineStrong}`,
+                textAlign: "left",
+                marginBottom: 20,
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                  <div>
+                    <span style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", color: V.chalkFaint, letterSpacing: 0.8 }}>
+                      Booking Pass
+                    </span>
+                    <h4 style={{ margin: "2px 0 0", color: V.chalk, fontSize: 17, fontWeight: 800 }}>
+                      {turf.name}
+                    </h4>
+                    <span style={{ fontSize: 12.5, color: V.chalkFaint }}>{turf.location}</span>
+                  </div>
+                  <span style={{
+                    padding: "4px 10px",
+                    borderRadius: 8,
+                    fontSize: 11,
+                    fontWeight: 800,
+                    background: "rgba(21, 128, 81, 0.12)",
+                    color: V.confirmed,
+                    border: "1px solid rgba(21, 128, 81, 0.28)",
+                  }}>
+                    ✓ Confirmed
+                  </span>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16, fontSize: 13 }}>
+                  <div>
+                    <span style={{ color: V.chalkFaint, fontSize: 11 }}>Date</span>
+                    <div style={{ fontWeight: 700, color: V.chalk, marginTop: 2 }}>{formatBookingDate(selectedDate)}</div>
+                  </div>
+                  <div>
+                    <span style={{ color: V.chalkFaint, fontSize: 11 }}>Time Slot</span>
+                    <div style={{ fontWeight: 700, color: V.chalk, marginTop: 2 }}>
+                      {selectedSlotData?.time} (1 hr)
+                    </div>
+                  </div>
+                  <div>
+                    <span style={{ color: V.chalkFaint, fontSize: 11 }}>Sport</span>
+                    <div style={{ fontWeight: 700, color: V.chalk, marginTop: 2 }}>{turf.sports?.[0] || "Sports"}</div>
+                  </div>
+                  <div>
+                    <span style={{ color: V.chalkFaint, fontSize: 11 }}>Total Paid</span>
+                    <div style={{ fontWeight: 800, color: V.floodButton || V.flood, marginTop: 2 }}>₹{bookingPrice ?? price}</div>
+                  </div>
+                </div>
+
+                {/* QR Code Container */}
+                <div style={{
+                  background: "#ffffff",
+                  padding: 16,
+                  borderRadius: 14,
+                  border: `1px solid ${V.line}`,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 10,
+                }}>
+                  {bookingId && <BookingQrCode bookingId={bookingId} size={150} />}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ color: V.chalkDim, fontSize: 11.5, fontFamily: FONT_DATA }}>
+                      REF: {bookingId ? bookingId.slice(0, 13) + "…" : "—"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleCopyId}
+                      style={{
+                        background: "transparent",
+                        border: `1px solid ${V.lineStrong}`,
+                        borderRadius: 6,
+                        padding: "3px 8px",
+                        fontSize: 10.5,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        color: copiedId ? V.confirmed : V.chalk,
+                      }}
+                    >
+                      {copiedId ? "Copied!" : "Copy ID"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Next Actions */}
+              <div style={{ display: "grid", gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onConfirm();
+                    onGoToDashboard?.();
+                  }}
+                  style={buttonStyle("primary", "lg")}
+                >
+                  View in My Games →
+                </button>
+                <button
+                  type="button"
+                  onClick={onConfirm}
+                  style={buttonStyle("secondary", "md")}
+                >
+                  Done & Browse More Turfs
+                </button>
+              </div>
             </div>
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function CancelBookingModal({ booking, onClose, onCancelled, showToast }) {
+  const [reason, setReason] = useState("Change of plans");
+  const [submitting, setSubmitting] = useState(false);
+
+  if (!booking) return null;
+
+  const handleCancelSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const response = await fetch("/api/bookings/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bookingId: booking.id,
+          reason,
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        showToast(data.error || "Couldn't cancel this booking. Try again.", { type: "error" });
+        setSubmitting(false);
+        return;
+      }
+
+      showToast(`Cancelled booking at ${booking.turf}. The slot is now free again.`, { type: "info" });
+      onCancelled();
+      onClose();
+    } catch (err) {
+      console.error("Cancellation error", err);
+      showToast("Network error. Please check your connection and retry.", { type: "error" });
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      role="presentation"
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(10, 18, 14, 0.72)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1150,
+        padding: 16,
+      }}
+      onClick={onClose}
+    >
+      <form
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cancel-modal-title"
+        onSubmit={handleCancelSubmit}
+        onClick={e => e.stopPropagation()}
+        style={{
+          ...panel(true),
+          borderRadius: 20,
+          width: "100%",
+          maxWidth: 440,
+          padding: 24,
+          display: "grid",
+          gap: 16,
+          boxShadow: "0 24px 60px rgba(0,0,0,0.35)",
+        }}
+      >
+        <div>
+          <h2 id="cancel-modal-title" style={{ color: V.danger, fontSize: 22, fontFamily: FONT_DISPLAY, fontWeight: 700, margin: 0 }}>
+            Cancel Booking?
+          </h2>
+          <p style={{ color: V.chalkDim, fontSize: 13.5, margin: "6px 0 0", fontFamily: FONT_BODY }}>
+            Are you sure you want to cancel your booking at <strong>{booking.turf}</strong> on <strong>{formatBookingDate(booking.bookingDate)} at {booking.time}</strong>?
+          </p>
+        </div>
+
+        <div style={{
+          background: "rgba(220, 38, 38, 0.08)",
+          border: "1px solid rgba(220, 38, 38, 0.25)",
+          borderRadius: 12,
+          padding: "12px 14px",
+          fontSize: 12.5,
+          color: V.chalkDim,
+          lineHeight: 1.5,
+        }}>
+          ⚠️ Once cancelled, this time slot will be reopened immediately for other players and cannot be restored.
+        </div>
+
+        <label style={{ display: "grid", gap: 6, color: V.chalkDim, fontSize: 13, fontWeight: 600 }}>
+          Reason for cancellation
+          <select
+            value={reason}
+            onChange={e => setReason(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "10px 12px",
+              borderRadius: 10,
+              background: V.pitchCard,
+              border: `1px solid ${V.lineStrong}`,
+              color: V.chalk,
+              fontFamily: FONT_BODY,
+              fontSize: 13.5,
+            }}
+          >
+            <option value="Change of plans">Change of plans</option>
+            <option value="Squad / players unavailable">Squad / players unavailable</option>
+            <option value="Inclement weather / rain">Inclement weather / rain</option>
+            <option value="Booked wrong turf or time">Booked wrong turf or time</option>
+            <option value="Other reason">Other reason</option>
+          </select>
+        </label>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 6 }}>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={submitting}
+            style={buttonStyle("secondary", "md", submitting)}
+          >
+            Keep Booking
+          </button>
+          <button
+            type="submit"
+            disabled={submitting}
+            style={buttonStyle("danger", "md", submitting)}
+          >
+            {submitting ? "Cancelling…" : "Yes, Cancel Booking"}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
@@ -807,17 +1444,47 @@ function LoyaltySection({ isLoading, leaderboard, myPoints, gamesPlayed }) {
 // ============================================================
 // DASHBOARD
 // ============================================================
-function DashboardSection({ isLoading, bookings, matchesJoined, onCancel, onReview, onDispute, onViewQr }) {
+// ============================================================
+// DASHBOARD
+// ============================================================
+function DashboardSection({ isLoading, bookings, matchesJoined, onCancel, onReview, onDispute, onViewQr, onFindTurf }) {
+  const [filter, setFilter] = useState("upcoming");
   const now = new Date();
   const upcoming = bookings.filter(b => ["pending", "confirmed"].includes(b.status) && isUpcomingBooking(b, now));
-  const pastBookings = bookings.filter((booking) => isPlayedBooking(booking, now));
+  const pastBookings = bookings.filter(booking => isPlayedBooking(booking, now));
+  const cancelledOrDeclined = bookings.filter(b => ["cancelled", "declined"].includes(b.status));
   const totalSpent = bookings.filter(b => ["confirmed", "completed"].includes(b.status)).reduce((sum, b) => sum + b.price, 0);
   const gamesPlayed = pastBookings.length;
 
+  const currentList =
+    filter === "upcoming"
+      ? upcoming
+      : filter === "past"
+      ? pastBookings
+      : filter === "cancelled"
+      ? cancelledOrDeclined
+      : bookings;
+
   return (
-    <div className="vt-dashboard-section" style={{ padding: "60px 24px" }}>
+    <div className="vt-dashboard-section" style={{ padding: "40px 20px 80px" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-        <h2 style={{ color: V.chalk, fontFamily: FONT_DISPLAY, fontSize: 38, fontWeight: 400, margin: "0 0 32px" }}>My games</h2>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 28, flexWrap: "wrap", gap: 12 }}>
+          <div>
+            <span style={{ fontSize: 12, fontWeight: 800, color: V.floodButton || V.flood, textTransform: "uppercase", letterSpacing: 0.8, fontFamily: FONT_BODY }}>
+              Player Dashboard
+            </span>
+            <h2 style={{ color: V.chalk, fontFamily: FONT_DISPLAY, fontSize: 36, fontWeight: 700, margin: "4px 0 0" }}>
+              My Games & Activity
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onFindTurf}
+            style={buttonStyle("primary", "md")}
+          >
+            + Book New Game
+          </button>
+        </div>
 
         {isLoading ? (
           <>
@@ -826,108 +1493,270 @@ function DashboardSection({ isLoading, bookings, matchesJoined, onCancel, onRevi
             </div>
             <Skeleton width={160} height={14} style={{ marginBottom: 16 }} />
             <div style={{ display: "grid", gap: 12 }}>
-              {[...Array(2)].map((_, i) => <SkeletonCard key={i} lines={2} />)}
+              {[...Array(3)].map((_, i) => <SkeletonCard key={i} lines={2} />)}
             </div>
           </>
         ) : (
         <>
-        {/* Stat Cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
-          {[
-            { label: "Total spent", value: `₹${totalSpent.toLocaleString()}`, icon: "trending" },
-            { label: "Games played", value: gamesPlayed, icon: "clock" },
-            { label: "Games joined", value: matchesJoined, icon: "trophy" },
-            { label: "Upcoming", value: upcoming.length, icon: "calendar" },
-          ].map(s => (
-            <div key={s.label} style={{ ...panel(), borderRadius: 14, padding: "20px 22px", transition: "transform 0.2s, border-color 0.2s" }}
-              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.borderColor = V.lineStrong; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.borderColor = V.line; }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-                <div style={{ background: V.floodDim, borderRadius: 8, padding: 8 }}>
-                  <Icon name={s.icon} size={18} color={V.flood} />
+          {/* Stat Cards */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14, marginBottom: 32 }}>
+            {[
+              { label: "Total spent", value: `₹${totalSpent.toLocaleString()}`, icon: "trending" },
+              { label: "Games played", value: gamesPlayed, icon: "clock" },
+              { label: "Squad matches joined", value: matchesJoined, icon: "trophy" },
+              { label: "Upcoming bookings", value: upcoming.length, icon: "calendar" },
+            ].map(s => (
+              <div
+                key={s.label}
+                style={{
+                  ...panel(),
+                  borderRadius: 16,
+                  padding: "18px 20px",
+                  transition: "transform 0.2s, border-color 0.2s",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                  <div style={{ background: "rgba(21, 128, 81, 0.1)", borderRadius: 10, padding: 8 }}>
+                    <Icon name={s.icon} size={18} color={V.floodButton || V.flood} />
+                  </div>
                 </div>
-              </div>
-              <div style={{ color: V.chalk, fontWeight: 700, fontSize: 24, fontFamily: typeof s.value === "string" && s.value.startsWith("₹") ? FONT_BODY : FONT_DATA }}>{s.value}</div>
-              <div style={{ color: V.chalkFaint, fontSize: 12, marginTop: 4, fontFamily: FONT_BODY }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Upcoming Bookings */}
-        <h3 style={{ color: V.chalkDim, fontSize: 14, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.5, margin: "0 0 16px", fontFamily: FONT_BODY }}>Coming up</h3>
-        {upcoming.length === 0 ? (
-          <EmptyState
-            icon="📅"
-            title="No upcoming bookings"
-            subtitle="Head to Discover to find a turf and lock in your next game."
-          />
-        ) : (
-        <div style={{ display: "grid", gap: 12 }}>
-          {upcoming.map((b) => (
-            <div key={b.id} style={{ ...panel(), borderRadius: 12, padding: "18px 22px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, transition: "border-color 0.2s" }}
-              onMouseEnter={e => e.currentTarget.style.borderColor = V.lineStrong}
-              onMouseLeave={e => e.currentTarget.style.borderColor = V.line}
-            >
-              <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-                <div style={{ width: 44, height: 44, borderRadius: 10, background: V.pitchCardRaised, border: `1px solid ${V.line}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
-                  {sportIcon(b.sport)}
+                <div style={{ color: V.chalk, fontWeight: 800, fontSize: 24, fontFamily: typeof s.value === "string" && s.value.startsWith("₹") ? FONT_BODY : FONT_DATA }}>
+                  {s.value}
                 </div>
-                <div>
-                  <div style={{ color: V.chalk, fontWeight: 700, fontSize: 16, fontFamily: FONT_BODY }}>{b.turf}</div>
-                  <div style={{ color: V.chalkFaint, fontSize: 13, fontFamily: FONT_BODY }}>{formatBookingDate(b.bookingDate)} · {b.time} · {b.sport}</div>
-                </div>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                <span style={{ fontFamily: FONT_BODY, color: V.chalk, fontWeight: 700 }}>₹{b.price}</span>
-                <span style={{
-                  padding: "4px 12px", borderRadius: 6, fontSize: 12, fontWeight: 700, fontFamily: FONT_BODY,
-                  background: "transparent",
-                  color: b.status === "confirmed" ? V.confirmed : V.pending,
-                  border: `1px solid currentColor`,
-                }}>
-                  {b.status === "confirmed" ? "Confirmed" : "Awaiting confirmation"}
-                </span>
-                <button onClick={() => onViewQr(b)} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, padding: "8px 14px", color: V.chalkDim, cursor: "pointer", fontSize: 13, fontFamily: FONT_BODY, transition: "border-color 0.2s" }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = V.lineStrong}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = V.line}
-                >
-                  Show entry QR
-                </button>
-                <button onClick={() => { if (window.confirm(`Cancel your booking at ${b.turf}?`)) onCancel(b.id); }} style={{ background: "transparent", border: `1px solid ${V.danger}55`, borderRadius: 8, padding: "8px 14px", color: V.danger, cursor: "pointer", fontSize: 13, fontFamily: FONT_BODY, transition: "background 0.2s" }}
-                  onMouseEnter={e => e.currentTarget.style.background = "rgba(240,85,74,0.1)"}
-                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                >
-                  Cancel
-                </button>
-                <button onClick={() => onDispute(b)} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, padding: "8px 14px", color: V.chalkDim, cursor: "pointer", fontSize: 13, fontFamily: FONT_BODY }}>
-                  Need help?
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-        )}
-
-        <h3 style={{ color: V.chalkDim, fontSize: 14, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.5, margin: "32px 0 16px", fontFamily: FONT_BODY }}>Past games</h3>
-        {pastBookings.length === 0 ? (
-          <EmptyState icon="📝" title="No past games yet" subtitle="After you play, you can rate the turf and share your experience." />
-        ) : (
-          <div style={{ display: "grid", gap: 12 }}>
-            {pastBookings.map(b => (
-              <div key={b.id} style={{ ...panel(), borderRadius: 12, padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-                <div>
-                  <div style={{ color: V.chalk, fontWeight: 700, fontSize: 15, fontFamily: FONT_BODY }}>{b.turf}</div>
-                  <div style={{ color: V.chalkFaint, fontSize: 13, marginTop: 3, fontFamily: FONT_BODY }}>{formatBookingDate(b.bookingDate)} · {b.time} · ₹{b.price}</div>
-                </div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <button onClick={() => onReview(b)} style={{ background: V.flood, border: "none", borderRadius: 8, padding: "8px 14px", color: "#ffffff", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: FONT_BODY }}>Rate this turf</button>
-                  <button onClick={() => onDispute(b)} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, padding: "8px 14px", color: V.chalkDim, cursor: "pointer", fontSize: 13, fontFamily: FONT_BODY }}>Get help</button>
+                <div style={{ color: V.chalkFaint, fontSize: 12.5, marginTop: 4, fontFamily: FONT_BODY, fontWeight: 600 }}>
+                  {s.label}
                 </div>
               </div>
             ))}
           </div>
-        )}
+
+          {/* Filter Navigation Tabs */}
+          <div
+            role="tablist"
+            aria-label="Filter bookings"
+            style={{
+              display: "flex",
+              gap: 8,
+              borderBottom: `1px solid ${V.line}`,
+              paddingBottom: 12,
+              marginBottom: 20,
+              overflowX: "auto",
+              scrollbarWidth: "none",
+            }}
+          >
+            {[
+              { id: "upcoming", label: "Upcoming", count: upcoming.length },
+              { id: "past", label: "Completed", count: pastBookings.length },
+              { id: "cancelled", label: "Cancelled / Declined", count: cancelledOrDeclined.length },
+              { id: "all", label: "All Bookings", count: bookings.length },
+            ].map(tab => {
+              const active = filter === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setFilter(tab.id)}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: 10,
+                    background: active ? V.pitchCard : "transparent",
+                    border: `1.5px solid ${active ? V.lineStrong : "transparent"}`,
+                    color: active ? V.chalk : V.chalkDim,
+                    fontWeight: 700,
+                    fontSize: 13,
+                    fontFamily: FONT_BODY,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    whiteSpace: "nowrap",
+                    boxShadow: active ? "0 2px 8px rgba(0,0,0,0.05)" : "none",
+                  }}
+                >
+                  <span>{tab.label}</span>
+                  <span style={{
+                    padding: "1px 7px",
+                    borderRadius: 999,
+                    fontSize: 11,
+                    background: active ? "rgba(21, 128, 81, 0.12)" : "rgba(17, 24, 39, 0.06)",
+                    color: active ? V.floodButton || V.flood : V.chalkFaint,
+                    fontWeight: 800,
+                  }}>
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Bookings List */}
+          {currentList.length === 0 ? (
+            <div style={{ marginTop: 12 }}>
+              {filter === "upcoming" ? (
+                <EmptyState
+                  icon="📅"
+                  title="No upcoming bookings"
+                  subtitle="You have no matches scheduled right now. Browse nearby pitches to find an open slot and lock in your game."
+                  action={
+                    <button type="button" onClick={onFindTurf} style={buttonStyle("primary", "md")}>
+                      Explore Available Turfs →
+                    </button>
+                  }
+                />
+              ) : filter === "past" ? (
+                <EmptyState
+                  icon="⚽"
+                  title="No completed games yet"
+                  subtitle="Matches you play will be archived here. After your match, you can leave ratings and reviews for the facility."
+                  action={
+                    <button type="button" onClick={onFindTurf} style={buttonStyle("secondary", "md")}>
+                      Book Your First Match →
+                    </button>
+                  }
+                />
+              ) : filter === "cancelled" ? (
+                <EmptyState
+                  icon="✓"
+                  title="No cancelled or declined bookings"
+                  subtitle="You don't have any rejected or cancelled reservations on your record."
+                />
+              ) : (
+                <EmptyState
+                  icon="🏟️"
+                  title="No bookings found"
+                  subtitle="You haven't made any turf reservations yet."
+                  action={
+                    <button type="button" onClick={onFindTurf} style={buttonStyle("primary", "md")}>
+                      Find a Turf →
+                    </button>
+                  }
+                />
+              )}
+            </div>
+          ) : (
+            <div style={{ display: "grid", gap: 14 }}>
+              {currentList.map(b => {
+                const badge = statusBadge(b.status);
+                const isUpcoming = ["pending", "confirmed"].includes(b.status) && isUpcomingBooking(b, now);
+                const isPast = isPlayedBooking(b, now);
+                const isCancelled = ["cancelled", "declined"].includes(b.status);
+
+                return (
+                  <article
+                    key={b.id}
+                    style={{
+                      ...panel(),
+                      borderRadius: 16,
+                      padding: "20px 22px",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                      gap: 16,
+                      boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
+                    }}
+                  >
+                    {/* Left: Venue & Timing Info */}
+                    <div style={{ display: "flex", gap: 16, alignItems: "center", minWidth: 260 }}>
+                      <div style={{
+                        width: 50,
+                        height: 50,
+                        borderRadius: 14,
+                        background: V.pitchCardRaised,
+                        border: `1px solid ${V.line}`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 22,
+                        flexShrink: 0,
+                      }}>
+                        {sportIcon(b.sport)}
+                      </div>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                          <h3 style={{ color: V.chalk, fontWeight: 800, fontSize: 17, margin: 0, fontFamily: FONT_BODY }}>
+                            {b.turf}
+                          </h3>
+                          <span style={{
+                            padding: "3px 9px",
+                            borderRadius: 6,
+                            fontSize: 11,
+                            fontWeight: 800,
+                            fontFamily: FONT_BODY,
+                            background: badge.bg,
+                            color: badge.color,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                          }}>
+                            <span aria-hidden="true">{badge.glyph}</span>
+                            {badge.label}
+                          </span>
+                        </div>
+                        <div style={{ color: V.chalkDim, fontSize: 13, marginTop: 4, fontFamily: FONT_BODY }}>
+                          📅 {formatBookingDate(b.bookingDate)} · ⏰ {b.time} · 🏆 {b.sport}
+                        </div>
+                        {isCancelled && (
+                          <div style={{ color: V.chalkFaint, fontSize: 11.5, marginTop: 4, fontFamily: FONT_BODY }}>
+                            Slot has been released back to public availability.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Right: Pricing & Actions */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                      <div style={{ textAlign: "right", marginRight: 6 }}>
+                        <span style={{ color: V.chalkFaint, fontSize: 11, display: "block" }}>Paid Amount</span>
+                        <span style={{ color: V.chalk, fontWeight: 800, fontSize: 17, fontFamily: FONT_BODY }}>
+                          ₹{b.price}
+                        </span>
+                      </div>
+
+                      {isUpcoming && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => onViewQr(b)}
+                            style={buttonStyle("secondary", "sm")}
+                          >
+                            QR Ticket
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onCancel(b)}
+                            style={buttonStyle("danger", "sm")}
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      )}
+
+                      {isPast && (
+                        <button
+                          type="button"
+                          onClick={() => onReview(b)}
+                          style={buttonStyle("primary", "sm")}
+                        >
+                          Rate Turf
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => onDispute(b)}
+                        style={buttonStyle("ghost", "sm")}
+                      >
+                        Help & Support
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
         </>
         )}
       </div>
@@ -1103,6 +1932,7 @@ export default function PlayerAppClient({ profile }) {
   const [activeTab, setActiveTab] = useState("home");
   const [bookingTurf, setBookingTurf] = useState(null);
   const [bookingQr, setBookingQr] = useState(null);
+  const [cancellingBooking, setCancellingBooking] = useState(null);
   const [reviewBooking, setReviewBooking] = useState(null);
   const [disputeBooking, setDisputeBooking] = useState(null);
 
@@ -1268,17 +2098,6 @@ export default function PlayerAppClient({ profile }) {
     if (opening && unreadCount > 0) {
       await handleMarkAllRead();
     }
-  };
-
-  const handleCancelBooking = async (bookingId) => {
-    const { error } = await supabase.from("bookings").update({ status: "cancelled" }).eq("id", bookingId);
-    if (error) {
-      showToast("Couldn't cancel that booking.", { type: "error" });
-      return;
-    }
-    showToast("Booking cancelled.", { type: "info" });
-    fetchMyBookings();
-    fetchTurfs();
   };
 
   const handleLeaveMatch = async (match) => {
@@ -1598,7 +2417,7 @@ export default function PlayerAppClient({ profile }) {
             : <GuestPrompt icon="🏆" title="Track your rewards" body="Sign up to earn loyalty points on every booking and see where you rank." router={router} />
           )}
           {activeTab === "dashboard" && (profile?.id
-            ? <DashboardSection isLoading={isTabLoading("dashboard")} bookings={myBookings} matchesJoined={matchesJoinedCount} onCancel={handleCancelBooking} onReview={setReviewBooking} onDispute={setDisputeBooking} onViewQr={setBookingQr} />
+            ? <DashboardSection isLoading={isTabLoading("dashboard")} bookings={myBookings} matchesJoined={matchesJoinedCount} onCancel={setCancellingBooking} onReview={setReviewBooking} onDispute={setDisputeBooking} onViewQr={setBookingQr} onFindTurf={() => setActiveTab("discover")} />
             : <GuestPrompt icon="📅" title="Your dashboard lives here" body="Sign up to see your bookings, track spend, and manage upcoming games." router={router} />
           )}
         </main>
@@ -1630,7 +2449,26 @@ export default function PlayerAppClient({ profile }) {
 
         {/* BOOKING MODAL */}
         {bookingTurf && (
-          <BookingModal turf={bookingTurf} profile={profile} supabase={supabase} onClose={handleBookingClose} onConfirm={handleBookingConfirmed} showToast={showToast} />
+          <BookingModal
+            turf={bookingTurf}
+            profile={profile}
+            supabase={supabase}
+            onClose={handleBookingClose}
+            onConfirm={handleBookingConfirmed}
+            onGoToDashboard={() => setActiveTab("dashboard")}
+            showToast={showToast}
+          />
+        )}
+        {cancellingBooking && (
+          <CancelBookingModal
+            booking={cancellingBooking}
+            onClose={() => setCancellingBooking(null)}
+            onCancelled={() => {
+              fetchMyBookings();
+              fetchTurfs();
+            }}
+            showToast={showToast}
+          />
         )}
         {bookingQr && <BookingQrModal booking={bookingQr} onClose={() => setBookingQr(null)} />}
         {reviewBooking && <ReviewModal booking={reviewBooking} profile={profile} supabase={supabase} onClose={() => setReviewBooking(null)} showToast={showToast} />}

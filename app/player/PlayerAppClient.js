@@ -277,52 +277,47 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast }
 
     setSubmitting(true);
     const slot = policyValidation.slot;
-    let data;
-    let error;
     try {
-      ({ data, error } = await supabase.from("bookings").insert({
-        turf_id: turf.id,
-        player_id: profile.id,
-        booking_date: todayStr(),
-        start_time: slot.raw_time,
-        sport: turf.sports[0],
-        players_count: 1,
-      }).select("id, price").single());
+      const response = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          turfId: turf.id,
+          startTime: slot.raw_time,
+          sport: turf.sports?.[0],
+          bookingDate: todayStr(),
+        }),
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        const message = result?.error || "Couldn't complete the booking. Try again.";
+        showToast(message, { type: "error" });
+        if (response.status === 409 || message.includes("just taken") || message.includes("no longer available")) {
+          setStep(1);
+        }
+        setSubmitting(false);
+        return;
+      }
+
+      if (!result?.id) {
+        console.error("booking creation returned no booking ID", result);
+        showToast("The booking was saved, but its ticket could not be loaded. Refresh your bookings.", { type: "error" });
+        setSubmitting(false);
+        return;
+      }
+
+      const finalPrice = Number(result.price ?? price);
+      setBookingId(result.id);
+      setBookingPrice(finalPrice);
+      setStep(3);
     } catch (requestError) {
       console.error("booking creation request failed", requestError);
       showToast("Couldn't complete the booking. Check your connection and try again.", { type: "error" });
+    } finally {
       setSubmitting(false);
-      return;
     }
-    setSubmitting(false);
-
-    if (error) {
-      console.error("booking creation failed", error);
-      if (error.code === "23505" || error.message?.includes("This slot is not available")) {
-        showToast("That slot was just taken — pick another.", { type: "error" });
-        setStep(1);
-      } else if ([
-        "This turf is not available for booking.",
-        "Bookings cannot be made for a past date.",
-        "This sport is not offered at this turf.",
-      ].includes(error.message)) {
-        showToast(error.message, { type: "error" });
-      } else {
-        showToast("Couldn't complete the booking. Try again.", { type: "error" });
-      }
-      return;
-    }
-
-    if (!data?.id) {
-      console.error("booking creation returned no booking ID", data);
-      showToast("The booking was saved, but its ticket could not be loaded. Refresh your bookings.", { type: "error" });
-      return;
-    }
-
-    const finalPrice = Number(data.price ?? price);
-    setBookingId(data.id);
-    setBookingPrice(finalPrice);
-    setStep(3);
   };
 
   return (

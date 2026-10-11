@@ -1,0 +1,81 @@
+{
+  "name": "Velocity Turf - Premium Turf Booking",
+  "short_name": "Velocity Turf",
+  "description": "Book premium football, cricket, and sports turfs, manage schedules, and track match slots with real-time availability.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "dir": "ltr",
+  "lang": "en-US",
+  "background_color": "#0e161a",
+  "theme_color": "#2ab97a",
+  "categories": ["sports", "fitness", "lifestyle", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192x192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/icons/screenshot-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Velocity Turf Desktop Arena and Turf Booking Portal"
+    },
+    {
+      "src": "/icons/screenshot-mobile.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Velocity Turf Instant Mobile Slot Booking"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Explore Turfs",
+      "short_name": "Turfs",
+      "description": "Browse available sports turfs and arenas",
+      "url": "/#turfs",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Sign In",
+      "short_name": "Login",
+      "description": "Log in to your player or manager account",
+      "url": "/login",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ],
+  "prefer_related_applications": false
+}

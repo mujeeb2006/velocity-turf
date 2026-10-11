@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="none">
+  <defs>
+    <clipPath id="vt-icon-clip">
+      <rect x="0" y="0" width="240" height="240" rx="56" />
+    </clipPath>
+  </defs>
+  <rect width="240" height="240" rx="56" fill="#159B57" />
+  <g clip-path="url(#vt-icon-clip)">
+    <!-- Turf alternating vertical stripes -->
+    <rect x="0" y="0" width="60" height="240" fill="#1EA660" opacity="0.25" />
+    <rect x="60" y="0" width="60" height="240" fill="#159B57" opacity="0.1" />
+    <rect x="120" y="0" width="60" height="240" fill="#1EA660" opacity="0.25" />
+    <rect x="180" y="0" width="60" height="240" fill="#0F7F4B" opacity="0.25" />
+    
+    <!-- Speed streaks -->
+    <path d="M72 48h54M84 62h38" stroke="#D9FBE9" stroke-width="6" stroke-linecap="round" opacity="0.95" />
+    
+    <!-- Neon Volt Speed Ball with inner core -->
+    <circle cx="176" cy="46" r="16" fill="#D4FF4F" />
+    <circle cx="176" cy="46" r="5" fill="#116B3B" />
+
+    <!-- Bold Velocity White V -->
+    <path d="M42 68h42l26 72 26-72h42l-48 116H90L42 68Z" fill="#FFFFFF" />
+  </g>
+  <rect x="1" y="1" width="238" height="238" rx="55" stroke="#0D7042" stroke-opacity="0.25" stroke-width="2" />
+</svg>

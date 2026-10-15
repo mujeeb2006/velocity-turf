@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import BrandMark from "@/components/brand-mark";
 
@@ -29,6 +29,9 @@ function getManualInstallMethod(userAgent, platform) {
   return null;
 }
 
+// Routes where an install prompt competes with a form the visitor is filling in.
+const HIDDEN_ROUTE_PREFIXES = ["/login", "/signup", "/auth", "/unauthorized"];
+
 function isStandalone() {
   if (typeof window === "undefined") return false;
   return (
@@ -48,6 +51,74 @@ export function PwaRegister() {
   const [isReady, setIsReady] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
   const [showInstallHelp, setShowInstallHelp] = useState(false);
+  const bannerRef = useRef(null);
+
+  // Publish the REAL height of the mobile bottom nav as --vt-bottom-nav-h so the
+  // banner sits exactly above it and page content can reserve the same space.
+  // (The old CSS assumed a hard-coded 64px nav, which is wrong on most phones.)
+  useEffect(() => {
+    const root = document.documentElement;
+    let frame = 0;
+    let observedNav = null;
+    const navObserver = typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => schedule()) : null;
+
+    function apply() {
+      frame = 0;
+      const nav = document.querySelector(".vt-bottom-nav");
+      const visible = Boolean(nav) && window.getComputedStyle(nav).display !== "none";
+      const height = visible ? Math.ceil(nav.getBoundingClientRect().height) : 0;
+      root.style.setProperty("--vt-bottom-nav-h", `${height}px`);
+      if (nav !== observedNav) {
+        navObserver?.disconnect();
+        observedNav = nav;
+        if (nav) navObserver?.observe(nav);
+      }
+    }
+
+    function schedule() {
+      if (!frame) frame = window.requestAnimationFrame(apply);
+    }
+
+    const mutationObserver = new MutationObserver(schedule);
+    mutationObserver.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener("resize", schedule);
+    window.addEventListener("orientationchange", schedule);
+    schedule();
+
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      mutationObserver.disconnect();
+      navObserver?.disconnect();
+      window.removeEventListener("resize", schedule);
+      window.removeEventListener("orientationchange", schedule);
+      root.style.removeProperty("--vt-bottom-nav-h");
+    };
+  }, [pathname]);
+
+  const hiddenOnRoute = HIDDEN_ROUTE_PREFIXES.some((prefix) => pathname?.startsWith(prefix));
+  const canOfferInstall = Boolean(deferredPrompt || manualInstallMethod);
+  const showBanner = isReady && !isDismissed && !isInstalled && canOfferInstall && !hiddenOnRoute;
+
+  // Reserve space for the banner at the end of the document (see `body` rule in
+  // globals.css) so the last card / primary actions are never covered by it.
+  useEffect(() => {
+    const root = document.documentElement;
+    const el = bannerRef.current;
+    if (!showBanner || !el) {
+      root.style.setProperty("--vt-pwa-banner-h", "0px");
+      return undefined;
+    }
+    const update = () => {
+      root.style.setProperty("--vt-pwa-banner-h", `${Math.ceil(el.getBoundingClientRect().height) + 16}px`);
+    };
+    update();
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(update) : null;
+    observer?.observe(el);
+    return () => {
+      observer?.disconnect();
+      root.style.setProperty("--vt-pwa-banner-h", "0px");
+    };
+  }, [showBanner]);
 
   useEffect(() => {
     // Check if dismissed in this session or previously persisted
@@ -155,10 +226,7 @@ export function PwaRegister() {
     }
   }
 
-  const isPlayerRoute = pathname === "/" || pathname === "/player";
-  const canOfferInstall = Boolean(deferredPrompt || manualInstallMethod);
-
-  if (!isReady || isDismissed || isInstalled || !canOfferInstall) {
+  if (!showBanner) {
     return null;
   }
 
@@ -173,8 +241,8 @@ export function PwaRegister() {
   return (
     <>
       <aside
+        ref={bannerRef}
         className="vt-pwa-banner"
-        data-bottom-nav={isPlayerRoute ? "true" : "false"}
         role="region"
         aria-label="Install Velocity Turf Application"
       >

@@ -2,6 +2,23 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { sanitizeRedirectPath } from "@/lib/auth/url";
 
+// When verification fails we still want a booking-in-progress to survive: the
+// intent travels inside `next` (/?resumeBooking=...), so hand it to /login.
+function failureRedirect(origin, isInvite, message, targetNext) {
+  const target = isInvite ? "/auth/set-password" : "/login";
+  const redirectUrl = new URL(target, origin);
+  redirectUrl.searchParams.set("error", message);
+  if (!isInvite) {
+    try {
+      const intent = new URL(targetNext, origin).searchParams.get("resumeBooking");
+      if (intent) redirectUrl.searchParams.set("bookingIntent", intent);
+    } catch {
+      // ignore malformed next
+    }
+  }
+  return NextResponse.redirect(redirectUrl.toString());
+}
+
 export async function GET(request) {
   const requestUrl = new URL(request.url);
   const { searchParams, origin } = requestUrl;
@@ -22,10 +39,7 @@ export async function GET(request) {
   // If Supabase redirected with an error (e.g. invalid or expired invite link)
   if (errorParam) {
     console.error("Auth callback received error from Supabase:", errorParam, errorDescription);
-    const target = isInvite ? "/auth/set-password" : "/login";
-    const redirectUrl = new URL(target, origin);
-    redirectUrl.searchParams.set("error", errorDescription || errorParam);
-    return NextResponse.redirect(redirectUrl.toString());
+    return failureRedirect(origin, isInvite, errorDescription || errorParam, targetNext);
   }
 
   const supabase = createClient();
@@ -36,10 +50,7 @@ export async function GET(request) {
 
     if (exchangeError) {
       console.error("Auth callback code exchange error:", exchangeError.message);
-      const target = isInvite ? "/auth/set-password" : "/login";
-      const redirectUrl = new URL(target, origin);
-      redirectUrl.searchParams.set("error", exchangeError.message);
-      return NextResponse.redirect(redirectUrl.toString());
+      return failureRedirect(origin, isInvite, exchangeError.message, targetNext);
     }
 
     if (data?.user) {
@@ -56,10 +67,7 @@ export async function GET(request) {
 
     if (verifyError) {
       console.error("Auth callback verifyOtp error:", verifyError.message);
-      const target = isInvite ? "/auth/set-password" : "/login";
-      const redirectUrl = new URL(target, origin);
-      redirectUrl.searchParams.set("error", verifyError.message);
-      return NextResponse.redirect(redirectUrl.toString());
+      return failureRedirect(origin, isInvite, verifyError.message, targetNext);
     }
 
     if (data?.user) {

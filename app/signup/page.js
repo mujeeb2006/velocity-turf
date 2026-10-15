@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { normalizeEmail, normalizeSignupRole, isValidEmail, isStrongPassword } from "@/lib/auth/validation";
 import { sanitizeRedirectPath } from "@/lib/auth/url";
 import {
+  buildResumeHref,
   decodeBookingIntent,
   encodeBookingIntent,
   getStoredBookingIntent,
@@ -39,12 +40,14 @@ function SignupForm() {
     }
   }, [rawIntentParam]);
 
+  // "/" routes the verified player to /player and keeps the intent param.
   const targetReturnUrl = bookingIntent
-    ? `/player?resumeBooking=${encodeBookingIntent(bookingIntent)}`
+    ? buildResumeHref(bookingIntent)
     : sanitizeRedirectPath(rawNextParam, "/");
 
   async function handleSignup(e) {
     e.preventDefault();
+    if (loading) return; // ignore double submits
     setError("");
 
     const trimmedFullName = fullName.trim();
@@ -75,18 +78,26 @@ function SignupForm() {
       ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(targetReturnUrl)}`
       : undefined;
 
-    const { data, error } = await supabase.auth.signUp({
-      email: normalizedEmail,
-      password,
-      options: {
-        emailRedirectTo,
-        data: {
-          full_name: trimmedFullName,
-          role: normalizeSignupRole(),
+    let signUpResult;
+    try {
+      signUpResult = await supabase.auth.signUp({
+        email: normalizedEmail,
+        password,
+        options: {
+          emailRedirectTo,
+          data: {
+            full_name: trimmedFullName,
+            role: normalizeSignupRole(),
+          },
         },
-      },
-    });
+      });
+    } catch {
+      setLoading(false);
+      setError("We couldn't reach the server. Check your connection and try again.");
+      return; // form values and booking intent are preserved
+    }
 
+    const { data, error } = signUpResult;
     if (error) {
       setLoading(false);
       setError(error.message);
@@ -94,6 +105,13 @@ function SignupForm() {
     }
 
     setLoading(false);
+
+    // Supabase answers an already-registered email with an obfuscated user that
+    // has no identities (and sends no email). Don't tell them to check an inbox.
+    if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      setError("An account with this email already exists. Please sign in instead.");
+      return;
+    }
 
     if (data?.session) {
       // Direct session granted
@@ -215,7 +233,7 @@ function SignupForm() {
           style={{ ...inputStyle, width: "100%", minHeight: 48, borderRadius: 10, padding: "13px 15px", boxSizing: "border-box" }}
         />
 
-        <button type="submit" disabled={loading} style={{ ...buttonStyle, width: "100%", minHeight: 50, marginTop: 4, borderRadius: 10, fontSize: 15 }}>
+        <button type="submit" disabled={loading} aria-busy={loading} style={{ ...buttonStyle, width: "100%", minHeight: 50, marginTop: 4, borderRadius: 10, fontSize: 15, opacity: loading ? 0.7 : 1, cursor: loading ? "progress" : "pointer" }}>
           {loading ? "Creating account…" : (bookingIntent ? "Sign up & Continue Booking →" : "Sign up")}
         </button>
       </form>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
 import { createClient } from "@/lib/supabase/client";
@@ -16,6 +16,13 @@ import { COLORS as V, NAV_ACCENTS, FONT_DISPLAY, FONT_BODY, FONT_DATA, panel, fl
 import StadiumScene from "@/components/StadiumScene";
 import BrandLockup from "@/components/brand-lockup";
 import { SPORT_OPTIONS } from "@/lib/sports";
+import {
+  clearStoredBookingIntent,
+  decodeBookingIntent,
+  encodeBookingIntent,
+  getStoredBookingIntent,
+  saveBookingIntent,
+} from "@/lib/booking/intent";
 
 function todayStr() {
   return dateKey();
@@ -339,8 +346,16 @@ function TurfCard({ turf, onBook, onMatch, index = 0 }) {
 // ============================================================
 // BOOKING MODAL & CANCELLATION MODAL
 // ============================================================
-function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, onGoToDashboard }) {
-  const [selectedDate, setSelectedDate] = useState(() => todayStr());
+function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, onGoToDashboard, resume = null }) {
+  // `resume` is only a HINT from a pre-login selection. The date is range-checked
+  // here, and the slot is only pre-selected after availability is re-fetched below.
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const today = todayStr();
+    const hinted = resume?.bookingDate;
+    return hinted && hinted >= today && hinted <= addDays(today, 6) ? hinted : today;
+  });
+  const resumeSlotRef = useRef(resume?.startTime ? { startTime: resume.startTime, date: resume.bookingDate } : null);
+  const [resumeNotice, setResumeNotice] = useState("");
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [modalSlots, setModalSlots] = useState(() => turf?.slots || []);
   const [slotsLoading, setSlotsLoading] = useState(false);
@@ -398,6 +413,20 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
             status: s.status,
           }));
           setModalSlots(list);
+
+          // Restore a slot picked before sign-in ONLY if the fresh data says it is still free.
+          const pending = resumeSlotRef.current;
+          if (pending && pending.date === selectedDate) {
+            resumeSlotRef.current = null;
+            const wanted = String(pending.startTime).slice(0, 5);
+            const index = list.findIndex(s => String(s.raw_time).slice(0, 5) === wanted);
+            if (index >= 0 && list[index].status === "available") {
+              setSelectedSlot(index);
+              setResumeNotice(`Welcome back! We re-checked availability: ${list[index].time} on ${selectedDate} is still open. Review the price, then confirm when you're ready.`);
+            } else {
+              setSlotConflictMsg(`The ${fmtTime(pending.startTime)} slot you picked earlier is no longer available. Your booking has not been made. Choose another available time to continue.`);
+            }
+          }
         }
       } catch (err) {
         if (active) setSlotConflictMsg("Network error loading slots. Please retry.");
@@ -583,6 +612,21 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
         <div style={{ padding: 22, overflowY: "auto", flex: 1 }}>
           {step === 1 && (
             <>
+              {resumeNotice && !slotConflictMsg && selectedSlot !== null && (
+                <div role="status" style={{
+                  background: "rgba(31, 155, 108, 0.1)",
+                  border: "1px solid rgba(31, 155, 108, 0.35)",
+                  borderRadius: 12,
+                  padding: "12px 14px",
+                  marginBottom: 16,
+                  fontSize: 13,
+                  color: V.chalk,
+                  fontWeight: 600,
+                  lineHeight: 1.45,
+                }}>
+                  {resumeNotice}
+                </div>
+              )}
               {/* Conflict Alert Banner if stale slot */}
               {slotConflictMsg && (
                 <div role="alert" style={{
@@ -1938,6 +1982,9 @@ export default function PlayerAppClient({ profile }) {
 
   const [turfs, setTurfs] = useState([]);
   const [turfsLoading, setTurfsLoading] = useState(true);
+  const [turfsError, setTurfsError] = useState(false);
+  const [resumeIntent, setResumeIntent] = useState(null);
+  const resumeHandledRef = useRef(false);
   const [matches, setMatches] = useState([]);
   const [matchesLoading, setMatchesLoading] = useState(true);
   const [leaderboard, setLeaderboard] = useState([]);
@@ -1958,6 +2005,7 @@ export default function PlayerAppClient({ profile }) {
       .order("rating", { ascending: false });
     if (error) {
       showToast("Couldn't load turfs. Try refreshing.", { type: "error" });
+      setTurfsError(true);
       setTurfsLoading(false);
       return;
     }
@@ -2155,10 +2203,50 @@ export default function PlayerAppClient({ profile }) {
   };
 
   const handleBook = (turf) => {
-    if (!profile?.id) { router.push("/signup"); return; }
+    if (!profile?.id) {
+      // Remember what the guest wanted so sign-up / sign-in can bring them back to it.
+      const intent = { turfId: turf.id, turfName: turf.name, sport: turf.sports?.[0] || "" };
+      saveBookingIntent(intent);
+      const encoded = encodeBookingIntent(intent);
+      router.push(encoded ? `/signup?bookingIntent=${encoded}` : "/signup");
+      return;
+    }
     setBookingTurf(turf);
   };
-  const handleBookingClose = () => setBookingTurf(null);
+  const handleBookingClose = () => { setBookingTurf(null); setResumeIntent(null); };
+
+  // Resume a booking started before authentication. This only RE-OPENS the
+  // booking modal: nothing is created or paid until the user confirms there.
+  useEffect(() => {
+    if (resumeHandledRef.current || turfsLoading || !profile?.id) return;
+    resumeHandledRef.current = true; // one attempt per page load (refresh-safe)
+
+    const params = new URLSearchParams(window.location.search);
+    const intent = decodeBookingIntent(params.get("resumeBooking")) || getStoredBookingIntent();
+    if (!intent) return;
+
+    // Consume it so refresh / back / re-opened callbacks never replay it.
+    clearStoredBookingIntent();
+    if (params.has("resumeBooking")) {
+      params.delete("resumeBooking");
+      const qs = params.toString();
+      window.history.replaceState(null, "", window.location.pathname + (qs ? `?${qs}` : ""));
+    }
+
+    setActiveTab("discover");
+    if (turfsError) {
+      showToast("We couldn't reload turfs to restore your booking. Please pick your turf again.", { type: "info" });
+      return;
+    }
+    const turf = turfs.find((t) => t.id === intent.turfId);
+    if (!turf) {
+      showToast("That turf is no longer available for booking. Your booking has not been made. Browse other turfs to continue.", { type: "info" });
+      return;
+    }
+    setResumeIntent(intent);
+    setBookingTurf(turf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [turfsLoading, turfsError, profile?.id, turfs]);
 
   const handleJoin = async (match) => {
     if (!profile?.id) { router.push("/signup"); return; }
@@ -2228,7 +2316,7 @@ export default function PlayerAppClient({ profile }) {
           .vt-top-nav { display: none !important; }
           .vt-bottom-nav { display: flex !important; }
           .vt-mobile-topbar { display: flex !important; }
-          .vt-main-content { padding-top: 56px !important; padding-bottom: 80px !important; }
+          .vt-main-content { padding-top: 56px !important; padding-bottom: calc(max(var(--vt-bottom-nav-h, 72px), env(safe-area-inset-bottom, 0px)) + 24px) !important; }
         }
       `}</style>
 
@@ -2457,6 +2545,7 @@ export default function PlayerAppClient({ profile }) {
             onConfirm={handleBookingConfirmed}
             onGoToDashboard={() => setActiveTab("dashboard")}
             showToast={showToast}
+            resume={resumeIntent}
           />
         )}
         {cancellingBooking && (

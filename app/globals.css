@@ -118,11 +118,13 @@ button:active {
   z-index: 920;
   left: 50%;
   transform: translateX(-50%);
-  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  /* --vt-bottom-nav-h is measured from the real nav by PwaRegister (0 when no
+     bottom nav is visible); the nav already contains the safe-area inset. */
+  bottom: calc(max(var(--vt-bottom-nav-h, 0px), env(safe-area-inset-bottom, 0px)) + 8px);
   display: flex;
   align-items: center;
   gap: 8px;
-  width: min(440px, calc(100vw - 16px));
+  width: min(440px, calc(100% - 16px));
   min-width: 0;
   padding: 7px 10px;
   color: #fff;
@@ -136,8 +138,10 @@ button:active {
   animation: vt-pwa-slide-up 240ms ease-out both;
 }
 
-.vt-pwa-banner[data-bottom-nav="true"] {
-  bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 8px);
+/* Reserve room at the end of the document so the banner never hides the last
+   card; the bottom-nav share of the reservation lives on .vt-main-content. */
+body {
+  padding-bottom: var(--vt-pwa-banner-h, 0px);
 }
 
 .vt-pwa-brand {
@@ -204,10 +208,10 @@ button:active {
 
 .vt-pwa-install {
   display: inline-flex;
-  min-height: 32px;
+  min-height: 40px;
   align-items: center;
   justify-content: center;
-  padding: 0 11px;
+  padding: 0 14px;
   color: #0e161a;
   background: #2ab97a;
   border: 0;
@@ -243,10 +247,11 @@ button:active {
 }
 
 .vt-pwa-dismiss {
+  position: relative;
   display: grid;
-  flex: 0 0 32px;
-  width: 32px;
-  height: 32px;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
   padding: 0;
   place-items: center;
   color: rgba(243, 245, 241, 0.72);
@@ -254,6 +259,12 @@ button:active {
   border: 0;
   border-radius: 7px;
   cursor: pointer;
+}
+
+.vt-pwa-dismiss::after {
+  position: absolute;
+  inset: -2px;
+  content: "";
 }
 
 .vt-pwa-dismiss:hover {
@@ -340,14 +351,14 @@ button:active {
   }
 
   .vt-pwa-install {
-    min-height: 36px;
-    padding-inline: 10px;
+    min-height: 40px;
+    padding-inline: 12px;
   }
 
   .vt-pwa-dismiss {
-    flex-basis: 32px;
-    width: 32px;
-    height: 36px;
+    flex-basis: 40px;
+    width: 40px;
+    height: 40px;
   }
 }
 
@@ -1933,6 +1944,11 @@ button:active {
 }
 
 .vt-player-app {
+  /* The hero's decorative ::before circle extends past the right edge; without
+     clipping it widens the page (and, on phones, the layout viewport), which
+     pushed fixed elements such as the install banner and tab bar off-screen.
+     `clip` (unlike `hidden`) does not create a scroll container. */
+  overflow-x: clip;
   background-image:
     radial-gradient(ellipse at 82% 4%, rgba(31, 174, 113, 0.075), transparent 30rem),
     linear-gradient(180deg, #f7faf6 0%, #f3f6f2 42%, #fff 100%) !important;
@@ -2527,7 +2543,7 @@ button:active {
 
   .vt-main-content {
     padding-top: 58px !important;
-    padding-bottom: calc(150px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: calc(max(var(--vt-bottom-nav-h, 72px), env(safe-area-inset-bottom, 0px)) + 24px) !important;
   }
 
   .vt-live-indicator {
@@ -2692,18 +2708,6 @@ button:active {
     gap: 6px !important;
   }
 
-  .vt-pwa-title {
-    font-size: 11.5px !important;
-  }
-
-  .vt-pwa-subtitle {
-    display: none !important;
-  }
-
-  .vt-pwa-install {
-    padding: 5px 9px !important;
-    font-size: 11px !important;
-  }
 
   .vt-bottom-nav button {
     padding: 4px 1px !important;

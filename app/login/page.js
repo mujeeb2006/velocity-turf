@@ -11,6 +11,7 @@ import { COLORS as V } from "@/lib/design-tokens";
 
 import { sanitizeRedirectPath } from "@/lib/auth/url";
 import {
+  buildResumeHref,
   decodeBookingIntent,
   encodeBookingIntent,
   getStoredBookingIntent,
@@ -25,7 +26,8 @@ function LoginForm() {
   const urlError = searchParams?.get("error");
   const rawIntentParam = searchParams?.get("bookingIntent");
   const rawNextParam = searchParams?.get("next");
-  const [error, setError] = useState(urlError ? decodeURIComponent(urlError) : "");
+  // searchParams.get() already decodes; decoding again can throw on a literal "%".
+  const [error, setError] = useState(urlError || "");
   const [loading, setLoading] = useState(false);
   const [bookingIntent, setBookingIntent] = useState(null);
 
@@ -39,6 +41,7 @@ function LoginForm() {
 
   async function handleLogin(e) {
     e.preventDefault();
+    if (loading) return; // ignore double submits
     setError("");
 
     const normalizedEmail = normalizeEmail(email);
@@ -53,26 +56,41 @@ function LoginForm() {
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
-    setLoading(false);
-    if (error) {
-      if (error.message.toLowerCase().includes("invalid login credentials")) {
+    let signInError = null;
+    try {
+      const result = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
+      signInError = result.error;
+    } catch {
+      setLoading(false);
+      setError("We couldn't reach the server. Check your connection and try again.");
+      return; // booking intent stays in state + sessionStorage
+    }
+
+    if (signInError) {
+      setLoading(false);
+      const message = signInError.message.toLowerCase();
+      if (message.includes("invalid login credentials")) {
         setError(
           "Invalid login credentials. If you are an invited turf owner, please click the invitation link in your email to set your password."
         );
+      } else if (message.includes("email not confirmed")) {
+        setError("Please confirm your email first. Open the verification link we sent you, then sign in.");
       } else {
-        setError(error.message);
+        setError(signInError.message);
       }
+      return; // booking intent is kept so the user can retry
+    }
+
+    // Hard navigation ensures the session cookie is fresh on the server.
+    // Signing in never creates a booking: "/" routes players to /player with
+    // the intent (the booking modal reopens for explicit confirmation) and
+    // owners/admins to their own dashboards.
+    if (bookingIntent) {
+      window.location.href = buildResumeHref(bookingIntent);
+    } else if (rawNextParam) {
+      window.location.href = sanitizeRedirectPath(rawNextParam, "/");
     } else {
-      // Hard navigation ensures session cookie is fresh on server
-      if (bookingIntent) {
-        const encoded = encodeBookingIntent(bookingIntent);
-        window.location.href = `/player?resumeBooking=${encoded}`;
-      } else if (rawNextParam) {
-        window.location.href = sanitizeRedirectPath(rawNextParam, "/");
-      } else {
-        window.location.href = "/";
-      }
+      window.location.href = "/";
     }
   }
 
@@ -111,11 +129,12 @@ function LoginForm() {
         </div>
       )}
 
-      {error && <div style={{ ...errorStyle, marginBottom: 16 }}>{error}</div>}
+      {error && <div role="alert" style={{ ...errorStyle, marginBottom: 16 }}>{error}</div>}
 
       <form onSubmit={handleLogin} style={{ display: "grid", gap: 14 }}>
         <input
           type="email"
+          aria-label="Email address"
           placeholder="Email address"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -125,6 +144,7 @@ function LoginForm() {
         />
         <input
           type="password"
+          aria-label="Password"
           placeholder="Your password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -132,7 +152,7 @@ function LoginForm() {
           autoComplete="current-password"
           style={inputStyle}
         />
-        <button type="submit" disabled={loading} style={buttonStyle}>
+        <button type="submit" disabled={loading} aria-busy={loading} style={{ ...buttonStyle, opacity: loading ? 0.7 : 1, cursor: loading ? "progress" : "pointer" }}>
           {loading ? "Signing in…" : (bookingIntent ? "Sign in & Continue Booking →" : "Sign in")}
         </button>
       </form>

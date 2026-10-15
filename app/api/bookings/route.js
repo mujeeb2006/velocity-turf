@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getProfile } from "@/lib/supabase/server";
 import { normalizeUserRole } from "@/lib/auth/validation";

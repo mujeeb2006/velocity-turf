@@ -1821,7 +1821,8 @@ body {
 }
 
 .vt-discover-section {
-  padding: 54px 24px 76px;
+  --vt-discover-pad: 24px;
+  padding: 54px var(--vt-discover-pad) 76px;
   border-top: 1px solid rgba(25, 48, 39, 0.08);
   background: #f8faf7;
 }
@@ -1867,20 +1868,91 @@ body {
 .vt-discover-controls {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 16px;
-  margin-bottom: 25px;
+  margin-bottom: 24px;
+}
+
+/* Left side of the toolbar: a single-row, scrollable rail of sport chips with
+   optional arrow buttons. It takes all remaining width (min-width: 0 lets it
+   shrink below its content instead of pushing the search field around). */
+.vt-sport-filters-wrap {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .vt-sport-filters {
+  --fade-l: 0px;
+  --fade-r: 0px;
   display: flex;
-  flex-wrap: wrap;
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
   gap: 8px;
+  min-width: 0;
+  padding: 4px 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  /* soft fade on whichever side still has hidden chips */
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
+}
+
+.vt-sport-filters::-webkit-scrollbar {
+  display: none;
+}
+
+.vt-sport-scroll {
+  display: grid;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  padding: 0 0 2px;
+  place-items: center;
+  border: 1px solid rgba(25, 48, 39, 0.11);
+  border-radius: 50%;
+  background: #fff;
+  color: #3c4b44;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  box-shadow: 0 2px 5px rgba(20, 53, 38, 0.06);
+}
+
+.vt-sport-scroll[hidden] {
+  /* keep the space so the rail width never jumps when arrows toggle */
+  display: grid;
+  visibility: hidden;
+}
+
+.vt-sport-scroll:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.vt-sport-scroll:focus-visible {
+  outline: 2px solid #168a5a;
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .vt-sport-scroll:not(:disabled):hover {
+    border-color: #168a5a;
+    color: #168a5a;
+  }
 }
 
 .vt-sport-filter {
+  flex: 0 0 auto;
   min-height: 40px;
   padding: 0 16px;
+  white-space: nowrap;
   border: 1px solid rgba(25, 48, 39, 0.11);
   border-radius: 999px;
   background: #fff;
@@ -1892,18 +1964,35 @@ body {
   transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
 }
 
-.vt-sport-filter:hover,
 .vt-sport-filter.active {
   border-color: #168a5a;
   background: #168a5a;
   color: #fff;
 }
 
+/* Hover styling only where a real pointer exists, so a tap on a phone does not
+   leave an inactive chip looking selected. */
+@media (hover: hover) {
+  .vt-sport-filter:hover {
+    border-color: #168a5a;
+    background: #168a5a;
+    color: #fff;
+  }
+}
+
+.vt-sport-filter:focus-visible {
+  outline: 2px solid #168a5a;
+  outline-offset: 2px;
+}
+
 .vt-discover-search {
   display: flex;
+  flex: 0 0 300px;
   align-items: center;
   gap: 10px;
-  width: min(100%, 340px);
+  width: 300px;
+  min-width: 0;
+  height: 44px;
   min-height: 44px;
   padding: 0 13px;
   border: 1px solid rgba(25, 48, 39, 0.12);
@@ -2019,9 +2108,11 @@ body {
   transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
 }
 
-.vt-sport-filter:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 7px 16px rgba(20, 53, 38, 0.09);
+@media (hover: hover) {
+  .vt-sport-filter:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 7px 16px rgba(20, 53, 38, 0.09);
+  }
 }
 
 .vt-venue-card {
@@ -2422,6 +2513,18 @@ body {
   }
 }
 
+@media (max-width: 1023px) {
+  /* Tablet: keep one row; the search narrows and the chip rail scrolls. */
+  .vt-discover-controls {
+    gap: 12px;
+  }
+
+  .vt-discover-search {
+    flex-basis: 240px;
+    width: 240px;
+  }
+}
+
 @media (max-width: 760px) {
   .vt-dashboard-sidebar::after {
     display: none;
@@ -2563,7 +2666,8 @@ body {
   }
 
   .vt-discover-section {
-    padding: 42px 16px 56px;
+    --vt-discover-pad: 16px;
+    padding: 42px var(--vt-discover-pad) 56px;
   }
 
   .vt-match-section,
@@ -2598,10 +2702,35 @@ body {
   .vt-discover-controls {
     align-items: stretch;
     flex-direction: column;
+    gap: 16px;
+    margin-bottom: 20px;
   }
 
   .vt-discover-search {
+    flex: 0 0 auto;
     width: 100%;
+  }
+
+  .vt-sport-scroll,
+  .vt-sport-scroll[hidden] {
+    display: none;
+  }
+
+  /* One horizontally scrollable row. It bleeds to the screen edges (negative
+     margin == the section padding) so chips scroll under the edge instead of
+     being cut off at the content boundary, and padding restores the inset at
+     both ends so the first/last chip rest fully visible. */
+  .vt-sport-filters-wrap {
+    flex: 0 0 auto;
+    margin-inline: calc(-1 * var(--vt-discover-pad));
+  }
+
+  .vt-sport-filters {
+    padding: 4px var(--vt-discover-pad) 6px;
+    scroll-padding-inline: var(--vt-discover-pad);
+    /* edge-to-edge on phones: no fade, the cut-off chip is the scroll hint */
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 
   .vt-venue-grid {
@@ -2675,21 +2804,41 @@ body {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 
+  /* Phones: count badge sits at the top-right, level with the eyebrow label,
+     instead of orphaning on its own row. display: contents lets the existing
+     text wrapper's children join the grid without changing the markup. */
   .vt-discover-heading {
-    align-items: flex-start;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 12px;
+    align-items: center;
+  }
+
+  .vt-discover-heading > div {
+    display: contents;
+  }
+
+  .vt-discover-heading .vt-section-eyebrow {
+    grid-area: 1 / 1;
+  }
+
+  .vt-discover-heading .vt-venue-count {
+    grid-area: 1 / 2;
+    padding: 5px 11px;
+  }
+
+  .vt-discover-heading h2 {
+    grid-area: 2 / 1 / 3 / 3;
+  }
+
+  .vt-discover-heading p {
+    grid-area: 3 / 1 / 4 / 3;
   }
 }
 
 @media (max-width: 430px) {
-  .vt-sport-filters {
-    gap: 6px;
-  }
-
   .vt-sport-filter {
-    min-height: 34px;
-    padding: 0 12px;
-    font-size: 11px;
+    padding: 0 14px;
   }
 
   .vt-venue-actions {

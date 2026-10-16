@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
 import { createClient } from "@/lib/supabase/client";
@@ -1226,6 +1226,31 @@ function DiscoverSection({ turfs, onBook, onMatch, isLoading, initialSearch = ""
 
   useEffect(() => { setSearch(initialSearch); }, [initialSearch]);
 
+  // Chip rail: track whether more chips are hidden on either side (drives the
+  // edge fades and the arrow buttons) and keep it correct on resize.
+  const railRef = useRef(null);
+  const [edges, setEdges] = useState({ start: false, end: false });
+  const updateEdges = useCallback(() => {
+    const el = railRef.current;
+    if (!el) return;
+    const next = { start: el.scrollLeft > 2, end: el.scrollLeft < el.scrollWidth - el.clientWidth - 2 };
+    setEdges((prev) => (prev.start === next.start && prev.end === next.end ? prev : next));
+  }, []);
+  useEffect(() => {
+    const el = railRef.current;
+    if (!el) return undefined;
+    updateEdges();
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(updateEdges) : null;
+    observer?.observe(el);
+    window.addEventListener("resize", updateEdges);
+    return () => { observer?.disconnect(); window.removeEventListener("resize", updateEdges); };
+  }, [updateEdges, sports.length]);
+  const scrollBehavior = () => (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth");
+  const scrollRail = (direction) => {
+    const el = railRef.current;
+    if (el) el.scrollBy({ left: direction * Math.max(160, el.clientWidth * 0.7), behavior: scrollBehavior() });
+  };
+
   const q = search.trim().toLowerCase();
   const filtered = turfs
     .filter(t => filter === "All" || t.sports.some((sport) => String(sport).toLowerCase() === filter.toLowerCase()))
@@ -1246,12 +1271,33 @@ function DiscoverSection({ turfs, onBook, onMatch, isLoading, initialSearch = ""
         </div>
 
         <div className="vt-discover-controls">
-          <div className="vt-sport-filters" aria-label="Filter turfs by sport">
-            {sports.map(s => (
-              <button key={s} onClick={() => setFilter(s)} className={`vt-sport-filter ${filter === s ? "active" : ""}`} aria-pressed={filter === s}>
-                {s}
-              </button>
-            ))}
+          <div className="vt-sport-filters-wrap">
+            <button type="button" className="vt-sport-scroll" onClick={() => scrollRail(-1)} disabled={!edges.start} hidden={!edges.start && !edges.end} aria-label="Scroll sports left">‹</button>
+            <div
+              ref={railRef}
+              className="vt-sport-filters"
+              role="group"
+              aria-label="Filter turfs by sport"
+              onScroll={updateEdges}
+              style={{ "--fade-l": edges.start ? "28px" : "0px", "--fade-r": edges.end ? "28px" : "0px" }}
+            >
+              {sports.map(s => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={(e) => {
+                    setFilter(s);
+                    // make sure a partially hidden chip ends up fully in view
+                    e.currentTarget.scrollIntoView?.({ inline: "nearest", block: "nearest", behavior: scrollBehavior() });
+                  }}
+                  className={`vt-sport-filter ${filter === s ? "active" : ""}`}
+                  aria-pressed={filter === s}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+            <button type="button" className="vt-sport-scroll" onClick={() => scrollRail(1)} disabled={!edges.end} hidden={!edges.start && !edges.end} aria-label="Scroll sports right">›</button>
           </div>
 
           <label className="vt-discover-search">

@@ -20,6 +20,7 @@ import {
   NotificationsPanel, Pill, SearchInput, SectionTitle, Segmented, SideNav, StatCard, StatGrid, StatusPill, Stars,
   Toolbar, TopBar, downloadCSV, font, inputStyle, labelStyle, mono, useDebounced, useNotifications,
 } from "@/components/dashboard/kit";
+import { extractErrorMessage } from "@/lib/api-response";
 
 const TABS = ["overview", "turfs", "bookings", "analytics", "payouts", "reviews"];
 const AMENITY_OPTIONS = ["Floodlights", "Parking", "Cafeteria", "Showers", "AC Hall", "Lockers", "WiFi", "Turf"];
@@ -567,7 +568,7 @@ export default function OwnerDashboardClient({ profile }) {
       let data = {};
       try { data = await response.json(); } catch { /* empty body */ }
       if (!response.ok) {
-        showToast(data.error || "Couldn't update that booking request. Try again.", { type: "error" });
+        showToast(extractErrorMessage(data, "Couldn't update that booking request. Try again."), { type: "error" });
         if (response.status === 409) fetchAll();
         return;
       }
@@ -888,7 +889,7 @@ export default function OwnerDashboardClient({ profile }) {
           const paid = payouts.filter((p) => p.status === "paid").reduce((s, p) => s + toNumber(p.amount), 0);
           const pending = payouts.filter((p) => p.status !== "paid").reduce((s, p) => s + toNumber(p.amount), 0);
           const columns = [
-            { key: "payout_id", label: "Payout ID", width: "1fr", render: (p) => <span style={{ fontFamily: mono }}>{p.payout_id || (p.id ? String(p.id).slice(0, 8) : "—")}</span> },
+            { key: "payout_id", label: "Payout ID", width: "1fr", render: (p) => <span style={{ fontFamily: mono }}>{p.payout_id || p.payout_number || (p.id ? String(p.id).slice(0, 8) : "—")}</span> },
             { key: "period", label: "Period", width: "1.2fr", render: (p) => <span style={{ color: V.chalk }}>{p.period || [p.period_start, p.period_end].filter(Boolean).join(" – ") || "—"}</span> },
             { key: "amount", label: "Amount", width: "1.2fr", align: "right", render: (p) => <span style={{ fontFamily: font, color: V.chalk, fontWeight: 700 }}>{formatINR(p.amount)}</span> },
             { key: "status", label: "Status", width: "1.1fr", render: (p) => <StatusPill status={p.status || "pending"} /> },
@@ -897,7 +898,7 @@ export default function OwnerDashboardClient({ profile }) {
             <>
               <TopBar title="Payouts" sub="Money paid out to you" action={payouts.length > 0 && (
                 <Btn icon="download" size="sm" onClick={() => downloadCSV(`payouts-${today}.csv`, payouts, [
-                  { label: "Payout ID", value: (p) => p.payout_id || p.id }, { label: "Period", value: (p) => p.period || [p.period_start, p.period_end].filter(Boolean).join(" to ") },
+                  { label: "Payout ID", value: (p) => p.payout_id || p.payout_number || p.id }, { label: "Period", value: (p) => p.period || [p.period_start, p.period_end].filter(Boolean).join(" to ") },
                   { label: "Amount (INR)", key: "amount" }, { label: "Status", key: "status" },
                 ])}>Export CSV</Btn>
               )} />

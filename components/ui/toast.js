@@ -23,7 +23,14 @@ export function ToastProvider({ children }) {
     const id = ++idRef.current;
     const type = opts.type || "info";
     const duration = opts.duration ?? 4000;
-    setToasts((prev) => [...prev.slice(-3), { id, message, type }]);
+    const text = typeof message === "string"
+      ? message
+      : (typeof message?.message === "string"
+          ? message.message
+          : (typeof message?.error === "string"
+              ? message.error
+              : String(message || "")));
+    setToasts((prev) => [...prev.slice(-3), { id, message: text, type }]);
     if (duration > 0) {
       setTimeout(() => dismiss(id), duration);
     }

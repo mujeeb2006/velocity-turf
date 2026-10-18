@@ -22,6 +22,7 @@ import {
   StatusPill, Pill, Toolbar, TopBar, downloadCSV, font, inputStyle, labelStyle, mono, useDebounced,
   useNotifications,
 } from "@/components/dashboard/kit";
+import { extractErrorMessage } from "@/lib/api-response";
 
 const TABS = ["overview", "approvals", "turfs", "bookings", "users", "payouts", "disputes"];
 const ROLE_COLORS = { Admin: V.violet, "Turf Owner": V.sky, Player: V.flood };
@@ -341,14 +342,19 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
       { key: "totalRevenue", label: "Revenue", width: "1fr", align: "right", render: o => <span style={{ fontFamily: font, color: V.chalk, fontWeight: 700 }}>{formatINR(o.totalRevenue)}</span> },
       { key: "totalPaid", label: "Paid", width: "1fr", align: "right", render: o => <span style={{ fontFamily: font, color: V.chalk, fontWeight: 700 }}>{formatINR(o.totalPaid)}</span> },
 ];
-const payoutColumns = [
-  { key: "payout_number", label: "#", width: "1fr" },
-  { key: "ownerName", label: "Owner", width: "1.5fr" },
-  { key: "periodStart", label: "Start", width: "1fr" },
-  { key: "periodEnd", label: "End", width: "1fr" },
-  { key: "amount", label: "Amount", width: "1fr", align: "right", render: p => <span style={{ fontFamily: font, color: V.chalk, fontWeight: 700 }}>{formatINR(p.amount)}</span> },
-  { key: "status", label: "Status", width: "1fr", render: p => <StatusPill status={p.status} /> },
-];
+    const payoutColumns = [
+      { key: "payout_number", label: "#", width: "1fr", render: p => p.payout_number || p.payout_id || (p.id ? `PO-${String(p.id).slice(0, 8)}` : "—") },
+      { key: "ownerName", label: "Owner", width: "1.5fr" },
+      { key: "periodStart", label: "Start", width: "1fr" },
+      { key: "periodEnd", label: "End", width: "1fr" },
+      { key: "amount", label: "Amount", width: "1fr", align: "right", render: p => <span style={{ fontFamily: font, color: V.chalk, fontWeight: 700 }}>{formatINR(p.amount)}</span> },
+      { key: "status", label: "Status", width: "1fr", render: p => <StatusPill status={p.status} /> },
+      { key: "actions", label: "Actions", width: "1.1fr", align: "right", render: p => p.status !== "paid" ? (
+        <Btn variant="primary" size="sm" busy={updatingPayoutId === p.id} onClick={() => handleMarkPaid(p.id)}>
+          Mark paid
+        </Btn>
+      ) : <span style={{ color: V.chalkFaint, fontSize: 12 }}>Completed</span> },
+    ];
 
 
     const filteredOwners = ownerQuery ? ownersRows.filter(o => o.full_name?.toLowerCase().includes(ownerQuery.toLowerCase())) : ownersRows;
@@ -357,9 +363,19 @@ const payoutColumns = [
     return (
       <>
         <TopBar title="Payouts" sub="Money paid out to owners" action={
-          <Btn variant="primary" icon="plus" size="sm" onClick={() => setShowPayoutModal(true)}>
-            New Payout
-          </Btn>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Btn icon="download" size="sm" disabled={!rows.length} onClick={() => downloadCSV(`payouts-${today}.csv`, rows, [
+              { label: "Payout ID", value: p => p.payout_number || p.payout_id || p.id },
+              { label: "Owner", key: "ownerName" },
+              { label: "Start", key: "periodStart" },
+              { label: "End", key: "periodEnd" },
+              { label: "Amount (INR)", key: "amount" },
+              { label: "Status", key: "status" },
+            ])}>Export CSV</Btn>
+            <Btn variant="primary" icon="plus" size="sm" onClick={() => setShowPayoutModal(true)}>
+              New Payout
+            </Btn>
+          </div>
         } />
         <StatGrid>
           <StatCard label="Paid to owners" value={formatINR(paidTotal)} icon="wallet" color={V.confirmed} sub={`${rows.filter(p=>p.status==="paid").length} payouts completed`} />
@@ -462,7 +478,7 @@ const payoutColumns = [
     setBusyTurfId(null);
     setRejecting(null);
     if (!ok) {
-      showToast(data.error || "Couldn't update that turf. Try again.", { type: "error" });
+      showToast(extractErrorMessage(data, "Couldn't update that turf. Try again."), { type: "error" });
       fetchAll();
       return;
     }
@@ -481,7 +497,7 @@ const payoutColumns = [
     setBusyBookingId(null);
     setRejectingBooking(null);
     if (!ok) {
-      showToast(data.error || "Couldn't update that booking. Try again.", { type: "error" });
+      showToast(extractErrorMessage(data, "Couldn't update that booking. Try again."), { type: "error" });
       fetchAll();
       return;
     }
@@ -500,7 +516,7 @@ const payoutColumns = [
     const { ok, data } = await postJson("/api/admin/disputes/resolve", { disputeId: dispute.dbId, outcome });
     setBusyDispute(false);
     if (!ok) {
-      showToast(data.error || "Couldn't resolve that dispute. Try again.", { type: "error" });
+      showToast(extractErrorMessage(data, "Couldn't resolve that dispute. Try again."), { type: "error" });
       fetchAll();
       return;
     }
@@ -516,7 +532,7 @@ const payoutColumns = [
     const { ok, data } = await postJson("/api/admin/owners", { fullName: invite.name, email: invite.email });
     setInviting(false);
     if (!ok) {
-      setInviteError(data.error || "Could not send the invitation.");
+      setInviteError(extractErrorMessage(data, "Could not send the invitation."));
       return;
     }
     setInvite({ name: "", email: "" });
@@ -539,9 +555,10 @@ const payoutColumns = [
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payoutForm),
       });
-      const data = await res.json();
+      let data = {};
+      try { data = await res.json(); } catch { /* ignore non-JSON */ }
       if (!res.ok) {
-        setPayoutSubmitError(data.error || "Failed to create payout.");
+        setPayoutSubmitError(extractErrorMessage(data, "Failed to create payout."));
         setPayoutSubmitting(false);
         return;
       }
@@ -571,9 +588,10 @@ const payoutColumns = [
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ payoutId, status: "paid" }),
       });
-      const data = await res.json();
+      let data = {};
+      try { data = await res.json(); } catch { /* ignore non-JSON */ }
       if (!res.ok) {
-        showToast(data.error || "Failed to update payout.", { type: "error" });
+        showToast(extractErrorMessage(data, "Failed to update payout."), { type: "error" });
       } else {
         showToast("Payout marked as paid and owner notified!", { type: "success" });
         fetchPayouts();

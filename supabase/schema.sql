@@ -35,6 +35,7 @@ create table if not exists public.turfs (
   close_time time not null default '22:00',
   status text not null default 'pending' check (status in ('pending', 'live', 'rejected')),
   approved_at timestamptz,
+  archived_at timestamptz,
   rating numeric(3, 2) not null default 0 check (rating between 0 and 5),
   review_count integer not null default 0 check (review_count >= 0),
   created_at timestamptz not null default now(),
@@ -53,6 +54,7 @@ create table if not exists public.bookings (
   players_count integer not null default 1 check (players_count > 0),
   price numeric(10, 2) not null check (price >= 0),
   status text not null default 'confirmed' check (status in ('pending', 'confirmed', 'declined', 'cancelled', 'completed')),
+  archived_at timestamptz,
   created_at timestamptz not null default now()
 );
 
@@ -102,12 +104,13 @@ create index if not exists disputes_status_created_idx on public.disputes (statu
 create table if not exists public.payouts (
   id uuid primary key default gen_random_uuid(),
   payout_id text unique,
+  payout_number text,
   owner_id uuid not null references public.profiles(id) on delete restrict,
   period text,
   period_start date,
   period_end date,
   amount numeric(10, 2) not null default 0 check (amount >= 0),
-  status text not null default 'pending',
+  status text not null default 'pending' check (status in ('pending', 'processing', 'paid', 'failed')),
   created_at timestamptz not null default now()
 );
 
@@ -218,7 +221,11 @@ create policy "profiles_update_own_name" on public.profiles for update to authen
 
 drop policy if exists "turfs_read_live_or_owned" on public.turfs;
 create policy "turfs_read_live_or_owned" on public.turfs for select to anon, authenticated
-  using (status = 'live' or owner_id = auth.uid() or public.current_user_role() = 'admin');
+  using (
+    (archived_at is null and status = 'live')
+    or owner_id = auth.uid()
+    or public.current_user_role() = 'admin'
+  );
 drop policy if exists "turfs_owner_insert_pending" on public.turfs;
 create policy "turfs_owner_insert_pending" on public.turfs for insert to authenticated
   with check (owner_id = auth.uid() and public.current_user_role() = 'owner' and status = 'pending');
@@ -238,7 +245,10 @@ create policy "bookings_player_insert" on public.bookings for insert to authenti
   with check (
     player_id = auth.uid()
     and public.current_user_role() = 'player'
-    and exists (select 1 from public.turfs t where t.id = turf_id and t.status = 'live')
+    and exists (
+      select 1 from public.turfs t
+      where t.id = turf_id and t.status = 'live' and t.archived_at is null
+    )
   );
 drop policy if exists "bookings_player_cancel" on public.bookings;
 create policy "bookings_player_cancel" on public.bookings for update to authenticated
@@ -314,13 +324,31 @@ create policy "notifications_update_own_read_flag" on public.notifications for u
 
 drop policy if exists "matches_read_open" on public.matches;
 create policy "matches_read_open" on public.matches for select to anon, authenticated
-  using (status in ('open', 'full') or public.current_user_role() = 'admin');
+  using (
+    (
+      matches.status in ('open', 'full')
+      and exists (
+        select 1 from public.turfs t
+        where t.id = matches.turf_id and t.archived_at is null
+      )
+    )
+    or public.current_user_role() = 'admin'
+  );
 drop policy if exists "match_participants_read_own" on public.match_participants;
 create policy "match_participants_read_own" on public.match_participants for select to authenticated
   using (player_id = auth.uid());
 drop policy if exists "match_participants_insert_own" on public.match_participants;
 create policy "match_participants_insert_own" on public.match_participants for insert to authenticated
-  with check (player_id = auth.uid() and public.current_user_role() = 'player');
+  with check (
+    player_id = auth.uid()
+    and public.current_user_role() = 'player'
+    and exists (
+      select 1
+      from public.matches m
+      join public.turfs t on t.id = m.turf_id
+      where m.id = match_id and t.archived_at is null
+    )
+  );
 drop policy if exists "match_participants_delete_own" on public.match_participants;
 create policy "match_participants_delete_own" on public.match_participants for delete to authenticated
   using (player_id = auth.uid());
@@ -336,6 +364,7 @@ as $$
     select t.id, t.open_time, t.close_time
     from public.turfs t
     where t.id = p_turf_id
+      and t.archived_at is null
       and (t.status = 'live' or t.owner_id = auth.uid() or public.current_user_role() = 'admin')
   ), slots as (
     select v.id as turf_id,
@@ -378,7 +407,7 @@ declare
   total_count integer;
 begin
   select * into turf_row from public.turfs where id = new.turf_id for update;
-  if not found or turf_row.status <> 'live' then
+  if not found or turf_row.status <> 'live' or turf_row.archived_at is not null then
     raise exception 'This turf is not available for booking.';
   end if;
   if new.booking_date < current_date then
@@ -572,42 +601,160 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
-create extension if not exists pg_cron;
+create or replace function public.archive_turf(p_turf_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  turf_owner_id uuid;
+  actor_role text;
+begin
+  if auth.uid() is null then
+    raise exception 'Sign in is required to archive a turf.' using errcode = '42501';
+  end if;
 
-create or replace function public.delete_expired_bookings()
+  select t.owner_id into turf_owner_id
+  from public.turfs t
+  where t.id = p_turf_id;
+
+  if not found then
+    return false;
+  end if;
+
+  actor_role := public.current_user_role();
+  if actor_role is distinct from 'admin'
+    and (actor_role is distinct from 'owner' or turf_owner_id is distinct from auth.uid()) then
+    raise exception 'Only the turf owner or an admin can archive this listing.' using errcode = '42501';
+  end if;
+
+  update public.turfs
+  set archived_at = coalesce(archived_at, now())
+  where id = p_turf_id;
+
+  return true;
+end;
+$$;
+
+revoke all on function public.archive_turf(uuid) from public, anon;
+grant execute on function public.archive_turf(uuid) to authenticated;
+
+-- ── Booking Audit Log ──────────────────────────────────────────
+create table if not exists public.booking_audit_log (
+  id              uuid        primary key default gen_random_uuid(),
+  booking_id      uuid        not null references public.bookings(id) on delete restrict,
+  turf_id         uuid        references public.turfs(id) on delete set null,
+  player_id       uuid        references public.profiles(id) on delete set null,
+  actor_id        uuid        references public.profiles(id) on delete set null,
+  actor_role      text,
+  action          text        not null,
+  prev_status     text,
+  new_status      text        not null,
+  reason          text,
+  idempotency_key text,
+  created_at      timestamptz not null default now()
+);
+
+create index if not exists audit_log_booking_idx on public.booking_audit_log (booking_id, created_at desc);
+create index if not exists audit_log_actor_idx   on public.booking_audit_log (actor_id, created_at desc);
+
+alter table public.booking_audit_log enable row level security;
+revoke all on public.booking_audit_log from anon, authenticated;
+grant select on public.booking_audit_log to authenticated;
+
+drop policy if exists "audit_log_read" on public.booking_audit_log;
+create policy "audit_log_read" on public.booking_audit_log for select to authenticated
+  using (
+    public.current_user_role() = 'admin'
+    or player_id = auth.uid()
+    or exists (select 1 from public.turfs t where t.id = turf_id and t.owner_id = auth.uid())
+  );
+
+create or replace function public.log_booking_change()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+  insert into public.booking_audit_log (
+    booking_id, turf_id, player_id,
+    actor_id, actor_role,
+    action, prev_status, new_status
+  ) values (
+    new.id, new.turf_id, new.player_id,
+    auth.uid(), public.current_user_role(),
+    case new.status
+      when 'confirmed' then case when tg_op = 'INSERT' then 'created' else 'confirmed' end
+      when 'declined'  then 'declined'
+      when 'cancelled' then 'cancelled'
+      when 'completed' then 'completed'
+      else new.status
+    end,
+    case when tg_op = 'INSERT' then null else old.status end,
+    new.status
+  );
+  return null;
+end;
+$$;
+
+drop trigger if exists bookings_audit_log on public.bookings;
+create trigger bookings_audit_log
+  after insert or update of status on public.bookings
+  for each row execute function public.log_booking_change();
+
+-- ── Idempotency Keys ───────────────────────────────────────────
+create table if not exists public.idempotency_keys (
+  key            text        primary key,
+  player_id      uuid        not null references public.profiles(id) on delete cascade,
+  resource_type  text        not null default 'booking',
+  resource_id    uuid,
+  payload_hash   text        not null,
+  status         text        not null default 'pending'
+    check (status in ('pending', 'success', 'failed')),
+  response_body  jsonb,
+  created_at     timestamptz not null default now(),
+  expires_at     timestamptz not null default now() + interval '24 hours'
+);
+
+create index if not exists idempotency_player_idx on public.idempotency_keys (player_id, created_at desc);
+alter table public.idempotency_keys enable row level security;
+revoke all on public.idempotency_keys from anon, authenticated;
+
+-- ── Soft Archive (replaces hard deletion of historical bookings) ─
+create or replace function public.archive_old_bookings()
 returns integer
 language plpgsql
 security definer
 set search_path = public, pg_temp
 as $$
 declare
-  deleted_count integer;
+  n integer;
 begin
-  delete from public.bookings b
-  where b.booking_date <= current_date - 7
+  update public.bookings b
+  set archived_at = now()
+  where b.archived_at is null
+    and b.booking_date < current_date - 90
+    and b.status in ('declined', 'cancelled', 'completed')
     and not exists (
-      select 1 from public.reviews r where r.booking_id = b.id
-    )
-    and not exists (
-      select 1 from public.disputes d where d.booking_id = b.id
+      select 1 from public.disputes d
+      where d.booking_id = b.id and d.status = 'open'
     );
 
-  get diagnostics deleted_count = row_count;
-  return deleted_count;
+  get diagnostics n = row_count;
+  return n;
 end;
 $$;
 
-revoke all on function public.delete_expired_bookings() from public, anon, authenticated;
+revoke all on function public.archive_old_bookings() from public, anon, authenticated;
 
-select cron.unschedule(jobid)
-from cron.job
-where jobname = 'delete-expired-bookings';
-
-select cron.schedule(
-  'delete-expired-bookings',
-  '0 0 * * *',
-  'select public.delete_expired_bookings();'
-);
+do $$ begin
+  perform cron.unschedule(jobid) from cron.job where jobname = 'delete-expired-bookings';
+  perform cron.schedule('archive-old-bookings', '0 1 * * *', 'select public.archive_old_bookings();');
+exception when others then
+  raise notice 'pg_cron not available — skipping schedule';
+end; $$;
 
 -- To provision the first admin, sign up as a player and run this in SQL Editor:
 -- update public.profiles set role = 'admin' where email = 'you@example.com';

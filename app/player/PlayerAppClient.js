@@ -23,6 +23,7 @@ import {
   getStoredBookingIntent,
   saveBookingIntent,
 } from "@/lib/booking/intent";
+import { extractErrorMessage } from "@/lib/api-response";
 
 function todayStr() {
   return dateKey();
@@ -492,9 +493,9 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
       const result = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        const message = result?.error || "Couldn't complete the booking. Try again.";
+        const message = extractErrorMessage(result, "Couldn't complete the booking. Try again.");
         showToast(message, { type: "error" });
-        if (response.status === 409 || message.includes("just taken") || message.includes("no longer available")) {
+        if (response.status === 409 || result?.code === "SLOT_CONFLICT" || message.includes("just taken") || message.includes("no longer available")) {
           setSlotConflictMsg("That slot was just booked by another player. We've refreshed the schedule below.");
           setStep(1);
           setSelectedSlot(null);
@@ -1038,7 +1039,7 @@ function CancelBookingModal({ booking, onClose, onCancelled, showToast }) {
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        showToast(data.error || "Couldn't cancel this booking. Try again.", { type: "error" });
+        showToast(extractErrorMessage(data, "Couldn't cancel this booking. Try again."), { type: "error" });
         setSubmitting(false);
         return;
       }

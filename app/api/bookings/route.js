@@ -31,10 +31,7 @@ async function resolveIdempotency(admin, key, playerId, payloadHash) {
     if (existing.payload_hash !== payloadHash) {
       return {
         conflict: true,
-        response: NextResponse.json(
-          { error: "This request key was already used with a different booking. Please use a new key." },
-          { status: 409 }
-        ),
+        response: Errors.idempotencyConflict(),
       };
     }
     // Same key, same payload → return cached result
@@ -45,10 +42,7 @@ async function resolveIdempotency(admin, key, playerId, payloadHash) {
     if (existing.status === "pending") {
       return {
         conflict: true,
-        response: NextResponse.json(
-          { error: "A booking with this key is already being processed. Please wait." },
-          { status: 409 }
-        ),
+        response: Errors.conflict("A booking with this key is already being processed. Please wait."),
       };
     }
     // Failed previously — allow retry with same key+payload
@@ -75,10 +69,7 @@ async function resolveIdempotency(admin, key, playerId, payloadHash) {
     if (raced && raced.payload_hash !== payloadHash) {
       return {
         conflict: true,
-        response: NextResponse.json(
-          { error: "This request key was already used with a different booking." },
-          { status: 409 }
-        ),
+        response: Errors.idempotencyConflict(),
       };
     }
     if (raced?.status === "success") {
@@ -190,7 +181,7 @@ export async function POST(request) {
   // ── Fetch turf ────────────────────────────────────────────────────────────
   const { data: turf, error: turfError } = await admin
     .from("turfs")
-    .select("id, name, owner_id, status, sports, base_price, peak_price, open_time, close_time")
+    .select("id, name, owner_id, status, sports, base_price, peak_price, open_time, close_time, archived_at")
     .eq("id", turfId)
     .maybeSingle();
 
@@ -200,8 +191,8 @@ export async function POST(request) {
     return turfError ? Errors.internal(undefined, requestId) : Errors.notFound("This turf is unavailable right now.", requestId);
   }
 
-  if (turf.status !== "live") {
-    logger.info("booking rejected - turf not live", { requestId, userId, turfId, turfStatus: turf.status });
+  if (turf.status !== "live" || turf.archived_at) {
+    logger.info("booking rejected - turf not live or archived", { requestId, userId, turfId, turfStatus: turf.status, archivedAt: turf.archived_at });
     return Errors.badRequest("This turf is not currently available for booking.", requestId);
   }
 

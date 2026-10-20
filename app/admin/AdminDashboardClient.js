@@ -23,6 +23,7 @@ import {
   useNotifications,
 } from "@/components/dashboard/kit";
 import { extractErrorMessage } from "@/lib/api-response";
+import { getTurfImages } from "@/lib/turf-images";
 
 const TABS = ["overview", "approvals", "turfs", "bookings", "users", "payouts", "disputes"];
 const ROLE_COLORS = { Admin: V.violet, "Turf Owner": V.sky, Player: V.flood };
@@ -197,6 +198,25 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
   const [invite, setInvite] = useState({ name: "", email: "" });
   const [inviteError, setInviteError] = useState("");
   const [inviting, setInviting] = useState(false);
+  const [inviteLink, setInviteLink] = useState("");
+  const [inviteLinkCopied, setInviteLinkCopied] = useState(false);
+
+  // Role management state
+  const [roleChangeUser, setRoleChangeUser] = useState(null);
+  const [roleBusy, setRoleBusy] = useState(false);
+  const [roleWarning, setRoleWarning] = useState(null); // { turfs, message }
+  const [roleResolution, setRoleResolution] = useState(""); // "archive_turfs" | "confirm_demote"
+
+  // Access link modal state
+  const [accessLinkUser, setAccessLinkUser] = useState(null);
+  const [accessLinkData, setAccessLinkData] = useState(null); // { link, linkType, message }
+  const [accessLinkBusy, setAccessLinkBusy] = useState(false);
+  const [accessLinkCopied, setAccessLinkCopied] = useState(false);
+  const [accessLinkError, setAccessLinkError] = useState("");
+
+  // Revoke invite state
+  const [revokingUserId, setRevokingUserId] = useState(null);
+
   const [payoutsRaw, setPayoutsRaw] = useState([]);
   const [payoutOwnersRaw, setPayoutOwnersRaw] = useState([]);
   const [payoutsLoading, setPayoutsLoading] = useState(false);
@@ -417,6 +437,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
       bookings: activeCountByTurf[t.id] || 0, rating: Number(t.rating) || 0, reviewCount: t.review_count || 0,
       sports: t.sports || [], amenities: t.amenities || [], basePrice: Number(t.base_price) || 0,
       peakPrice: Number(t.peak_price) || 0, open: t.open_time, close: t.close_time, createdAt: t.created_at,
+      image: t.image, images: t.images,
     }));
     const turfById = Object.fromEntries(turfs.map((t) => [t.id, t]));
 
@@ -425,6 +446,11 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
       createdTs: new Date(u.created_at).getTime() || 0,
       joined: new Date(u.created_at).toLocaleDateString(undefined, { month: "short", year: "numeric" }),
       bookings: getUserBookingCount(bookings, u.id), spent: getUserSpend(bookings, u.id),
+      // Fields from loadAdminUsers (service-role enriched)
+      status: u.status || "Active",
+      activeTurfsCount: u.activeTurfsCount || 0,
+      confirmedAt: u.confirmedAt || null,
+      invitedAt: u.invitedAt || null,
     }));
     const userById = Object.fromEntries(users.map((u) => [u.id, u]));
 
@@ -532,12 +558,106 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
     const { ok, data } = await postJson("/api/admin/owners", { fullName: invite.name, email: invite.email });
     setInviting(false);
     if (!ok) {
+      // If already a player, offer promotion hint
+      if (data?.canPromote) {
+        setInviteError(extractErrorMessage(data, "Could not send the invitation."));
+        return;
+      }
       setInviteError(extractErrorMessage(data, "Could not send the invitation."));
       return;
     }
     setInvite({ name: "", email: "" });
     setShowInvite(false);
+    setInviteLink("");
     showToast("Owner invitation sent.", { type: "success" });
+    fetchUsers();
+  }
+
+  async function handleInviteCopyLink(event) {
+    event.preventDefault();
+    setInviteError("");
+    setInviting(true);
+    const { ok, data } = await postJson("/api/admin/owners", { fullName: invite.name, email: invite.email, generateLinkOnly: true });
+    setInviting(false);
+    if (!ok) {
+      setInviteError(extractErrorMessage(data, "Could not generate invite link."));
+      return;
+    }
+    setInviteLink(data.link || "");
+    setInviteLinkCopied(false);
+    if (data.link) {
+      try { await navigator.clipboard.writeText(data.link); setInviteLinkCopied(true); } catch { /* ignore */ }
+    }
+    fetchUsers();
+  }
+
+  async function handleRoleChange(user, targetRole, resolution) {
+    setRoleBusy(true);
+    const body = { userId: user.id, targetRole, ...(resolution ? { resolution } : {}) };
+    const { ok, data } = await postJson("/api/admin/users/role", body);
+    setRoleBusy(false);
+    if (!ok) {
+      if (data?.warning && data?.hasActiveTurfs) {
+        setRoleWarning({ turfs: data.turfs, message: data.message });
+        setRoleResolution("");
+        return;
+      }
+      showToast(extractErrorMessage(data, "Could not change user role."), { type: "error" });
+      return;
+    }
+    // Optimistically update usersRaw
+    setUsersRaw((prev) =>
+      prev.map((u) =>
+        u.id === user.id
+          ? { ...u, role: targetRole === "Turf Owner" ? "owner" : "player", activeTurfsCount: targetRole === "Player" ? 0 : u.activeTurfsCount }
+          : u
+      )
+    );
+    setRoleChangeUser(null);
+    setRoleWarning(null);
+    setRoleResolution("");
+    showToast(data.message || "Role updated.", { type: "success" });
+  }
+
+  async function handleGenerateAccessLink(email, linkType) {
+    setAccessLinkBusy(true);
+    setAccessLinkError("");
+    const { ok, data } = await postJson("/api/admin/owners/access-link", { email, linkType });
+    setAccessLinkBusy(false);
+    if (!ok) {
+      setAccessLinkError(extractErrorMessage(data, "Could not generate link."));
+      return;
+    }
+    setAccessLinkData(data);
+    setAccessLinkCopied(false);
+  }
+
+  async function handleCopyLink(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setAccessLinkCopied(true);
+      setTimeout(() => setAccessLinkCopied(false), 2500);
+    } catch {
+      showToast("Copy failed — please copy the link manually.", { type: "error" });
+    }
+  }
+
+  async function handleRevokeInvite(userId, name) {
+    if (!window.confirm(`Revoke invitation for ${name}? This cannot be undone.`)) return;
+    setRevokingUserId(userId);
+    const res = await fetch("/api/admin/owners", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId }),
+    });
+    setRevokingUserId(null);
+    let resData = {};
+    try { resData = await res.json(); } catch { /* ignore */ }
+    if (!res.ok) {
+      showToast(extractErrorMessage(resData, "Could not revoke invitation."), { type: "error" });
+      return;
+    }
+    showToast(`Invitation revoked for ${name}.`, { type: "success" });
     fetchUsers();
   }
 
@@ -668,7 +788,9 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
               <EmptyBlock emoji="✅" title="You're all caught up" subtitle="When owners submit a new turf, it will show up here for your approval." />
             ) : (
               <div style={{ display: "grid", gap: 14 }}>
-                {pendingTurfs.map((t) => (
+                {pendingTurfs.map((t) => {
+                  const imgData = getTurfImages(t);
+                  return (
                   <Card key={t.id}>
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
                       <div style={{ minWidth: 240, flex: 1 }}>
@@ -679,6 +801,23 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
                         <div style={{ color: V.chalkDim, fontSize: 13, marginTop: 4 }}>
                           <span title={`${t.address}, ${t.city}`}>{t.address}, {t.city}</span> · Owner: <strong style={{ color: V.chalk }}>{t.owner}</strong> · Submitted {relativeTime(t.createdAt)}
                         </div>
+
+                        {/* Photos preview for Admin review */}
+                        <div style={{ display: "flex", gap: 8, marginTop: 12, alignItems: "center", overflowX: "auto", paddingBottom: 4 }}>
+                          <div style={{ position: "relative", width: 90, height: 60, borderRadius: 8, overflow: "hidden", border: `2px solid ${V.flood}`, flexShrink: 0 }}>
+                            <img src={imgData.cover} alt="Cover" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            <span style={{ position: "absolute", bottom: 2, left: 2, background: V.flood, color: "#fff", fontSize: 8.5, fontWeight: 800, padding: "1px 4px", borderRadius: 3, textTransform: "uppercase" }}>Cover</span>
+                          </div>
+                          {imgData.gallery.filter((u) => u !== imgData.cover).slice(0, 4).map((u, i) => (
+                            <div key={i} style={{ width: 75, height: 60, borderRadius: 8, overflow: "hidden", border: `1px solid ${V.line}`, flexShrink: 0 }}>
+                              <img src={u} alt={`Photo ${i + 2}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            </div>
+                          ))}
+                          {imgData.gallery.length > 5 && (
+                            <span style={{ color: V.chalkFaint, fontSize: 11.5, fontWeight: 700, paddingLeft: 4 }}>+{imgData.gallery.length - 5} more</span>
+                          )}
+                        </div>
+
                         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
                           {t.sports.map((s) => <Pill key={s} color={V.sky}>{s}</Pill>)}
                           {t.amenities.map((a) => <Pill key={a} color={V.chalkDim}>{a}</Pill>)}
@@ -695,7 +834,8 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
                       </div>
                     </div>
                   </Card>
-                ))}
+                );
+              })}
               </div>
             )}
           </>
@@ -811,27 +951,55 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
         {tab === "users" && (() => {
           const rows = sortRows(filterUsersByRole(filterUsers(users, userQuery), userRole), userSort.key, userSort.dir);
           const counts = view.userCounts;
+
+          const STATUS_COLORS = { Active: V.confirmed, "Pending Invite": V.pending, Suspended: V.danger };
+
           const columns = [
-            { key: "name", label: "Name", width: "1.6fr", sortable: true, render: (u) => (
+            { key: "name", label: "Name", width: "1.8fr", sortable: true, render: (u) => (
               <div style={{ minWidth: 0 }}>
                 <div style={{ color: V.chalk, fontWeight: 700, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.name}</div>
                 <div style={{ color: V.chalkFaint, fontSize: 11.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.email}</div>
               </div>
             ) },
             { key: "role", label: "Role", width: "0.9fr", sortable: true, render: (u) => <Pill color={ROLE_COLORS[u.role]}>{u.role}</Pill> },
+            { key: "status", label: "Status", width: "0.9fr", render: (u) => (
+              <Pill color={STATUS_COLORS[u.status] || V.chalkDim}>{u.status}</Pill>
+            ) },
             { key: "createdTs", label: "Joined", width: "0.8fr", sortable: true, render: (u) => u.joined },
             { key: "bookings", label: "Bookings", width: "0.7fr", align: "right", sortable: true, render: (u) => <span style={{ fontFamily: mono }}>{u.bookings}</span> },
             { key: "spent", label: "Spent", width: "0.9fr", align: "right", sortable: true, render: (u) => <span style={{ fontFamily: font, color: V.chalk, fontWeight: 700 }}>{formatINR(u.spent)}</span> },
+            { key: "actions", label: "Actions", width: "1.2fr", align: "right", render: (u) => {
+              const isSelf = u.id === profile?.id;
+              const isAdmin = u.role === "Admin";
+              const isPending = u.status === "Pending Invite";
+              return (
+                <div style={{ display: "flex", gap: 6, justifyContent: "flex-end", flexWrap: "wrap" }}>
+                  {isPending ? (
+                    <Btn variant="danger" size="sm" busy={revokingUserId === u.id} disabled={!!revokingUserId}
+                      onClick={() => handleRevokeInvite(u.id, u.name)}>Revoke</Btn>
+                  ) : !isAdmin && !isSelf ? (
+                    <Btn variant="secondary" size="sm"
+                      onClick={() => { setRoleChangeUser(u); setRoleWarning(null); setRoleResolution(""); }}>Change Role</Btn>
+                  ) : null}
+                  {(u.role === "Turf Owner" || isPending) && !isSelf && (
+                    <Btn variant="ghost" size="sm"
+                      onClick={() => { setAccessLinkUser(u); setAccessLinkData(null); setAccessLinkError(""); setAccessLinkCopied(false); }}>Get Link</Btn>
+                  )}
+                </div>
+              );
+            } },
           ];
+
           return (
             <>
               <TopBar title="Users" sub={`${counts.all.toLocaleString("en-IN")} account${counts.all === 1 ? "" : "s"}`} action={
                 <>
                   <Btn icon="download" size="sm" disabled={!rows.length} onClick={() => downloadCSV(`users-${today}.csv`, rows, [
-                    { label: "Name", key: "name" }, { label: "Email", key: "email" }, { label: "Role", key: "role" }, { label: "Joined", key: "joined" },
+                    { label: "Name", key: "name" }, { label: "Email", key: "email" }, { label: "Role", key: "role" },
+                    { label: "Status", key: "status" }, { label: "Joined", key: "joined" },
                     { label: "Bookings", key: "bookings" }, { label: "Spent (INR)", key: "spent" },
                   ])}>Export CSV</Btn>
-                  <Btn variant="primary" icon="plus" size="sm" onClick={() => { setShowInvite(true); setInviteError(""); }}>Invite owner</Btn>
+                  <Btn variant="primary" icon="plus" size="sm" onClick={() => { setShowInvite(true); setInviteError(""); setInviteLink(""); setInviteLinkCopied(false); }}>Invite owner</Btn>
                 </>
               } />
               {usersFailed && <ErrorBanner message="Couldn't load the user list. Check that SUPABASE_SERVICE_ROLE_KEY is configured on the server." onRetry={fetchUsers} />}
@@ -843,9 +1011,62 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
                 ]} />
               </Toolbar>
               {loading ? (
-                <div style={{ ...panel(), borderRadius: 16, overflow: "hidden" }}>{[...Array(4)].map((_, i) => <SkeletonRow key={i} columns={5} />)}</div>
+                <div style={{ ...panel(), borderRadius: 16, overflow: "hidden" }}>{[...Array(4)].map((_, i) => <SkeletonRow key={i} columns={7} />)}</div>
               ) : (
-                <DataTable columns={columns} rows={rows} sort={userSort} onSort={toggleSort(setUserSort)} minWidth={700} empty={userQuery || userRole !== "all" ? "No users match your filters." : "No users yet."} />
+                <>
+                  {/* Desktop table */}
+                  <div className="vt-users-table">
+                    <DataTable columns={columns} rows={rows} sort={userSort} onSort={toggleSort(setUserSort)} minWidth={900} empty={userQuery || userRole !== "all" ? "No users match your filters." : "No users yet."} />
+                  </div>
+                  {/* Mobile cards */}
+                  <div className="vt-users-cards">
+                    {rows.length === 0 ? (
+                      <div style={{ textAlign: "center", padding: "40px 0", color: V.chalkFaint, fontSize: 14 }}>
+                        {userQuery || userRole !== "all" ? "No users match your filters." : "No users yet."}
+                      </div>
+                    ) : rows.map((u) => {
+                      const STATUS_COLORS = { Active: V.confirmed, "Pending Invite": V.pending, Suspended: V.danger };
+                      const isSelf = u.id === profile?.id;
+                      const isAdmin = u.role === "Admin";
+                      const isPending = u.status === "Pending Invite";
+                      return (
+                        <div key={u.id} style={{
+                          background: "rgba(255,255,255,0.03)", border: `1px solid ${V.line}`, borderRadius: 14,
+                          padding: "16px", marginBottom: 10,
+                        }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, flexWrap: "wrap" }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 700, color: V.chalk, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.name}</div>
+                              <div style={{ color: V.chalkFaint, fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 2 }}>{u.email}</div>
+                              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                                <Pill color={ROLE_COLORS[u.role]}>{u.role}</Pill>
+                                <Pill color={STATUS_COLORS[u.status] || V.chalkDim}>{u.status}</Pill>
+                              </div>
+                            </div>
+                            <div style={{ fontSize: 12, color: V.chalkFaint, whiteSpace: "nowrap" }}>{u.joined}</div>
+                          </div>
+                          <div style={{ display: "flex", gap: 16, marginTop: 12, fontSize: 12.5, color: V.chalkDim }}>
+                            <span>{u.bookings} booking{u.bookings !== 1 ? "s" : ""}</span>
+                            <span style={{ fontFamily: font, color: V.chalk, fontWeight: 600 }}>{formatINR(u.spent)}</span>
+                          </div>
+                          <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+                            {isPending ? (
+                              <Btn variant="danger" size="sm" busy={revokingUserId === u.id}
+                                onClick={() => handleRevokeInvite(u.id, u.name)}>Revoke invite</Btn>
+                            ) : !isAdmin && !isSelf ? (
+                              <Btn variant="secondary" size="sm"
+                                onClick={() => { setRoleChangeUser(u); setRoleWarning(null); setRoleResolution(""); }}>Change Role</Btn>
+                            ) : null}
+                            {(u.role === "Turf Owner" || isPending) && !isSelf && (
+                              <Btn variant="ghost" size="sm"
+                                onClick={() => { setAccessLinkUser(u); setAccessLinkData(null); setAccessLinkError(""); setAccessLinkCopied(false); }}>Get Link</Btn>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
               )}
             </>
           );
@@ -979,22 +1200,254 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
       })()}
 
       {showInvite && (
-        <Modal title="Invite a turf owner" subtitle="They'll get an email to set their password and land in the owner portal." onClose={() => setShowInvite(false)} maxWidth={460}>
-          <form onSubmit={handleInvite} style={{ display: "grid", gap: 14 }}>
+        <Modal
+          title="Invite a Turf Owner"
+          subtitle="Send an email invitation or copy a secure one-time setup link."
+          onClose={() => { setShowInvite(false); setInviteLink(""); setInviteError(""); }}
+          maxWidth={480}
+        >
+          <form style={{ display: "grid", gap: 14 }}>
             <label>
               <span style={labelStyle}>Full name</span>
-              <input required autoFocus value={invite.name} onChange={(e) => setInvite((s) => ({ ...s, name: e.target.value }))} autoComplete="name" style={inputStyle} />
+              <input
+                autoFocus
+                value={invite.name}
+                onChange={(e) => setInvite((s) => ({ ...s, name: e.target.value }))}
+                autoComplete="name"
+                style={inputStyle}
+                placeholder="Owner's name"
+              />
             </label>
             <label>
-              <span style={labelStyle}>Email</span>
-              <input required type="email" value={invite.email} onChange={(e) => setInvite((s) => ({ ...s, email: e.target.value }))} autoComplete="email" style={inputStyle} />
+              <span style={labelStyle}>Email address</span>
+              <input
+                required
+                type="email"
+                value={invite.email}
+                onChange={(e) => setInvite((s) => ({ ...s, email: e.target.value }))}
+                autoComplete="email"
+                style={inputStyle}
+                placeholder="owner@example.com"
+              />
             </label>
             {inviteError && <p role="alert" style={{ color: V.danger, fontSize: 12.5, margin: 0 }}>{inviteError}</p>}
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-              <Btn onClick={() => setShowInvite(false)} disabled={inviting}>Cancel</Btn>
-              <Btn variant="primary" busy={inviting} type="submit">{inviting ? "Sending…" : "Send invitation"}</Btn>
+            {inviteLink && (
+              <div style={{
+                background: "rgba(255,255,255,0.04)", border: `1px solid ${V.line}`,
+                borderRadius: 10, padding: "12px 14px",
+              }}>
+                <div style={{ fontSize: 12, color: V.chalkFaint, marginBottom: 6, fontWeight: 600 }}>INVITATION LINK (24h, one-time)</div>
+                <div style={{
+                  fontSize: 11.5, color: V.chalkDim, wordBreak: "break-all", lineHeight: 1.5,
+                  fontFamily: mono, marginBottom: 8,
+                }}>{inviteLink}</div>
+                <Btn variant="primary" size="sm" onClick={async () => {
+                  try { await navigator.clipboard.writeText(inviteLink); setInviteLinkCopied(true); setTimeout(() => setInviteLinkCopied(false), 2500); } catch { /* ignore */ }
+                }}>{inviteLinkCopied ? "✓ Copied!" : "Copy link"}</Btn>
+              </div>
+            )}
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }}>
+              <Btn onClick={() => { setShowInvite(false); setInviteLink(""); setInviteError(""); }} disabled={inviting}>Cancel</Btn>
+              <Btn variant="secondary" busy={inviting} disabled={!invite.email} onClick={handleInviteCopyLink}>
+                {inviting ? "Generating…" : "Copy invite link"}
+              </Btn>
+              <Btn variant="primary" busy={inviting} disabled={!invite.email} onClick={handleInvite}>
+                {inviting ? "Sending…" : "Send email invite"}
+              </Btn>
             </div>
           </form>
+        </Modal>
+      )}
+
+      {/* ---- Role Change Modal ---- */}
+      {roleChangeUser && (
+        <Modal
+          title="Change User Role"
+          subtitle={`${roleChangeUser.name} · ${roleChangeUser.email}`}
+          onClose={() => { setRoleChangeUser(null); setRoleWarning(null); setRoleResolution(""); }}
+          maxWidth={480}
+          footer={
+            <>
+              <Btn onClick={() => { setRoleChangeUser(null); setRoleWarning(null); setRoleResolution(""); }} disabled={roleBusy}>Cancel</Btn>
+              {roleWarning ? (
+                <Btn
+                  variant="danger"
+                  busy={roleBusy}
+                  disabled={!roleResolution}
+                  onClick={() => handleRoleChange(
+                    roleChangeUser,
+                    roleChangeUser.role === "Player" ? "Turf Owner" : "Player",
+                    roleResolution
+                  )}
+                >
+                  {roleBusy ? "Processing…" : "Confirm demotion"}
+                </Btn>
+              ) : (
+                <Btn
+                  variant={roleChangeUser.role === "Player" ? "primary" : "danger"}
+                  busy={roleBusy}
+                  onClick={() => handleRoleChange(
+                    roleChangeUser,
+                    roleChangeUser.role === "Player" ? "Turf Owner" : "Player",
+                    undefined
+                  )}
+                >
+                  {roleBusy ? "Processing…" : roleChangeUser.role === "Player" ? "Promote to Turf Owner" : "Demote to Player"}
+                </Btn>
+              )}
+            </>
+          }
+        >
+          <div style={{ display: "grid", gap: 14 }}>
+            {/* Current → Target */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                <div style={{ fontSize: 11, color: V.chalkFaint, textTransform: "uppercase", letterSpacing: 0.5 }}>Current</div>
+                <Pill color={ROLE_COLORS[roleChangeUser.role]}>{roleChangeUser.role}</Pill>
+              </div>
+              <div style={{ color: V.chalkFaint, fontSize: 18, padding: "0 4px" }}>→</div>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                <div style={{ fontSize: 11, color: V.chalkFaint, textTransform: "uppercase", letterSpacing: 0.5 }}>New role</div>
+                {roleChangeUser.role === "Player" ? (
+                  <Pill color={V.sky}>Turf Owner</Pill>
+                ) : (
+                  <Pill color={V.flood}>Player</Pill>
+                )}
+              </div>
+            </div>
+
+            {/* Promotion info */}
+            {roleChangeUser.role === "Player" && (
+              <div style={{
+                background: "rgba(14,165,233,0.08)", border: `1px solid ${V.sky}44`,
+                borderRadius: 10, padding: "12px 14px", fontSize: 13, color: V.chalkDim, lineHeight: 1.6,
+              }}>
+                <strong style={{ color: V.sky }}>Promotion:</strong> This player will gain access to the Owner Dashboard on their next login. Their existing bookings and history are preserved.
+              </div>
+            )}
+
+            {/* Warning: active turfs */}
+            {roleWarning && (
+              <div style={{
+                background: "rgba(239,68,68,0.08)", border: `1px solid ${V.danger}44`,
+                borderRadius: 10, padding: "12px 14px", fontSize: 13, color: V.danger, lineHeight: 1.6,
+              }}>
+                <strong>⚠ Active turfs detected:</strong> {roleWarning.message}
+                <ul style={{ margin: "8px 0 0 16px", padding: 0, fontSize: 12.5 }}>
+                  {roleWarning.turfs.map((t) => <li key={t.id}>{t.name} ({t.status})</li>)}
+                </ul>
+              </div>
+            )}
+
+            {/* Resolution choice (only when warning) */}
+            {roleWarning && (
+              <div style={{ display: "grid", gap: 8 }}>
+                <div style={labelStyle}>Choose how to handle active turf listings:</div>
+                {[
+                  { id: "archive_turfs", label: "Archive all active listings", sub: "Turfs are archived and hidden from players. Ownership records and history are preserved." },
+                  { id: "confirm_demote", label: "Keep listings as-is", sub: "Turfs remain in their current state. The user loses owner dashboard access only." },
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setRoleResolution(opt.id)}
+                    style={{
+                      padding: "10px 14px", borderRadius: 10, textAlign: "left", cursor: "pointer",
+                      background: roleResolution === opt.id ? "rgba(239,68,68,0.1)" : "rgba(255,255,255,0.03)",
+                      border: `1px solid ${roleResolution === opt.id ? V.danger : V.line}`,
+                      color: V.chalk, fontFamily: font,
+                    }}
+                  >
+                    <div style={{ fontWeight: 700, fontSize: 13 }}>{roleResolution === opt.id ? "● " : "○ "}{opt.label}</div>
+                    <div style={{ fontSize: 12, color: V.chalkFaint, marginTop: 3, lineHeight: 1.5 }}>{opt.sub}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </Modal>
+      )}
+
+      {/* ---- Owner Access Link Modal ---- */}
+      {accessLinkUser && (
+        <Modal
+          title="Owner Access Links"
+          subtitle={`${accessLinkUser.name} · ${accessLinkUser.email}`}
+          onClose={() => { setAccessLinkUser(null); setAccessLinkData(null); setAccessLinkError(""); }}
+          maxWidth={500}
+        >
+          <div style={{ display: "grid", gap: 16 }}>
+            {/* Direct sign-in link */}
+            <div style={{
+              background: "rgba(255,255,255,0.03)", border: `1px solid ${V.line}`,
+              borderRadius: 12, padding: "14px 16px",
+            }}>
+              <div style={{ fontWeight: 700, color: V.chalk, fontSize: 14, marginBottom: 4 }}>Direct Sign-in Link</div>
+              <div style={{ fontSize: 12.5, color: V.chalkDim, lineHeight: 1.6, marginBottom: 12 }}>
+                Takes the owner to the login page with their email pre-filled and redirects them to the Owner Dashboard after signing in.
+              </div>
+              <Btn
+                variant="secondary"
+                size="sm"
+                onClick={async () => {
+                  const url = `${window.location.origin}/login?next=%2Fowner&email=${encodeURIComponent(accessLinkUser.email)}`;
+                  try {
+                    await navigator.clipboard.writeText(url);
+                    setAccessLinkCopied(true);
+                    setAccessLinkData({ link: url, linkType: "signin" });
+                    setTimeout(() => setAccessLinkCopied(false), 2500);
+                  } catch {
+                    setAccessLinkData({ link: url, linkType: "signin" });
+                  }
+                }}
+              >
+                {accessLinkCopied && accessLinkData?.linkType === "signin" ? "✓ Copied!" : "Copy sign-in link"}
+              </Btn>
+            </div>
+
+            {/* Secure one-time magic link */}
+            <div style={{
+              background: "rgba(255,255,255,0.03)", border: `1px solid ${V.line}`,
+              borderRadius: 12, padding: "14px 16px",
+            }}>
+              <div style={{ fontWeight: 700, color: V.chalk, fontSize: 14, marginBottom: 4 }}>Secure One-Time Link <span style={{ color: V.chalkFaint, fontWeight: 500, fontSize: 12 }}>(24h, expires after first use)</span></div>
+              <div style={{ fontSize: 12.5, color: V.chalkDim, lineHeight: 1.6, marginBottom: 12 }}>
+                Generates a cryptographic magic link that signs the owner in and redirects to the Owner Dashboard. Recommended for sharing via secure channels.
+              </div>
+              {accessLinkError && <p role="alert" style={{ color: V.danger, fontSize: 12.5, margin: "0 0 10px" }}>{accessLinkError}</p>}
+              {accessLinkData?.linkType === "magiclink" && (
+                <div style={{
+                  background: "rgba(255,255,255,0.04)", borderRadius: 8, padding: "10px 12px",
+                  fontSize: 11, fontFamily: mono, color: V.chalkDim, wordBreak: "break-all",
+                  lineHeight: 1.5, marginBottom: 10,
+                }}>{accessLinkData.link}</div>
+              )}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <Btn
+                  variant="primary"
+                  size="sm"
+                  busy={accessLinkBusy}
+                  onClick={() => handleGenerateAccessLink(accessLinkUser.email, "magiclink")}
+                >
+                  {accessLinkBusy ? "Generating…" : "Generate magic link"}
+                </Btn>
+                {accessLinkData?.linkType === "magiclink" && (
+                  <Btn
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => handleCopyLink(accessLinkData.link)}
+                  >
+                    {accessLinkCopied ? "✓ Copied!" : "Copy link"}
+                  </Btn>
+                )}
+              </div>
+            </div>
+
+            {/* Info note */}
+            <div style={{ fontSize: 12, color: V.chalkFaint, lineHeight: 1.6 }}>
+              🔒 Links are generated server-side. No passwords or service-role keys are included in the URL.
+            </div>
+          </div>
         </Modal>
       )}
 

@@ -3076,3 +3076,12 @@ body {
     left: 16px;
   }
 }
+
+/* ---- Admin Users tab: responsive table/card switch ---- */
+.vt-users-table { display: block; }
+.vt-users-cards { display: none; }
+
+@media (max-width: 767px) {
+  .vt-users-table { display: none; }
+  .vt-users-cards { display: block; }
+}

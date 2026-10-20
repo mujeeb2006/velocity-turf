@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { normalizeUserRole } from "@/lib/auth/validation";
@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/toast";
 import { SkeletonCard, SkeletonRow } from "@/components/ui/skeleton";
 import { COLORS as V, panel } from "@/lib/design-tokens";
 import { SPORT_OPTIONS } from "@/lib/sports";
+import { getTurfImages, validateImageFile } from "@/lib/turf-images";
 import {
   acceptanceRate, addDays, bookingDay, dateKey, filterByRange, hourDistribution, isActiveBooking,
   monthComparison, ratingSummary, revenueBy, revenueSeries, sportBreakdown, sumRevenue, upcomingBookings,
@@ -42,7 +43,16 @@ function AddTurfModal({ profile, supabase, onClose, onCreated, showToast }) {
     name: "", address: "", city: "", sports: [], amenities: [],
     base_price: "", peak_price: "", open_time: "06:00", close_time: "22:00",
   });
+  const [photos, setPhotos] = useState([]);
+  const [coverId, setCoverId] = useState(null);
+  const [imageError, setImageError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState("");
+  const [replacingId, setReplacingId] = useState(null);
+  const [dragOver, setDragOver] = useState(false);
+
+  const fileInputRef = useRef(null);
+  const replaceInputRef = useRef(null);
 
   const toggle = (key, value) => setForm((f) => ({ ...f, [key]: f[key].includes(value) ? f[key].filter((v) => v !== value) : [...f[key], value] }));
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
@@ -57,6 +67,75 @@ function AddTurfModal({ profile, supabase, onClose, onCreated, showToast }) {
   );
   const peakBelowBase = form.base_price !== "" && form.peak_price !== "" && peakPrice < basePrice;
   const badHours = form.open_time >= form.close_time;
+
+  const handleFiles = (fileList) => {
+    setImageError("");
+    const newItems = [];
+    const files = Array.from(fileList || []);
+    for (const file of files) {
+      const check = validateImageFile(file);
+      if (!check.ok) {
+        setImageError(check.error);
+        showToast(check.error, { type: "error" });
+        return;
+      }
+      const id = `photo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      newItems.push({
+        id,
+        file,
+        previewUrl: URL.createObjectURL(file),
+        url: null,
+      });
+    }
+
+    if (newItems.length > 0) {
+      setPhotos((prev) => {
+        const next = [...prev, ...newItems];
+        if (!coverId && next.length > 0) {
+          setCoverId(next[0].id);
+        }
+        return next;
+      });
+    }
+  };
+
+  const handleFileSelect = (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      handleFiles(e.target.files);
+      e.target.value = "";
+    }
+  };
+
+  const triggerReplace = (id) => {
+    setReplacingId(id);
+    replaceInputRef.current?.click();
+  };
+
+  const handleReplaceSelect = (e) => {
+    if (!replacingId || !e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    const check = validateImageFile(file);
+    if (!check.ok) {
+      setImageError(check.error);
+      showToast(check.error, { type: "error" });
+      e.target.value = "";
+      return;
+    }
+    const newPreview = URL.createObjectURL(file);
+    setPhotos((prev) => prev.map((p) => p.id === replacingId ? { ...p, file, previewUrl: newPreview, url: null } : p));
+    setReplacingId(null);
+    e.target.value = "";
+  };
+
+  const removePhoto = (id) => {
+    setPhotos((prev) => {
+      const remaining = prev.filter((p) => p.id !== id);
+      if (coverId === id) {
+        setCoverId(remaining.length > 0 ? remaining[0].id : null);
+      }
+      return remaining;
+    });
+  };
 
   const getSubmitErrorMessage = (error) => {
     if (error.code === "42501") return "Your account does not have permission to list a turf. Confirm that your profile role is Turf Owner, then sign out and back in.";
@@ -75,12 +154,75 @@ function AddTurfModal({ profile, supabase, onClose, onCreated, showToast }) {
       return;
     }
     setSubmitting(true);
+    setImageError("");
+
     try {
+      // 1. Upload any pending photos to Supabase Storage
+      let currentPhotoList = [...photos];
+      const pendingPhotos = currentPhotoList.filter((p) => !p.url && p.file);
+
+      if (pendingPhotos.length > 0) {
+        setUploadStatus(`Uploading ${pendingPhotos.length} photo${pendingPhotos.length === 1 ? "" : "s"}…`);
+        const formData = new FormData();
+        pendingPhotos.forEach((p) => formData.append("images", p.file));
+
+        const uploadRes = await fetch("/api/turf-images/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        const uploadData = await uploadRes.json();
+        if (!uploadRes.ok || !uploadData.success) {
+          const errMsg = uploadData.error || "Failed to upload turf photos. Please check your connection and retry.";
+          setImageError(errMsg);
+          showToast(errMsg, { type: "error" });
+          setSubmitting(false);
+          setUploadStatus("");
+          return;
+        }
+
+        // Map uploaded URLs back to photos
+        let urlIdx = 0;
+        currentPhotoList = currentPhotoList.map((p) => {
+          if (!p.url && p.file) {
+            const uploadedUrl = uploadData.urls[urlIdx++];
+            return { ...p, url: uploadedUrl };
+          }
+          return p;
+        });
+        setPhotos(currentPhotoList);
+      }
+
+      setUploadStatus("Submitting listing…");
+
+      // 2. Prepare image payload
+      let imageField = "football";
+      if (currentPhotoList.length > 0) {
+        const coverPhoto = currentPhotoList.find((p) => p.id === coverId) || currentPhotoList[0];
+        const coverUrl = coverPhoto?.url || "";
+        const allUrls = currentPhotoList.map((p) => p.url).filter(Boolean);
+        const orderedUrls = coverUrl ? [coverUrl, ...allUrls.filter((u) => u !== coverUrl)] : allUrls;
+        imageField = JSON.stringify({
+          cover: coverUrl,
+          gallery: orderedUrls,
+        });
+      }
+
       const { error } = await supabase.from("turfs").insert({
-        owner_id: profile.id, name: form.name.trim(), address: form.address.trim(), city: form.city.trim(),
-        sports: form.sports, amenities: form.amenities, base_price: basePrice, peak_price: peakPrice,
-        open_time: form.open_time, close_time: form.close_time, status: "pending",
+        owner_id: profile.id,
+        name: form.name.trim(),
+        address: form.address.trim(),
+        city: form.city.trim(),
+        sports: form.sports,
+        amenities: form.amenities,
+        base_price: basePrice,
+        peak_price: peakPrice,
+        open_time: form.open_time,
+        close_time: form.close_time,
+        status: "pending",
+        image: imageField,
       });
+
       if (error) {
         console.error("Turf submission failed", { code: error.code, message: error.message, details: error.details, hint: error.hint, ownerId: profile.id });
         showToast(getSubmitErrorMessage(error), { type: "error" });
@@ -88,11 +230,13 @@ function AddTurfModal({ profile, supabase, onClose, onCreated, showToast }) {
       }
     } catch (error) {
       console.error("Turf submission request failed", error);
-      showToast("Couldn't reach the database to submit this turf. Check your connection and try again.", { type: "error" });
+      showToast("Couldn't reach the server to submit this turf. Check your connection and try again.", { type: "error" });
       return;
     } finally {
       setSubmitting(false);
+      setUploadStatus("");
     }
+
     showToast("Turf submitted — an admin will review it shortly.", { type: "success" });
     onCreated();
     onClose();
@@ -107,13 +251,231 @@ function AddTurfModal({ profile, supabase, onClose, onCreated, showToast }) {
 
   return (
     <Modal
-      title="List a new turf" subtitle="New listings go live once an admin approves them." onClose={onClose}
-      footer={<><Btn onClick={onClose} disabled={submitting}>Cancel</Btn><Btn variant="primary" disabled={!isValid} busy={submitting} onClick={handleSubmit}>{submitting ? "Submitting…" : "Submit for review"}</Btn></>}
+      title="List a new turf" subtitle="New listings go live once an admin approves them." onClose={onClose} maxWidth={560}
+      footer={<><Btn onClick={onClose} disabled={submitting}>Cancel</Btn><Btn variant="primary" disabled={!isValid} busy={submitting} onClick={handleSubmit}>{submitting ? (uploadStatus || "Submitting…") : "Submit for review"}</Btn></>}
     >
       <div style={{ display: "grid", gap: 16 }}>
         <label><span style={labelStyle}>Turf name</span><input style={inputStyle} value={form.name} onChange={set("name")} placeholder="e.g. Arena Nova" autoFocus /></label>
         <label><span style={labelStyle}>Address</span><input style={inputStyle} value={form.address} onChange={set("address")} placeholder="e.g. Sector 18, Noida" /></label>
         <label><span style={labelStyle}>City</span><input style={inputStyle} value={form.city} onChange={set("city")} placeholder="e.g. Noida" /></label>
+
+        {/* ==================== TURF PHOTOS SECTION ==================== */}
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 4, marginBottom: 6 }}>
+            <span style={labelStyle}>Turf Photos</span>
+            <span style={{ fontSize: 11.5, color: V.chalkFaint }}>Upload multiple photos (at least 5 recommended) · JPG, PNG, WEBP</span>
+          </div>
+
+          <div
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOver(false);
+              if (e.dataTransfer.files) handleFiles(e.dataTransfer.files);
+            }}
+            style={{
+              border: `2px dashed ${dragOver ? V.flood : V.lineStrong}`,
+              borderRadius: 14,
+              padding: "20px 16px",
+              textAlign: "center",
+              background: dragOver ? "rgba(31, 155, 108, 0.08)" : V.pitchCard,
+              transition: "all 0.2s ease",
+            }}
+          >
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+              <div style={{
+                width: 44,
+                height: 44,
+                borderRadius: "50%",
+                background: V.floodDim,
+                color: V.flood,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}>
+                <Icon name="camera" size={22} />
+              </div>
+              <div>
+                <p style={{ margin: "0 0 4px", fontSize: 13, color: V.chalk, fontWeight: 600 }}>
+                  Add photos of your turf, playing area, facilities, and amenities.
+                </p>
+                <p style={{ margin: 0, fontSize: 11.5, color: V.chalkFaint }}>
+                  The first photo becomes the main cover image. You can choose a different cover image anytime.
+                </p>
+              </div>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                style={{ display: "none" }}
+                onChange={handleFileSelect}
+              />
+              <input
+                ref={replaceInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                style={{ display: "none" }}
+                onChange={handleReplaceSelect}
+              />
+
+              <Btn
+                type="button"
+                variant="secondary"
+                icon="upload"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                Upload Turf Photos
+              </Btn>
+            </div>
+          </div>
+
+          {imageError && (
+            <div role="alert" style={{
+              background: "rgba(220, 38, 38, 0.1)",
+              border: "1px solid rgba(220, 38, 38, 0.3)",
+              borderRadius: 10,
+              padding: "8px 12px",
+              fontSize: 12,
+              color: V.danger,
+              fontWeight: 600,
+              marginTop: 10,
+            }}>
+              {imageError}
+            </div>
+          )}
+
+          {photos.length > 0 && (
+            <div style={{ marginTop: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, fontSize: 12 }}>
+                <span style={{ color: V.chalk, fontWeight: 700 }}>
+                  {photos.length} photo{photos.length === 1 ? "" : "s"} selected
+                </span>
+                <span style={{ color: V.chalkFaint }}>
+                  Click &ldquo;Make Cover&rdquo; to change the primary photo
+                </span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(105px, 1fr))", gap: 8 }}>
+                {photos.map((p, idx) => {
+                  const isCover = p.id === coverId;
+                  return (
+                    <div
+                      key={p.id}
+                      style={{
+                        position: "relative",
+                        borderRadius: 10,
+                        overflow: "hidden",
+                        border: `2px solid ${isCover ? V.flood : V.line}`,
+                        background: V.pitchCardRaised,
+                        aspectRatio: "4/3",
+                        boxShadow: isCover ? `0 0 0 2px ${V.flood}33` : "none",
+                      }}
+                    >
+                      <img
+                        src={p.previewUrl}
+                        alt={`Turf photo ${idx + 1}`}
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      />
+                      {isCover && (
+                        <span style={{
+                          position: "absolute",
+                          top: 4,
+                          left: 4,
+                          background: V.flood,
+                          color: "#fff",
+                          fontSize: 9,
+                          fontWeight: 800,
+                          padding: "2px 6px",
+                          borderRadius: 5,
+                          letterSpacing: 0.4,
+                          textTransform: "uppercase",
+                          zIndex: 2,
+                        }}>
+                          Cover
+                        </span>
+                      )}
+                      <div
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          background: "rgba(10, 18, 14, 0.72)",
+                          opacity: 0,
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "space-between",
+                          padding: 5,
+                          transition: "opacity 0.15s ease",
+                          zIndex: 3,
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.opacity = "0"; }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "flex-end", gap: 3 }}>
+                          <button
+                            type="button"
+                            title="Replace this image"
+                            onClick={() => triggerReplace(p.id)}
+                            style={{
+                              background: "rgba(255,255,255,0.25)",
+                              border: "none",
+                              borderRadius: 4,
+                              color: "#fff",
+                              padding: "2px 5px",
+                              cursor: "pointer",
+                              fontSize: 9.5,
+                              fontWeight: 700,
+                            }}
+                          >
+                            Replace
+                          </button>
+                          <button
+                            type="button"
+                            title="Remove this image"
+                            onClick={() => removePhoto(p.id)}
+                            style={{
+                              background: "rgba(220,38,38,0.9)",
+                              border: "none",
+                              borderRadius: 4,
+                              color: "#fff",
+                              padding: "2px 5px",
+                              cursor: "pointer",
+                              fontSize: 9.5,
+                              fontWeight: 700,
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        {!isCover && (
+                          <button
+                            type="button"
+                            onClick={() => setCoverId(p.id)}
+                            style={{
+                              background: V.flood,
+                              border: "none",
+                              borderRadius: 4,
+                              color: "#fff",
+                              padding: "3px 4px",
+                              cursor: "pointer",
+                              fontSize: 9.5,
+                              fontWeight: 700,
+                              textAlign: "center",
+                            }}
+                          >
+                            Make Cover
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
 
         <div>
           <span style={labelStyle}>Sports offered <span style={{ color: V.chalkFaint, fontWeight: 500 }}>(pick at least one)</span></span>
@@ -721,8 +1083,20 @@ export default function OwnerDashboardClient({ profile }) {
               <EmptyBlock emoji="🏟️" title="No turfs listed yet" subtitle="Add your first turf to start taking bookings. New listings need admin approval before they go live." />
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 18 }}>
-                {d.turfRows.filter((t) => !t.archived_at).map((t) => (
+                {d.turfRows.filter((t) => !t.archived_at).map((t) => {
+                  const imgData = getTurfImages(t);
+                  return (
                   <Card key={t.id} className="vt-stat">
+                    <div style={{ position: "relative", width: "100%", height: 130, borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
+                      <img src={imgData.cover} alt={t.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(16,24,20,0.7) 0%, transparent 60%)" }} />
+                      {imgData.gallery.length > 1 && (
+                        <span style={{ position: "absolute", bottom: 8, right: 8, background: "rgba(0,0,0,0.65)", color: "#fff", padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700, backdropFilter: "blur(4px)" }}>
+                          📷 {imgData.gallery.length} photos
+                        </span>
+                      )}
+                    </div>
+
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 12 }}>
                       <div style={{ minWidth: 0 }}>
                         <div style={{ color: V.chalk, fontWeight: 800, fontSize: 16 }}>{t.name}</div>
@@ -778,7 +1152,8 @@ export default function OwnerDashboardClient({ profile }) {
                       <Btn variant="danger" onClick={() => setArchivingTurf(t)}>Archive</Btn>
                     </div>
                   </Card>
-                ))}
+                );
+              })}
               </div>
             )}
           </>

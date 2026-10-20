@@ -29,6 +29,8 @@ create table if not exists public.turfs (
   city text not null,
   sports text[] not null default '{}',
   amenities text[] not null default '{}',
+  image text default 'football',
+  images text[] not null default '{}',
   base_price numeric(10, 2) not null check (base_price >= 0),
   peak_price numeric(10, 2) not null check (peak_price >= 0),
   open_time time not null default '06:00',
@@ -184,7 +186,7 @@ revoke all on public.profiles, public.turfs, public.bookings, public.blocked_slo
 grant select (id, full_name, role, created_at) on public.profiles to authenticated;
 grant update (full_name) on public.profiles to authenticated;
 grant select on public.turfs to anon, authenticated;
-grant insert (owner_id, name, address, city, sports, amenities, base_price, peak_price, open_time, close_time, status)
+grant insert (owner_id, name, address, city, sports, amenities, base_price, peak_price, open_time, close_time, status, image, images)
   on public.turfs to authenticated;
 grant update (status, approved_at) on public.turfs to authenticated;
 grant select on public.bookings to authenticated;

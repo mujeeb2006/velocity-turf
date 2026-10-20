@@ -16,6 +16,7 @@ import { COLORS as V, NAV_ACCENTS, FONT_DISPLAY, FONT_BODY, FONT_DATA, panel, fl
 import StadiumScene from "@/components/StadiumScene";
 import BrandLockup from "@/components/brand-lockup";
 import { SPORT_OPTIONS } from "@/lib/sports";
+import { getTurfImages } from "@/lib/turf-images";
 import {
   clearStoredBookingIntent,
   decodeBookingIntent,
@@ -266,20 +267,7 @@ function BookingQrCode({ bookingId, size = 140 }) {
 function TurfCard({ turf, onBook, onMatch, index = 0 }) {
   const price = calcPrice(turf, turf.occupancy);
   const isDynamic = turf.occupancy > 70;
-  const sportImages = {
-    Football: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1000&q=85",
-    Basketball: "https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=1000&q=85",
-    Cricket: "https://images.unsplash.com/photo-1531415074968-036ba1b575da?auto=format&fit=crop&w=1000&q=85",
-    Badminton: "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=1000&q=85",
-    Hockey: "https://images.unsplash.com/photo-1580748141549-71748dbe0f8b?auto=format&fit=crop&w=1000&q=85",
-    Tennis: "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&w=1000&q=85",
-    Volleyball: "https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?auto=format&fit=crop&w=1000&q=85",
-    Pickleball: "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=1000&q=85",
-    Swimming: "https://images.unsplash.com/photo-1530549387789-4c1017266635?auto=format&fit=crop&w=1000&q=85",
-    "Table Tennis": "https://images.unsplash.com/photo-1611251135345-18c56206b863?auto=format&fit=crop&w=1000&q=85",
-    Squash: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?auto=format&fit=crop&w=1000&q=85",
-  };
-  const coverImage = sportImages[turf.sports[0]] || sportImages.Football;
+  const { cover: coverImage, gallery } = getTurfImages(turf);
   const hasAvailability = turf.slots.some(slot => slot.status === "available");
 
   return (
@@ -287,6 +275,23 @@ function TurfCard({ turf, onBook, onMatch, index = 0 }) {
       <div className="vt-venue-cover">
         <img src={coverImage} alt={`${turf.sports[0]} venue`} loading="lazy" onError={e => { e.currentTarget.style.display = "none"; }} />
         <div className="vt-venue-cover-shade" />
+        {gallery.length > 1 && (
+          <span style={{
+            position: "absolute",
+            top: 10,
+            right: 10,
+            background: "rgba(10, 18, 14, 0.75)",
+            backdropFilter: "blur(6px)",
+            color: "#fff",
+            padding: "2px 7px",
+            borderRadius: 6,
+            fontSize: 10.5,
+            fontWeight: 700,
+            zIndex: 2,
+          }}>
+            📷 {gallery.length} photos
+          </span>
+        )}
         <span className={`vt-venue-status ${hasAvailability ? "" : "unavailable"}`}>
           {hasAvailability ? "Open slots today" : "No slots today"}
         </span>
@@ -381,6 +386,8 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
   const [bookingId, setBookingId] = useState(null);
   const [bookingPrice, setBookingPrice] = useState(null);
   const [copiedId, setCopiedId] = useState(false);
+  const turfPhotos = useMemo(() => getTurfImages(turf), [turf]);
+  const [activePhotoIdx, setActivePhotoIdx] = useState(0);
 
   // Client-side idempotency key for this booking session
   const [idempotencyKey] = useState(() =>
@@ -665,6 +672,109 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
         <div style={{ padding: 22, overflowY: "auto", flex: 1 }}>
           {step === 1 && (
             <>
+              {/* Turf Photo Gallery */}
+              {(() => {
+                const photos = turfPhotos.gallery?.length ? turfPhotos.gallery : [turfPhotos.cover];
+                const activePhoto = photos[activePhotoIdx] || photos[0];
+                return (
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{
+                      position: "relative",
+                      borderRadius: 14,
+                      overflow: "hidden",
+                      height: 190,
+                      background: V.pitchCardRaised,
+                      border: `1px solid ${V.line}`,
+                    }}>
+                      <img
+                        src={activePhoto}
+                        alt={`${turf.name} photo`}
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        onError={(e) => { e.currentTarget.style.display = "none"; }}
+                      />
+                      <div style={{
+                        position: "absolute",
+                        inset: 0,
+                        background: "linear-gradient(to top, rgba(10, 18, 14, 0.75) 0%, transparent 60%)",
+                      }} />
+                      {photos.length > 1 && (
+                        <div style={{
+                          position: "absolute",
+                          bottom: 10,
+                          right: 12,
+                          background: "rgba(0,0,0,0.68)",
+                          backdropFilter: "blur(6px)",
+                          padding: "3px 8px",
+                          borderRadius: 6,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: "#fff",
+                        }}>
+                          {activePhotoIdx + 1} / {photos.length} photos
+                        </div>
+                      )}
+                      {turf.amenities && turf.amenities.length > 0 && (
+                        <div style={{
+                          position: "absolute",
+                          bottom: 10,
+                          left: 12,
+                          display: "flex",
+                          gap: 6,
+                          flexWrap: "wrap",
+                        }}>
+                          {turf.amenities.slice(0, 3).map((a) => (
+                            <span key={a} style={{
+                              background: "rgba(10, 18, 14, 0.7)",
+                              backdropFilter: "blur(6px)",
+                              color: V.chalkDim,
+                              padding: "2px 7px",
+                              borderRadius: 6,
+                              fontSize: 10.5,
+                              fontWeight: 600,
+                              border: `1px solid ${V.line}`,
+                            }}>
+                              {a}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {photos.length > 1 && (
+                      <div style={{
+                        display: "flex",
+                        gap: 8,
+                        marginTop: 10,
+                        overflowX: "auto",
+                        paddingBottom: 4,
+                      }}>
+                        {photos.map((src, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => setActivePhotoIdx(i)}
+                            style={{
+                              flexShrink: 0,
+                              width: 56,
+                              height: 42,
+                              borderRadius: 8,
+                              overflow: "hidden",
+                              border: `2px solid ${activePhotoIdx === i ? V.flood : V.line}`,
+                              padding: 0,
+                              background: "none",
+                              cursor: "pointer",
+                              opacity: activePhotoIdx === i ? 1 : 0.65,
+                              transition: "all 0.15s ease",
+                            }}
+                          >
+                            <img src={src} alt={`Thumbnail ${i + 1}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
               {resumeNotice && !slotConflictMsg && selectedSlot !== null && (
                 <div role="status" style={{
                   background: "rgba(31, 155, 108, 0.1)",

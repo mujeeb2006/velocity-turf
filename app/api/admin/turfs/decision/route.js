@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin, readJson, notifyUser, UUID_PATTERN } from "@/lib/admin/server";
 
@@ -14,8 +13,8 @@ export async function POST(request) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
-  const supabase = createClient();
-  const { data: turf, error: lookupError } = await supabase
+  const admin = createAdminClient();
+  const { data: turf, error: lookupError } = await admin
     .from("turfs")
     .select("id, name, owner_id, status")
     .eq("id", turfId)
@@ -30,7 +29,7 @@ export async function POST(request) {
   }
 
   const approve = decision === "approve";
-  let { data: updated, error } = await supabase
+  let { data: updated, error } = await admin
     .from("turfs")
     .update({ status: approve ? "live" : "rejected", approved_at: approve ? new Date().toISOString() : null })
     .eq("id", turfId)
@@ -40,7 +39,7 @@ export async function POST(request) {
   // Existing deployments may predate the optional approved_at column.
   if (error?.code === "42703" || error?.code === "PGRST204") {
     console.warn("turf decision retrying without approved_at; apply the latest schema to track approval timestamps");
-    ({ data: updated, error } = await supabase
+    ({ data: updated, error } = await admin
       .from("turfs")
       .update({ status: approve ? "live" : "rejected" })
       .eq("id", turfId)

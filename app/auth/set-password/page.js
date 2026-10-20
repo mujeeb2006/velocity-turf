@@ -213,7 +213,7 @@ function SetPasswordForm() {
               animation: "spin 0.9s linear infinite",
             }}
           />
-          <style jsx>{`
+          <style>{`
             @keyframes spin {
               to {
                 transform: rotate(360deg);

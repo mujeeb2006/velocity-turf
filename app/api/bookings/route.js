@@ -8,6 +8,12 @@ import { createHash } from "crypto";
 import { logger, startTimer, getRequestId } from "@/lib/logger";
 import { Errors, ok } from "@/lib/api-response";
 import { checkRateLimit, getClientIp, LIMITS } from "@/lib/rate-limit";
+import {
+  getTurfCurrentTime,
+  isSessionStartedOrEnded,
+  closeExpiredBookings,
+  annotateSlotsWithLiveTime,
+} from "@/lib/booking/session-lifecycle";
 
 // ── Idempotency helpers ───────────────────────────────────────────────────────
 
@@ -169,6 +175,23 @@ export async function POST(request) {
 
   const admin = createAdminClient();
 
+  // ── Auto-close expired sessions asynchronously in background ──────────────
+  closeExpiredBookings(admin).catch((err) => logger.warn("auto-close expired bookings background error", err));
+
+  // ── Enforce live server time & turf timezone validation ───────────────────
+  const serverTime = getTurfCurrentTime();
+  if (isSessionStartedOrEnded(bookingDate, startTime, serverTime)) {
+    logger.warn("booking rejected - session already ended or started", {
+      requestId,
+      userId,
+      turfId,
+      startTime,
+      bookingDate,
+      serverTime,
+    });
+    return Errors.badRequest("This session has ended. Please choose an upcoming time slot.", requestId);
+  }
+
   // ── Idempotency check ─────────────────────────────────────────────────────
   const payloadHash = hashPayload({ turfId, startTime, bookingDate, sport: requestedSport });
   if (idempotencyKey) {
@@ -205,7 +228,7 @@ export async function POST(request) {
   // ── Verify slot availability (server-side, before insert) ─────────────────
   // Note: the DB trigger also checks atomically — this pre-flight gives a
   // clean 409 before hitting the unique constraint.
-  const { data: slots, error: slotsError } = await admin.rpc("turf_slots", {
+  const { data: rawSlots, error: slotsError } = await admin.rpc("turf_slots", {
     p_turf_id: turfId,
     p_date: bookingDate,
   });
@@ -215,7 +238,7 @@ export async function POST(request) {
     return Errors.internal("Could not verify slot availability. Please try again.", requestId);
   }
 
-  const slotList = slots || [];
+  const slotList = annotateSlotsWithLiveTime(rawSlots || [], bookingDate, serverTime);
   const targetSlot = slotList.find(
     (s) => s.slot_time === startTime || s.slot_time.slice(0, 5) === startTime.slice(0, 5)
   );
@@ -227,6 +250,9 @@ export async function POST(request) {
 
   if (targetSlot.status !== "available") {
     logger.info("booking - slot not available", { requestId, userId, turfId, startTime, slotStatus: targetSlot.status });
+    if (targetSlot.status === "closed" || targetSlot.isExpired) {
+      return Errors.badRequest("This session has ended. Please choose an upcoming time slot.", requestId);
+    }
     return Errors.slotTaken(requestId);
   }
 

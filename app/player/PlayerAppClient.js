@@ -24,6 +24,12 @@ import {
   saveBookingIntent,
 } from "@/lib/booking/intent";
 import { extractErrorMessage } from "@/lib/api-response";
+import {
+  getTurfCurrentTime,
+  isSessionStartedOrEnded,
+  isSessionEnded,
+  annotateSlotsWithLiveTime,
+} from "@/lib/booking/session-time";
 
 function todayStr() {
   return dateKey();
@@ -106,8 +112,6 @@ const Icon = ({ name, size = 20, color = "currentColor", filled = false }) => {
 // ============================================================
 // SLOT GRID COMPONENT
 // ============================================================
-// SLOT GRID COMPONENT
-// ============================================================
 function SlotGrid({ slots = [], onSelect, selected, loading = false, price }) {
   if (loading) {
     return (
@@ -137,9 +141,10 @@ function SlotGrid({ slots = [], onSelect, selected, loading = false, price }) {
     >
       {slots.map((slot, i) => {
         const isSelected = selected === i;
-        const isAvailable = slot.status === "available";
-        const isLocked = slot.status === "locked";
-        const isBooked = slot.status === "booked";
+        const isClosed = slot.status === "closed" || slot.status === "completed" || slot.isClosed || slot.isExpired;
+        const isAvailable = slot.status === "available" && !isClosed;
+        const isLocked = slot.status === "locked" && !isClosed;
+        const isBooked = (slot.status === "booked" || slot.status === "confirmed") && !isClosed;
 
         const bg = isSelected
           ? V.floodButton || V.flood
@@ -147,6 +152,8 @@ function SlotGrid({ slots = [], onSelect, selected, loading = false, price }) {
           ? "rgba(27, 158, 102, 0.08)"
           : isLocked
           ? "rgba(180, 83, 9, 0.08)"
+          : isClosed
+          ? "rgba(107, 114, 128, 0.05)"
           : "rgba(17, 24, 39, 0.04)";
 
         const borderColor = isSelected
@@ -155,6 +162,8 @@ function SlotGrid({ slots = [], onSelect, selected, loading = false, price }) {
           ? "rgba(27, 158, 102, 0.35)"
           : isLocked
           ? "rgba(180, 83, 9, 0.35)"
+          : isClosed
+          ? "rgba(107, 114, 128, 0.22)"
           : V.line;
 
         const textColor = isSelected
@@ -167,6 +176,8 @@ function SlotGrid({ slots = [], onSelect, selected, loading = false, price }) {
 
         const statusLabel = isSelected
           ? "Selected"
+          : isClosed
+          ? "Closed"
           : isAvailable
           ? "Open"
           : isLocked
@@ -175,6 +186,8 @@ function SlotGrid({ slots = [], onSelect, selected, loading = false, price }) {
 
         const ariaStatus = isSelected
           ? "selected slot"
+          : isClosed
+          ? "This session has ended, unavailable"
           : isAvailable
           ? `available slot, ₹${price} per hour`
           : isLocked
@@ -189,6 +202,7 @@ function SlotGrid({ slots = [], onSelect, selected, loading = false, price }) {
             disabled={!isAvailable}
             aria-pressed={isSelected}
             aria-label={`${slot.time}, ${ariaStatus}`}
+            title={isClosed ? "This session has ended." : undefined}
             style={{
               padding: "10px 6px",
               minHeight: 56,
@@ -197,7 +211,8 @@ function SlotGrid({ slots = [], onSelect, selected, loading = false, price }) {
               background: bg,
               color: textColor,
               cursor: isAvailable ? "pointer" : "not-allowed",
-              transition: "transform 0.15s, background 0.15s, border-color 0.15s",
+              opacity: isClosed ? 0.6 : 1,
+              transition: "transform 0.15s, background 0.15s, border-color 0.15s, opacity 0.15s",
               fontFamily: FONT_BODY,
               display: "flex",
               flexDirection: "column",
@@ -413,24 +428,26 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
             raw_time: s.slot_time,
             status: s.status,
           }));
-          setModalSlots(list);
+          const liveList = annotateSlotsWithLiveTime(list, selectedDate, getTurfCurrentTime());
+          setModalSlots(liveList);
 
           // Restore a slot picked before sign-in ONLY if the fresh data says it is still free.
           const pending = resumeSlotRef.current;
           if (pending && pending.date === selectedDate) {
             resumeSlotRef.current = null;
             const wanted = String(pending.startTime).slice(0, 5);
-            const index = list.findIndex(s => String(s.raw_time).slice(0, 5) === wanted);
-            if (index >= 0 && list[index].status === "available") {
+            const index = liveList.findIndex(s => String(s.raw_time).slice(0, 5) === wanted);
+            if (index >= 0 && liveList[index].status === "available" && !liveList[index].isClosed) {
               setSelectedSlot(index);
-              setResumeNotice(`Welcome back! We re-checked availability: ${list[index].time} on ${selectedDate} is still open. Review the price, then confirm when you're ready.`);
+              setResumeNotice(`Welcome back! We re-checked availability: ${liveList[index].time} on ${selectedDate} is still open. Review the price, then confirm when you're ready.`);
             } else {
-              setSlotConflictMsg(`The ${fmtTime(pending.startTime)} slot you picked earlier is no longer available. Your booking has not been made. Choose another available time to continue.`);
+              setSlotConflictMsg(`The ${fmtTime(pending.startTime)} slot you picked earlier has ended or is no longer available. Your booking has not been made. Choose another available time to continue.`);
             }
           }
         }
       } catch (err) {
-        if (active) setSlotConflictMsg("Network error loading slots. Please retry.");
+        if (!active) return;
+        setSlotConflictMsg("Network error loading slots. Please retry.");
       } finally {
         if (active) setSlotsLoading(false);
       }
@@ -438,6 +455,37 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
     loadDateSlots();
     return () => { active = false; };
   }, [selectedDate, turf.id, supabase]);
+
+  // Live real-time ticker to close expired sessions automatically
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const serverTime = getTurfCurrentTime();
+      setModalSlots((prev) => {
+        let changed = false;
+        const next = prev.map((s) => {
+          if (s.status === "available" && isSessionStartedOrEnded(selectedDate, s.raw_time, serverTime)) {
+            changed = true;
+            return { ...s, status: "closed", isExpired: true, isClosed: true };
+          }
+          return s;
+        });
+        return changed ? next : prev;
+      });
+    }, 5000);
+
+    return () => clearInterval(timer);
+  }, [selectedDate]);
+
+  // If the user's selected slot expires or is closed in real time, deselect and inform:
+  useEffect(() => {
+    if (selectedSlot !== null) {
+      const slot = modalSlots[selectedSlot];
+      if (slot && (slot.status === "closed" || slot.isClosed || slot.isExpired)) {
+        setSelectedSlot(null);
+        setSlotConflictMsg("This session has ended. Please choose an upcoming time slot.");
+      }
+    }
+  }, [modalSlots, selectedSlot]);
 
   if (!turf) return null;
 
@@ -458,7 +506,11 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
     if (!validation.ok || !policyValidation.ok) {
       const message = validation.error || policyValidation.error || "Booking unavailable.";
       showToast(message, { type: "error" });
-      if (message.includes("just taken") || message.includes("no longer available")) {
+      if (message.includes("ended") || message.includes("closed")) {
+        setSlotConflictMsg("This session has ended. Please choose an upcoming time slot.");
+        setStep(1);
+        setSelectedSlot(null);
+      } else if (message.includes("just taken") || message.includes("no longer available")) {
         setSlotConflictMsg("That slot was just booked by another player. Please select another slot.");
         setStep(1);
         setSelectedSlot(null);
@@ -707,6 +759,7 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
                   <span style={{ color: V.floodButton || V.flood, display: "inline-flex", alignItems: "center", gap: 3 }}>● Open</span>
                   <span style={{ color: V.pending, display: "inline-flex", alignItems: "center", gap: 3 }}>● Held</span>
                   <span style={{ color: V.chalkFaint, display: "inline-flex", alignItems: "center", gap: 3 }}>● Taken</span>
+                  <span style={{ color: "#9ca3af", display: "inline-flex", alignItems: "center", gap: 3 }}>● Closed</span>
                 </div>
               </div>
 
@@ -1234,7 +1287,11 @@ function DiscoverSection({ turfs, onBook, onMatch, isLoading, initialSearch = ""
   const updateEdges = useCallback(() => {
     const el = railRef.current;
     if (!el) return;
-    const next = { start: el.scrollLeft > 2, end: el.scrollLeft < el.scrollWidth - el.clientWidth - 2 };
+    const canScroll = el.scrollWidth > el.clientWidth + 2;
+    const next = {
+      start: canScroll && el.scrollLeft > 4,
+      end: canScroll && el.scrollLeft < el.scrollWidth - el.clientWidth - 4,
+    };
     setEdges((prev) => (prev.start === next.start && prev.end === next.end ? prev : next));
   }, []);
   useEffect(() => {
@@ -1261,7 +1318,7 @@ function DiscoverSection({ turfs, onBook, onMatch, isLoading, initialSearch = ""
     <section className="vt-discover-section">
       <div className="vt-discover-inner">
         <div className="vt-discover-heading">
-          <div>
+          <div className="vt-discover-heading-text">
             <span className="vt-section-eyebrow">PLAY NEAR YOU</span>
             <h2>Find your next turf</h2>
             <p>Football, cricket, badminton and more. Find a turf that fits your game.</p>
@@ -1273,7 +1330,16 @@ function DiscoverSection({ turfs, onBook, onMatch, isLoading, initialSearch = ""
 
         <div className="vt-discover-controls">
           <div className="vt-sport-filters-wrap">
-            <button type="button" className="vt-sport-scroll" onClick={() => scrollRail(-1)} disabled={!edges.start} hidden={!edges.start && !edges.end} aria-label="Scroll sports left">‹</button>
+            <button
+              type="button"
+              className="vt-sport-scroll vt-sport-scroll-left"
+              onClick={() => scrollRail(-1)}
+              disabled={!edges.start}
+              hidden={!edges.start && !edges.end}
+              aria-label="Scroll sports left"
+            >
+              ‹
+            </button>
             <div
               ref={railRef}
               className="vt-sport-filters"
@@ -1291,6 +1357,9 @@ function DiscoverSection({ turfs, onBook, onMatch, isLoading, initialSearch = ""
                     // make sure a partially hidden chip ends up fully in view
                     e.currentTarget.scrollIntoView?.({ inline: "nearest", block: "nearest", behavior: scrollBehavior() });
                   }}
+                  onFocus={(e) => {
+                    e.currentTarget.scrollIntoView?.({ inline: "nearest", block: "nearest", behavior: scrollBehavior() });
+                  }}
                   className={`vt-sport-filter ${filter === s ? "active" : ""}`}
                   aria-pressed={filter === s}
                 >
@@ -1298,7 +1367,16 @@ function DiscoverSection({ turfs, onBook, onMatch, isLoading, initialSearch = ""
                 </button>
               ))}
             </div>
-            <button type="button" className="vt-sport-scroll" onClick={() => scrollRail(1)} disabled={!edges.end} hidden={!edges.start && !edges.end} aria-label="Scroll sports right">›</button>
+            <button
+              type="button"
+              className="vt-sport-scroll vt-sport-scroll-right"
+              onClick={() => scrollRail(1)}
+              disabled={!edges.end}
+              hidden={!edges.start && !edges.end}
+              aria-label="Scroll sports right"
+            >
+              ›
+            </button>
           </div>
 
           <label className="vt-discover-search">
@@ -1532,9 +1610,6 @@ function LoyaltySection({ isLoading, leaderboard, myPoints, gamesPlayed }) {
   );
 }
 
-// ============================================================
-// DASHBOARD
-// ============================================================
 // ============================================================
 // DASHBOARD
 // ============================================================
@@ -1825,7 +1900,7 @@ function DashboardSection({ isLoading, bookings, matchesJoined, onCancel, onRevi
                         </>
                       )}
 
-                      {isPast && (
+                      {isPast && !b.hasReview && (
                         <button
                           type="button"
                           onClick={() => onReview(b)}
@@ -1886,32 +1961,47 @@ function BookingQrModal({ booking, onClose }) {
   );
 }
 
-function ReviewModal({ booking, profile, supabase, onClose, showToast }) {
+function ReviewModal({ booking, profile, supabase, onClose, onReviewed, showToast }) {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const submit = async (event) => {
     event.preventDefault();
-    if (!comment.trim()) {
+    if (submitting) return;
+    const trimmed = comment.trim();
+    if (!trimmed) {
       showToast("Add a few words about your visit.", { type: "error" });
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.from("reviews").insert({
-      player_id: profile.id,
-      turf_id: booking.turfId,
-      booking_id: booking.id,
-      rating,
-      comment: comment.trim(),
-    });
-    setSubmitting(false);
-    if (error) {
-      showToast(error.code === "23505" ? "You've already reviewed this booking." : "Couldn't submit your review. Try again.", { type: "error" });
-      return;
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          turfId: booking.turfId,
+          bookingId: booking.id,
+          rating,
+          comment: trimmed,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showToast(extractErrorMessage(data, "Couldn't submit your review. Try again."), { type: "error" });
+        return;
+      }
+      showToast("Review submitted. Thanks for sharing your experience.", { type: "success" });
+      if (typeof onReviewed === "function") {
+        onReviewed(booking.id);
+      }
+      onClose();
+    } catch (err) {
+      console.error("review submit network error", err);
+      showToast("Network error. Check your connection and try again.", { type: "error" });
+    } finally {
+      setSubmitting(false);
     }
-    showToast("Review submitted. Thanks for sharing your experience.", { type: "success" });
-    onClose();
   };
 
   return (
@@ -1932,7 +2022,7 @@ function ReviewModal({ booking, profile, supabase, onClose, showToast }) {
           <textarea value={comment} onChange={e => setComment(e.target.value)} maxLength={1000} rows={4} required style={{ width: "100%", padding: 12, borderRadius: 8, background: V.pitchCardRaised, border: `1px solid ${V.line}`, color: V.chalk, font: `14px ${FONT_BODY}`, resize: "vertical" }} />
         </label>
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-          <button type="button" onClick={onClose} style={buttonStyle("secondary", "sm")}>Cancel</button>
+          <button type="button" onClick={onClose} disabled={submitting} style={buttonStyle("secondary", "sm")}>Cancel</button>
           <button type="submit" disabled={submitting} style={buttonStyle("primary", "sm")}>{submitting ? "Submitting..." : "Submit review"}</button>
         </div>
       </form>
@@ -1947,24 +2037,41 @@ function DisputeModal({ booking, profile, supabase, onClose, showToast }) {
 
   const submit = async (event) => {
     event.preventDefault();
-    if (!details.trim()) {
-      showToast("Describe the issue before submitting.", { type: "error" });
+    if (submitting) return;
+    const trimmed = details.trim();
+    if (!trimmed || trimmed.length < 5) {
+      showToast("Describe the issue before submitting (at least 5 characters).", { type: "error" });
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.from("disputes").insert({
-      raised_by: profile.id,
-      turf_id: booking.turfId,
-      booking_id: booking.id,
-      issue: `${category}: ${details.trim()}`,
-    });
-    setSubmitting(false);
-    if (error) {
-      showToast("Couldn't submit your issue. Try again.", { type: "error" });
-      return;
+    try {
+      const res = await fetch("/api/disputes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bookingId: booking.id,
+          category,
+          details: trimmed,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showToast(extractErrorMessage(data, "Couldn't submit your issue. Try again."), { type: "error" });
+        return;
+      }
+      showToast(
+        data.ticketNumber
+          ? `Support ticket ${data.ticketNumber} created. Our team will review your request.`
+          : "Issue sent to support.",
+        { type: "success" }
+      );
+      onClose();
+    } catch (err) {
+      console.error("Dispute submission error", err);
+      showToast("Network error. Please check your connection and retry.", { type: "error" });
+    } finally {
+      setSubmitting(false);
     }
-    showToast("Issue sent to support.", { type: "success" });
-    onClose();
   };
 
   return (
@@ -1972,7 +2079,7 @@ function DisputeModal({ booking, profile, supabase, onClose, showToast }) {
       <form role="dialog" aria-modal="true" aria-labelledby="dispute-title" onSubmit={submit} onClick={e => e.stopPropagation()} style={{ ...panel(true), width: "100%", maxWidth: 460, padding: 24, display: "grid", gap: 16 }}>
         <div>
           <h2 id="dispute-title" style={{ color: V.chalk, fontSize: 22, fontFamily: FONT_DISPLAY, fontWeight: 400 }}>Report a booking issue</h2>
-          <p style={{ color: V.chalkFaint, fontSize: 13, marginTop: 4 }}>{booking.turf} · {booking.date}</p>
+          <p style={{ color: V.chalkFaint, fontSize: 13, marginTop: 4 }}>{booking.turf} · {booking.date} · ₹{booking.price}</p>
         </div>
         <label style={{ display: "grid", gap: 7, color: V.chalkDim, fontSize: 13 }}>
           Issue type
@@ -1982,11 +2089,11 @@ function DisputeModal({ booking, profile, supabase, onClose, showToast }) {
         </label>
         <label style={{ display: "grid", gap: 7, color: V.chalkDim, fontSize: 13 }}>
           Details
-          <textarea value={details} onChange={e => setDetails(e.target.value)} maxLength={1000} rows={4} required style={{ width: "100%", padding: 12, borderRadius: 8, background: V.pitchCardRaised, border: `1px solid ${V.line}`, color: V.chalk, font: `14px ${FONT_BODY}`, resize: "vertical" }} />
+          <textarea value={details} onChange={e => setDetails(e.target.value)} maxLength={1000} rows={4} required placeholder="Describe what happened..." style={{ width: "100%", padding: 12, borderRadius: 8, background: V.pitchCardRaised, border: `1px solid ${V.line}`, color: V.chalk, font: `14px ${FONT_BODY}`, resize: "vertical" }} />
         </label>
         <div style={{ color: V.chalkFaint, fontSize: 12 }}>Booking amount: ₹{booking.price}</div>
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-          <button type="button" onClick={onClose} style={buttonStyle("secondary", "sm")}>Cancel</button>
+          <button type="button" onClick={onClose} disabled={submitting} style={buttonStyle("secondary", "sm")}>Cancel</button>
           <button type="submit" disabled={submitting} style={buttonStyle("primary", "sm")}>{submitting ? "Submitting..." : "Send to support"}</button>
         </div>
       </form>
@@ -1994,9 +2101,6 @@ function DisputeModal({ booking, profile, supabase, onClose, showToast }) {
   );
 }
 
-// ============================================================
-// MAIN APP
-// ============================================================
 // ============================================================
 // GUEST PROMPT — shown on tabs that need an account (Dashboard, Loyalty)
 // ============================================================
@@ -2016,11 +2120,35 @@ function GuestPrompt({ icon, title, body, router }) {
   );
 }
 
+// ============================================================
+// MAIN APP
+// ============================================================
 export default function PlayerAppClient({ profile }) {
   const router = useRouter();
   const supabase = createClient();
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState("home");
+
+  // Periodically trigger backend cleanup of expired sessions
+  useEffect(() => {
+    // Initial run on mount
+    fetch('/api/bookings/close-expired', { method: 'POST' }).catch(console.error);
+    const interval = setInterval(() => {
+      fetch('/api/bookings/close-expired', { method: 'POST' }).catch(console.error);
+    }, 60000); // every 60 seconds
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab");
+      if (tabParam && ["home", "discover", "matches", "loyalty", "dashboard"].includes(tabParam)) {
+        setActiveTab(tabParam);
+      }
+    }
+  }, []);
+
   const [bookingTurf, setBookingTurf] = useState(null);
   const [bookingQr, setBookingQr] = useState(null);
   const [cancellingBooking, setCancellingBooking] = useState(null);
@@ -2065,7 +2193,11 @@ export default function PlayerAppClient({ profile }) {
         console.error(`could not load slot availability for turf ${t.id}`, slotsError);
         return { ...t, location: formatTurfLocation(t.address, t.city), reviews: t.review_count, slots: [], occupancy: 0 };
       }
-      const slotList = (slots || []).map(s => ({ time: fmtTime(s.slot_time), raw_time: s.slot_time, status: s.status }));
+      // Map raw slots to UI-friendly format
+      const rawSlotList = (slots || []).map(s => ({ time: fmtTime(s.slot_time), raw_time: s.slot_time, status: s.status }));
+      // Annotate slots with live expiration/closure based on server time
+      const serverTime = getTurfCurrentTime();
+      const slotList = annotateSlotsWithLiveTime(rawSlotList, date, serverTime);
       const bookedCount = slotList.filter(s => s.status !== "available").length;
       const occupancy = slotList.length ? Math.round((bookedCount / slotList.length) * 100) : 0;
       return { ...t, location: formatTurfLocation(t.address, t.city), reviews: t.review_count, slots: slotList, occupancy };
@@ -2123,12 +2255,26 @@ export default function PlayerAppClient({ profile }) {
       .from("bookings")
       .select("*, turf:turfs(name)")
       .eq("player_id", profile.id)
+      .is("archived_at", null)
       .order("booking_date", { ascending: true });
     if (error) {
+      showToast("Couldn't load your bookings. Try refreshing.", { type: "error" });
       setMyBookingsLoading(false);
       return;
     }
-    const today = todayStr();
+
+    // Fetch existing review booking_ids so we can hide the "Rate Turf" button
+    // for bookings that have already been reviewed.
+    let reviewedBookingIds = new Set();
+    if ((data || []).length > 0) {
+      const bookingIds = (data || []).map(b => b.id);
+      const { data: reviewRows } = await supabase
+        .from("reviews")
+        .select("booking_id")
+        .in("booking_id", bookingIds);
+      reviewedBookingIds = new Set((reviewRows || []).map(r => r.booking_id));
+    }
+
     setMyBookings((data || []).map(b => ({
       id: b.id,
       turfId: b.turf_id,
@@ -2139,6 +2285,7 @@ export default function PlayerAppClient({ profile }) {
       sport: b.sport,
       price: Number(b.price),
       status: b.status,
+      hasReview: reviewedBookingIds.has(b.id),
     })));
     setMyBookingsLoading(false);
 
@@ -2606,8 +2753,19 @@ export default function PlayerAppClient({ profile }) {
             showToast={showToast}
           />
         )}
-        {bookingQr && <BookingQrModal booking={bookingQr} onClose={() => setBookingQr(null)} />}
-        {reviewBooking && <ReviewModal booking={reviewBooking} profile={profile} supabase={supabase} onClose={() => setReviewBooking(null)} showToast={showToast} />}
+        {reviewBooking && (
+          <ReviewModal
+            booking={reviewBooking}
+            profile={profile}
+            supabase={supabase}
+            onClose={() => setReviewBooking(null)}
+            onReviewed={(bId) => {
+              setMyBookings(prev => prev.map(b => b.id === bId ? { ...b, hasReview: true } : b));
+              fetchMyBookings();
+            }}
+            showToast={showToast}
+          />
+        )}
         {disputeBooking && <DisputeModal booking={disputeBooking} profile={profile} supabase={supabase} onClose={() => setDisputeBooking(null)} showToast={showToast} />}
 
         {/* Real-time indicator */}

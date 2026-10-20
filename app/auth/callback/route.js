@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createServerClient } from "@supabase/ssr";
+import { getSupabaseEnv } from "@/lib/supabase/env";
 import { sanitizeRedirectPath } from "@/lib/auth/url";
 
-// When verification fails we still want a booking-in-progress to survive: the
-// intent travels inside `next` (/?resumeBooking=...), so hand it to /login.
-function failureRedirect(origin, isInvite, message, targetNext) {
-  const target = isInvite ? "/auth/set-password" : "/login";
+function failureRedirect(origin, isSetupOrInvite, message, targetNext) {
+  const target = isSetupOrInvite ? "/auth/setup-password" : "/login";
   const redirectUrl = new URL(target, origin);
-  redirectUrl.searchParams.set("error", message);
-  if (!isInvite) {
+  if (message) {
+    redirectUrl.searchParams.set("error", message);
+  }
+  if (!isSetupOrInvite && targetNext) {
     try {
       const intent = new URL(targetNext, origin).searchParams.get("resumeBooking");
       if (intent) redirectUrl.searchParams.set("bookingIntent", intent);
@@ -30,19 +31,48 @@ export async function GET(request) {
   const errorParam = searchParams.get("error");
   const errorDescription = searchParams.get("error_description");
 
-  const isInvite = type === "invite" || rawNext?.startsWith("/auth/set-password");
+  const isSetupOrInvite =
+    type === "invite" ||
+    type === "recovery" ||
+    rawNext?.includes("/auth/setup-password") ||
+    rawNext?.includes("/auth/set-password");
+
   const targetNext = sanitizeRedirectPath(
     rawNext,
-    isInvite ? "/auth/set-password" : "/"
+    isSetupOrInvite ? "/auth/setup-password" : "/"
   );
 
-  // If Supabase redirected with an error (e.g. invalid or expired invite link)
+  // If Supabase Auth redirected with an error (e.g. invalid or expired invite link)
   if (errorParam) {
     console.error("Auth callback received error from Supabase:", errorParam, errorDescription);
-    return failureRedirect(origin, isInvite, errorDescription || errorParam, targetNext);
+    return failureRedirect(
+      origin,
+      isSetupOrInvite,
+      errorDescription || errorParam,
+      targetNext
+    );
   }
 
-  const supabase = createClient();
+  // Determine initial destination: setup flows always route to setup-password
+  const initialDestination = isSetupOrInvite ? "/auth/setup-password" : targetNext;
+  const redirectResponse = NextResponse.redirect(new URL(initialDestination, origin));
+
+  const { url, anonKey } = getSupabaseEnv();
+
+  // Create server client that sets cookies directly on the redirect response headers
+  const supabase = createServerClient(url, anonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          request.cookies.set(name, value);
+          redirectResponse.cookies.set(name, value, options);
+        });
+      },
+    },
+  });
 
   // 1. PKCE flow: Exchange authorization code for session
   if (code) {
@@ -50,11 +80,13 @@ export async function GET(request) {
 
     if (exchangeError) {
       console.error("Auth callback code exchange error:", exchangeError.message);
-      return failureRedirect(origin, isInvite, exchangeError.message, targetNext);
+      return failureRedirect(origin, isSetupOrInvite, exchangeError.message, targetNext);
     }
 
     if (data?.user) {
-      return NextResponse.redirect(new URL(targetNext, origin).toString());
+      const destination = isSetupOrInvite ? "/auth/setup-password" : targetNext;
+      redirectResponse.headers.set("Location", new URL(destination, origin).toString());
+      return redirectResponse;
     }
   }
 
@@ -67,22 +99,27 @@ export async function GET(request) {
 
     if (verifyError) {
       console.error("Auth callback verifyOtp error:", verifyError.message);
-      return failureRedirect(origin, isInvite, verifyError.message, targetNext);
+      return failureRedirect(origin, isSetupOrInvite, verifyError.message, targetNext);
     }
 
     if (data?.user) {
-      return NextResponse.redirect(new URL(targetNext, origin).toString());
+      const destination = isSetupOrInvite ? "/auth/setup-password" : targetNext;
+      redirectResponse.headers.set("Location", new URL(destination, origin).toString());
+      return redirectResponse;
     }
   }
 
   // 3. Fallback: If neither code nor token_hash was in query parameters,
   // the client browser might be carrying an implicit hash fragment (#access_token=...).
-  // Redirecting to /auth/set-password preserves the hash fragment in the browser
-  // where the browser client SDK will detect it and establish the session.
-  if (isInvite || rawNext) {
+  // Redirecting preserves the hash fragment in the browser where the browser SDK can establish the session.
+  if (isSetupOrInvite) {
+    return NextResponse.redirect(new URL("/auth/setup-password", origin).toString());
+  }
+
+  if (rawNext) {
     return NextResponse.redirect(new URL(targetNext, origin).toString());
   }
 
-  // Otherwise, fallback to /auth/set-password so user isn't stuck on generic login with no context
-  return NextResponse.redirect(new URL("/auth/set-password", origin).toString());
+  // Default fallback for ambiguous callback hits
+  return NextResponse.redirect(new URL("/auth/setup-password", origin).toString());
 }

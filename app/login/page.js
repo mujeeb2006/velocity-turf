@@ -21,7 +21,8 @@ import {
 function LoginForm() {
   const supabase = createClient();
   const searchParams = useSearchParams();
-  const [email, setEmail] = useState("");
+  const emailParam = searchParams?.get("email") || "";
+  const [email, setEmail] = useState(emailParam);
   const [password, setPassword] = useState("");
   const urlError = searchParams?.get("error");
   const rawIntentParam = searchParams?.get("bookingIntent");

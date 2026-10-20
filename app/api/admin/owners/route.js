@@ -27,24 +27,69 @@ export async function POST(request) {
 
   const admin = createAdminClient();
   const siteUrl = getSiteUrl(request);
-  const redirectTo = `${siteUrl}/auth/callback?next=/auth/set-password`;
+  const redirectTo = `${siteUrl}/auth/callback?next=/auth/setup-password`;
 
-  // Check if user is already registered in profiles
+  // Check auth user state and existing profile
+  let authUser = null;
+  try {
+    const { data: listData } = await admin.auth.admin.listUsers();
+    authUser = listData?.users?.find((u) => normalizeEmail(u.email) === email) || null;
+  } catch (err) {
+    console.warn("Could not check auth user state in owners route:", err);
+  }
+
   const { data: existingProfile } = await admin
     .from("profiles")
     .select("id, email, full_name, role")
     .eq("email", email)
     .maybeSingle();
 
+  const isConfirmed = Boolean(authUser?.confirmed_at);
+  const isPending = Boolean(authUser && !authUser.confirmed_at);
+
   if (existingProfile) {
     const existingRole = normalizeUserRole(existingProfile.role);
     if (existingRole === "owner") {
+      // If the owner has NOT completed password setup, allow generating a replacement invitation
+      if (isPending || !isConfirmed) {
+        if (generateLinkOnly) {
+          const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
+            type: "invite",
+            email,
+            options: {
+              data: { full_name: fullName || existingProfile.full_name, role: "owner" },
+              redirectTo,
+            },
+          });
+
+          if (!linkErr && linkData?.properties?.action_link) {
+            return NextResponse.json({
+              success: true,
+              link: linkData.properties.action_link,
+              message: "Replacement invitation link generated for pending owner.",
+            });
+          }
+        } else {
+          const { error: reinviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
+            data: { full_name: fullName || existingProfile.full_name, role: "owner" },
+            redirectTo,
+          });
+
+          if (!reinviteErr) {
+            return NextResponse.json({
+              success: true,
+              message: "Replacement invitation sent to owner's email.",
+            });
+          }
+        }
+      }
+
       return NextResponse.json(
         {
           alreadyExists: true,
           isOwner: true,
           user: existingProfile,
-          error: "This email belongs to an existing Turf Owner. Use 'Get Sign-in Link' to share access.",
+          error: "This email belongs to an existing Turf Owner with an active account. Use 'Get Link' in User Management to share sign-in or reset links.",
         },
         { status: 409 }
       );

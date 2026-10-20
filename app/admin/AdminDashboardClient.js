@@ -1374,17 +1374,88 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
           title="Owner Access Links"
           subtitle={`${accessLinkUser.name} · ${accessLinkUser.email}`}
           onClose={() => { setAccessLinkUser(null); setAccessLinkData(null); setAccessLinkError(""); }}
-          maxWidth={500}
+          maxWidth={520}
         >
           <div style={{ display: "grid", gap: 16 }}>
+            {/* Status Banner */}
+            {accessLinkUser.status === "Pending Invite" || !accessLinkUser.confirmedAt ? (
+              <div style={{
+                background: "rgba(234,179,8,0.12)", border: "1px solid rgba(234,179,8,0.3)",
+                borderRadius: 10, padding: "10px 14px", display: "flex", gap: 10, alignItems: "center",
+              }}>
+                <span style={{ fontSize: 18 }}>⚠️</span>
+                <div style={{ fontSize: 12.5, color: "#FDE047", lineHeight: 1.5 }}>
+                  <strong>Password Setup Pending:</strong> This owner has not created a password yet. Generate an Account Setup Link below so they can set their password and activate their dashboard.
+                </div>
+              </div>
+            ) : null}
+
+            {/* Account Setup Link (Primary for pending owners or password recovery) */}
+            <div style={{
+              background: (accessLinkUser.status === "Pending Invite" || !accessLinkUser.confirmedAt)
+                ? "rgba(14,165,233,0.08)"
+                : "rgba(255,255,255,0.03)",
+              border: `1px solid ${(accessLinkUser.status === "Pending Invite" || !accessLinkUser.confirmedAt) ? "rgba(14,165,233,0.35)" : V.line}`,
+              borderRadius: 12, padding: "14px 16px",
+            }}>
+              <div style={{ fontWeight: 700, color: V.chalk, fontSize: 14, marginBottom: 4 }}>
+                {accessLinkUser.status === "Pending Invite" || !accessLinkUser.confirmedAt
+                  ? "🔑 Account Setup / Invitation Link"
+                  : "🔑 Password Setup / Reset Link"}
+                <span style={{ color: V.chalkFaint, fontWeight: 500, fontSize: 12, marginLeft: 6 }}>(24h, one-time)</span>
+              </div>
+              <div style={{ fontSize: 12.5, color: V.chalkDim, lineHeight: 1.6, marginBottom: 12 }}>
+                {accessLinkUser.status === "Pending Invite" || !accessLinkUser.confirmedAt
+                  ? "Directs the owner to the secure password-setup page to create their password and immediately activates their Owner Dashboard."
+                  : "Generates a secure password reset link pointing to the password setup page for this owner."}
+              </div>
+              {accessLinkError && accessLinkData?.linkType === "setup" && (
+                <p role="alert" style={{ color: V.danger, fontSize: 12.5, margin: "0 0 10px" }}>{accessLinkError}</p>
+              )}
+              {accessLinkData?.linkType === "setup" && (
+                <div style={{
+                  background: "rgba(255,255,255,0.04)", borderRadius: 8, padding: "10px 12px",
+                  fontSize: 11, fontFamily: mono, color: V.chalkDim, wordBreak: "break-all",
+                  lineHeight: 1.5, marginBottom: 10,
+                }}>{accessLinkData.link}</div>
+              )}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <Btn
+                  variant="primary"
+                  size="sm"
+                  busy={accessLinkBusy}
+                  onClick={() => handleGenerateAccessLink(accessLinkUser.email, "setup")}
+                >
+                  {accessLinkBusy ? "Generating…" : "Generate setup link"}
+                </Btn>
+                {accessLinkData?.linkType === "setup" && (
+                  <Btn
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => handleCopyLink(accessLinkData.link)}
+                  >
+                    {accessLinkCopied ? "✓ Copied!" : "Copy setup link"}
+                  </Btn>
+                )}
+              </div>
+            </div>
+
             {/* Direct sign-in link */}
             <div style={{
               background: "rgba(255,255,255,0.03)", border: `1px solid ${V.line}`,
               borderRadius: 12, padding: "14px 16px",
             }}>
-              <div style={{ fontWeight: 700, color: V.chalk, fontSize: 14, marginBottom: 4 }}>Direct Sign-in Link</div>
+              <div style={{ fontWeight: 700, color: V.chalk, fontSize: 14, marginBottom: 4 }}>
+                Direct Sign-in Link
+                {accessLinkUser.status === "Pending Invite" && (
+                  <span style={{ color: V.danger, fontSize: 11.5, marginLeft: 6, fontWeight: 500 }}>
+                    (Requires existing password)
+                  </span>
+                )}
+              </div>
               <div style={{ fontSize: 12.5, color: V.chalkDim, lineHeight: 1.6, marginBottom: 12 }}>
-                Takes the owner to the login page with their email pre-filled and redirects them to the Owner Dashboard after signing in.
+                Takes the owner to the sign-in page with their email pre-filled and redirects to the Owner Dashboard after authentication.
+                {accessLinkUser.status === "Pending Invite" && " Note: New owners without a password should use the Setup Link above."}
               </div>
               <Btn
                 variant="secondary"
@@ -1405,47 +1476,53 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
               </Btn>
             </div>
 
-            {/* Secure one-time magic link */}
-            <div style={{
-              background: "rgba(255,255,255,0.03)", border: `1px solid ${V.line}`,
-              borderRadius: 12, padding: "14px 16px",
-            }}>
-              <div style={{ fontWeight: 700, color: V.chalk, fontSize: 14, marginBottom: 4 }}>Secure One-Time Link <span style={{ color: V.chalkFaint, fontWeight: 500, fontSize: 12 }}>(24h, expires after first use)</span></div>
-              <div style={{ fontSize: 12.5, color: V.chalkDim, lineHeight: 1.6, marginBottom: 12 }}>
-                Generates a cryptographic magic link that signs the owner in and redirects to the Owner Dashboard. Recommended for sharing via secure channels.
-              </div>
-              {accessLinkError && <p role="alert" style={{ color: V.danger, fontSize: 12.5, margin: "0 0 10px" }}>{accessLinkError}</p>}
-              {accessLinkData?.linkType === "magiclink" && (
-                <div style={{
-                  background: "rgba(255,255,255,0.04)", borderRadius: 8, padding: "10px 12px",
-                  fontSize: 11, fontFamily: mono, color: V.chalkDim, wordBreak: "break-all",
-                  lineHeight: 1.5, marginBottom: 10,
-                }}>{accessLinkData.link}</div>
-              )}
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <Btn
-                  variant="primary"
-                  size="sm"
-                  busy={accessLinkBusy}
-                  onClick={() => handleGenerateAccessLink(accessLinkUser.email, "magiclink")}
-                >
-                  {accessLinkBusy ? "Generating…" : "Generate magic link"}
-                </Btn>
-                {accessLinkData?.linkType === "magiclink" && (
-                  <Btn
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => handleCopyLink(accessLinkData.link)}
-                  >
-                    {accessLinkCopied ? "✓ Copied!" : "Copy link"}
-                  </Btn>
+            {/* Secure one-time magic link (for confirmed owners) */}
+            {accessLinkUser.confirmedAt && (
+              <div style={{
+                background: "rgba(255,255,255,0.03)", border: `1px solid ${V.line}`,
+                borderRadius: 12, padding: "14px 16px",
+              }}>
+                <div style={{ fontWeight: 700, color: V.chalk, fontSize: 14, marginBottom: 4 }}>
+                  Secure One-Time Sign-in Link <span style={{ color: V.chalkFaint, fontWeight: 500, fontSize: 12 }}>(24h, expires after first use)</span>
+                </div>
+                <div style={{ fontSize: 12.5, color: V.chalkDim, lineHeight: 1.6, marginBottom: 12 }}>
+                  Generates a cryptographic magic link that signs the owner in and redirects to the Owner Dashboard.
+                </div>
+                {accessLinkError && accessLinkData?.linkType === "magiclink" && (
+                  <p role="alert" style={{ color: V.danger, fontSize: 12.5, margin: "0 0 10px" }}>{accessLinkError}</p>
                 )}
+                {accessLinkData?.linkType === "magiclink" && (
+                  <div style={{
+                    background: "rgba(255,255,255,0.04)", borderRadius: 8, padding: "10px 12px",
+                    fontSize: 11, fontFamily: mono, color: V.chalkDim, wordBreak: "break-all",
+                    lineHeight: 1.5, marginBottom: 10,
+                  }}>{accessLinkData.link}</div>
+                )}
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <Btn
+                    variant="primary"
+                    size="sm"
+                    busy={accessLinkBusy}
+                    onClick={() => handleGenerateAccessLink(accessLinkUser.email, "magiclink")}
+                  >
+                    {accessLinkBusy ? "Generating…" : "Generate magic link"}
+                  </Btn>
+                  {accessLinkData?.linkType === "magiclink" && (
+                    <Btn
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleCopyLink(accessLinkData.link)}
+                    >
+                      {accessLinkCopied ? "✓ Copied!" : "Copy link"}
+                    </Btn>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Info note */}
             <div style={{ fontSize: 12, color: V.chalkFaint, lineHeight: 1.6 }}>
-              🔒 Links are generated server-side. No passwords or service-role keys are included in the URL.
+              🔒 Links are cryptographically generated server-side. No passwords or service-role keys are exposed in URLs.
             </div>
           </div>
         </Modal>

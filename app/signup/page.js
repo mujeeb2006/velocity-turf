@@ -13,6 +13,13 @@ import {
   getStoredBookingIntent,
   saveBookingIntent,
 } from "@/lib/booking/intent";
+import {
+  buildResumeMatchHref,
+  decodeMatchIntent,
+  encodeMatchIntent,
+  getStoredMatchIntent,
+  saveMatchIntent,
+} from "@/lib/match/intent";
 import AuthShell from "../auth-shell";
 import { inputStyle, buttonStyle, errorStyle, linkStyle } from "../auth-styles";
 import { COLORS as V } from "@/lib/design-tokens";
@@ -28,22 +35,31 @@ function SignupForm() {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
 
-  const rawIntentParam = searchParams?.get("bookingIntent");
+  const rawBookingIntentParam = searchParams?.get("bookingIntent");
+  const rawMatchIntentParam = searchParams?.get("matchIntent");
   const rawNextParam = searchParams?.get("next");
   const [bookingIntent, setBookingIntent] = useState(null);
+  const [matchIntent, setMatchIntent] = useState(null);
 
   useEffect(() => {
-    const decoded = decodeBookingIntent(rawIntentParam) || getStoredBookingIntent();
-    if (decoded) {
-      setBookingIntent(decoded);
-      saveBookingIntent(decoded);
+    const decodedBooking = decodeBookingIntent(rawBookingIntentParam) || getStoredBookingIntent();
+    if (decodedBooking) {
+      setBookingIntent(decodedBooking);
+      saveBookingIntent(decodedBooking);
     }
-  }, [rawIntentParam]);
+    const decodedMatch = decodeMatchIntent(rawMatchIntentParam) || getStoredMatchIntent();
+    if (decodedMatch) {
+      setMatchIntent(decodedMatch);
+      saveMatchIntent(decodedMatch);
+    }
+  }, [rawBookingIntentParam, rawMatchIntentParam]);
 
   // "/" routes the verified player to /player and keeps the intent param.
-  const targetReturnUrl = bookingIntent
-    ? buildResumeHref(bookingIntent)
-    : sanitizeRedirectPath(rawNextParam, "/");
+  const targetReturnUrl = matchIntent
+    ? buildResumeMatchHref(matchIntent)
+    : (bookingIntent
+      ? buildResumeHref(bookingIntent)
+      : sanitizeRedirectPath(rawNextParam, "/"));
 
   async function handleSignup(e) {
     e.preventDefault();
@@ -121,15 +137,22 @@ function SignupForm() {
     }
   }
 
-  const loginHref = bookingIntent
-    ? `/login?bookingIntent=${encodeBookingIntent(bookingIntent)}${rawNextParam ? `&next=${encodeURIComponent(rawNextParam)}` : ""}`
-    : (rawNextParam ? `/login?next=${encodeURIComponent(rawNextParam)}` : "/login");
+  const loginHref = matchIntent
+    ? `/login?matchIntent=${encodeMatchIntent(matchIntent)}${rawNextParam ? `&next=${encodeURIComponent(rawNextParam)}` : ""}`
+    : (bookingIntent
+      ? `/login?bookingIntent=${encodeBookingIntent(bookingIntent)}${rawNextParam ? `&next=${encodeURIComponent(rawNextParam)}` : ""}`
+      : (rawNextParam ? `/login?next=${encodeURIComponent(rawNextParam)}` : "/login"));
 
   if (done) {
     return (
       <AuthShell title="Check your inbox" subtitle="One more step to activate your account">
         <p style={{ color: V.chalkDim, fontSize: 14.5, textAlign: "center", fontFamily: "'Manrope', sans-serif", lineHeight: 1.5 }}>
           Open the confirmation link sent to <strong>{email}</strong>.
+          {matchIntent && (
+            <span style={{ display: "block", marginTop: 8, color: "#22C55E", fontWeight: 700 }}>
+              Your {matchIntent.sport} match at {matchIntent.turfName || "your turf"} will be ready to join!
+            </span>
+          )}
           {bookingIntent && (
             <span style={{ display: "block", marginTop: 8, color: "#22C55E", fontWeight: 700 }}>
               Your selected slot at {bookingIntent.turfName || "your turf"} will be ready to confirm!
@@ -147,18 +170,48 @@ function SignupForm() {
             boxSizing: "border-box",
           }}
         >
-          {bookingIntent ? "Go to Sign in & Continue Booking →" : "Go to sign in"}
+          {matchIntent ? "Go to Sign in & Join Match →" : (bookingIntent ? "Go to Sign in & Continue Booking →" : "Go to sign in")}
         </Link>
       </AuthShell>
     );
   }
 
+  const subtitleText = matchIntent
+    ? "Create an account to join the match."
+    : (bookingIntent ? "Create an account to complete your booking." : "Join in a minute and book your first game.");
+
   return (
     <AuthShell
       title="Sign up"
-      subtitle={bookingIntent ? "Create an account to complete your booking." : "Join in a minute and book your first game."}
+      subtitle={subtitleText}
     >
-      {bookingIntent && (
+      {matchIntent && (
+        <div
+          role="status"
+          style={{
+            background: "rgba(14, 165, 233, 0.12)",
+            border: "1px solid rgba(14, 165, 233, 0.35)",
+            borderRadius: 12,
+            padding: "11px 14px",
+            marginBottom: 16,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <span style={{ fontSize: 18 }}>🎮</span>
+          <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "'Manrope', sans-serif" }}>
+              Resuming game participation
+            </div>
+            <div style={{ color: "rgba(255,255,255,0.72)", fontSize: 12, marginTop: 2, fontFamily: "'Manrope', sans-serif" }}>
+              {matchIntent.sport} match at {matchIntent.turfName} · {matchIntent.date} at {matchIntent.time}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {bookingIntent && !matchIntent && (
         <div
           role="status"
           style={{

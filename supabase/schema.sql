@@ -348,7 +348,22 @@ create policy "match_participants_insert_own" on public.match_participants for i
       select 1
       from public.matches m
       join public.turfs t on t.id = m.turf_id
-      where m.id = match_id and t.archived_at is null
+      where m.id = match_id
+        and t.archived_at is null
+        and m.status = 'open'
+        and not exists (
+          select 1 from public.bookings b
+          where b.turf_id = m.turf_id
+            and b.booking_date = m.match_date
+            and b.start_time = m.start_time
+            and b.status in ('pending', 'confirmed', 'completed')
+        )
+        and not exists (
+          select 1 from public.blocked_slots bl
+          where bl.turf_id = m.turf_id
+            and bl.blocked_date = m.match_date
+            and bl.start_time = m.start_time
+        )
     )
   );
 drop policy if exists "match_participants_delete_own" on public.match_participants;
@@ -382,6 +397,7 @@ as $$
       when blocked.id is not null then 'blocked'
       when booking.status = 'pending' then 'locked'
       when booking.id is not null then 'booked'
+      when match.id is not null then 'match'
       else 'available'
     end as status
   from slots s
@@ -390,6 +406,9 @@ as $$
   left join public.bookings booking
     on booking.turf_id = s.turf_id and booking.booking_date = p_date and booking.start_time = s.slot_time
     and booking.status in ('pending', 'confirmed', 'completed')
+  left join public.matches match
+    on match.turf_id = s.turf_id and match.match_date = p_date and match.start_time = s.slot_time
+    and match.status in ('open', 'full')
   order by s.slot_time;
 $$;
 

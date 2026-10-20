@@ -17,6 +17,13 @@ import {
   getStoredBookingIntent,
   saveBookingIntent,
 } from "@/lib/booking/intent";
+import {
+  buildResumeMatchHref,
+  decodeMatchIntent,
+  encodeMatchIntent,
+  getStoredMatchIntent,
+  saveMatchIntent,
+} from "@/lib/match/intent";
 
 function LoginForm() {
   const supabase = createClient();
@@ -25,20 +32,27 @@ function LoginForm() {
   const [email, setEmail] = useState(emailParam);
   const [password, setPassword] = useState("");
   const urlError = searchParams?.get("error");
-  const rawIntentParam = searchParams?.get("bookingIntent");
+  const rawBookingIntentParam = searchParams?.get("bookingIntent");
+  const rawMatchIntentParam = searchParams?.get("matchIntent");
   const rawNextParam = searchParams?.get("next");
   // searchParams.get() already decodes; decoding again can throw on a literal "%".
   const [error, setError] = useState(urlError || "");
   const [loading, setLoading] = useState(false);
   const [bookingIntent, setBookingIntent] = useState(null);
+  const [matchIntent, setMatchIntent] = useState(null);
 
   useEffect(() => {
-    const decoded = decodeBookingIntent(rawIntentParam) || getStoredBookingIntent();
-    if (decoded) {
-      setBookingIntent(decoded);
-      saveBookingIntent(decoded);
+    const decodedBooking = decodeBookingIntent(rawBookingIntentParam) || getStoredBookingIntent();
+    if (decodedBooking) {
+      setBookingIntent(decodedBooking);
+      saveBookingIntent(decodedBooking);
     }
-  }, [rawIntentParam]);
+    const decodedMatch = decodeMatchIntent(rawMatchIntentParam) || getStoredMatchIntent();
+    if (decodedMatch) {
+      setMatchIntent(decodedMatch);
+      saveMatchIntent(decodedMatch);
+    }
+  }, [rawBookingIntentParam, rawMatchIntentParam]);
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -86,7 +100,9 @@ function LoginForm() {
     // Signing in never creates a booking: "/" routes players to /player with
     // the intent (the booking modal reopens for explicit confirmation) and
     // owners/admins to their own dashboards.
-    if (bookingIntent) {
+    if (matchIntent) {
+      window.location.href = buildResumeMatchHref(matchIntent);
+    } else if (bookingIntent) {
       window.location.href = buildResumeHref(bookingIntent);
     } else if (rawNextParam) {
       window.location.href = sanitizeRedirectPath(rawNextParam, "/");
@@ -95,16 +111,48 @@ function LoginForm() {
     }
   }
 
-  const signupHref = bookingIntent
-    ? `/signup?bookingIntent=${encodeBookingIntent(bookingIntent)}${rawNextParam ? `&next=${encodeURIComponent(rawNextParam)}` : ""}`
-    : (rawNextParam ? `/signup?next=${encodeURIComponent(rawNextParam)}` : "/signup");
+  const signupHref = matchIntent
+    ? `/signup?matchIntent=${encodeMatchIntent(matchIntent)}${rawNextParam ? `&next=${encodeURIComponent(rawNextParam)}` : ""}`
+    : (bookingIntent
+      ? `/signup?bookingIntent=${encodeBookingIntent(bookingIntent)}${rawNextParam ? `&next=${encodeURIComponent(rawNextParam)}` : ""}`
+      : (rawNextParam ? `/signup?next=${encodeURIComponent(rawNextParam)}` : "/signup"));
+
+  const subtitleText = matchIntent
+    ? "Sign in to confirm your spot in the match."
+    : (bookingIntent ? "Sign in to complete your booking." : "Sign in and book your next game.");
 
   return (
     <AuthShell
       title="Welcome back"
-      subtitle={bookingIntent ? "Sign in to complete your booking." : "Sign in and book your next game."}
+      subtitle={subtitleText}
     >
-      {bookingIntent && (
+      {matchIntent && (
+        <div
+          role="status"
+          style={{
+            background: "rgba(14, 165, 233, 0.12)",
+            border: "1px solid rgba(14, 165, 233, 0.35)",
+            borderRadius: 12,
+            padding: "11px 14px",
+            marginBottom: 16,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <span style={{ fontSize: 18 }}>🎮</span>
+          <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "'Manrope', sans-serif" }}>
+              Resuming game participation
+            </div>
+            <div style={{ color: "rgba(255,255,255,0.72)", fontSize: 12, marginTop: 2, fontFamily: "'Manrope', sans-serif" }}>
+              {matchIntent.sport} match at {matchIntent.turfName} · {matchIntent.date} at {matchIntent.time}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {bookingIntent && !matchIntent && (
         <div
           role="status"
           style={{

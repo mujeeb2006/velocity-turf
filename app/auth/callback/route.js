@@ -13,6 +13,8 @@ function failureRedirect(origin, isSetupOrInvite, message, targetNext) {
     try {
       const intent = new URL(targetNext, origin).searchParams.get("resumeBooking");
       if (intent) redirectUrl.searchParams.set("bookingIntent", intent);
+      const matchIntent = new URL(targetNext, origin).searchParams.get("resumeMatch");
+      if (matchIntent) redirectUrl.searchParams.set("matchIntent", matchIntent);
     } catch {
       // ignore malformed next
     }

@@ -24,6 +24,13 @@ import {
   getStoredBookingIntent,
   saveBookingIntent,
 } from "@/lib/booking/intent";
+import {
+  clearStoredMatchIntent,
+  decodeMatchIntent,
+  encodeMatchIntent,
+  getStoredMatchIntent,
+  saveMatchIntent,
+} from "@/lib/match/intent";
 import { extractErrorMessage } from "@/lib/api-response";
 import {
   getTurfCurrentTime,
@@ -1524,9 +1531,164 @@ function DiscoverSection({ turfs, onBook, onMatch, isLoading, initialSearch = ""
 }
 
 // ============================================================
+// RESUME MATCH MODAL (Post-Auth Intent Confirmation)
+// ============================================================
+function ResumeMatchModal({ match, onClose, onConfirm, isPending }) {
+  if (!match) return null;
+  const isFull = match.players >= match.max;
+  const fill = match.players / match.max;
+
+  return (
+    <div
+      role="presentation"
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(10, 18, 14, 0.75)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1200,
+        padding: 16,
+      }}
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="resume-match-title"
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: V.pitchCard,
+          border: `1px solid ${V.line}`,
+          borderRadius: 20,
+          padding: "28px 24px",
+          width: "100%",
+          maxWidth: 460,
+          boxShadow: "0 24px 60px rgba(0,0,0,0.6)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+          <span style={{ fontSize: 28 }}>{match.sport === "Football" ? "⚽" : match.sport === "Basketball" ? "🏀" : "🏏"}</span>
+          <div>
+            <span style={{ color: V.flood, fontSize: 11, fontWeight: 700, letterSpacing: 0.5, fontFamily: FONT_BODY }}>RESUME JOINING</span>
+            <h3 id="resume-match-title" style={{ color: V.chalk, fontFamily: FONT_DISPLAY, fontSize: 24, margin: "2px 0 0" }}>
+              {match.sport} Match
+            </h3>
+          </div>
+        </div>
+
+        <div style={{ background: V.pitch, border: `1px solid ${V.line}`, borderRadius: 12, padding: "14px 16px", marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, color: V.chalk, fontSize: 14, fontWeight: 600, fontFamily: FONT_BODY, marginBottom: 8 }}>
+            <Icon name="map" size={14} color={V.flood} />
+            <span>{match.turf}</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 16, color: V.chalkDim, fontSize: 13, fontFamily: FONT_BODY, marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <Icon name="clock" size={13} color={V.chalkFaint} />
+              <span>{match.date}, {match.time}</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <Icon name="users" size={13} color={V.chalkFaint} />
+              <span>{match.players}/{match.max} players</span>
+            </div>
+          </div>
+          <div style={{ height: 6, background: V.line, borderRadius: 3, overflow: "hidden" }}>
+            <div style={{
+              height: "100%", width: `${Math.min(1, fill) * 100}%`,
+              background: fill >= 1 ? V.danger : fill > 0.8 ? V.pending : V.flood,
+              borderRadius: 3,
+            }} />
+          </div>
+        </div>
+
+        {isFull ? (
+          <div style={{
+            background: "rgba(239, 68, 68, 0.1)",
+            border: `1px solid ${V.danger}44`,
+            borderRadius: 10,
+            padding: "12px 14px",
+            color: V.chalk,
+            fontSize: 13,
+            fontFamily: FONT_BODY,
+            marginBottom: 20,
+            lineHeight: 1.4,
+          }}>
+            ⚠️ This match reached maximum capacity ({match.max}/{match.max}) while you were signing in. You can explore other open games.
+          </div>
+        ) : (
+          <p style={{ color: V.chalkDim, fontSize: 13.5, fontFamily: FONT_BODY, lineHeight: 1.5, marginBottom: 24 }}>
+            You selected this match before signing in. Would you like to confirm your spot now?
+          </p>
+        )}
+
+        <div style={{ display: "grid", gridTemplateColumns: isFull ? "1fr" : "1fr 1fr", gap: 12 }}>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isPending}
+            style={{
+              background: "transparent",
+              border: `1px solid ${V.line}`,
+              borderRadius: 10,
+              padding: "12px 16px",
+              color: V.chalkDim,
+              fontSize: 14,
+              fontWeight: 700,
+              fontFamily: FONT_BODY,
+              cursor: isPending ? "not-allowed" : "pointer",
+            }}
+          >
+            {isFull ? "Browse other matches" : "Cancel"}
+          </button>
+          {!isFull && (
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => onConfirm(match)}
+              style={{
+                background: V.flood,
+                border: "none",
+                borderRadius: 10,
+                padding: "12px 16px",
+                color: "#ffffff",
+                fontSize: 14,
+                fontWeight: 800,
+                fontFamily: FONT_BODY,
+                cursor: isPending ? "not-allowed" : "pointer",
+                opacity: isPending ? 0.7 : 1,
+              }}
+            >
+              {isPending ? "Joining..." : "Confirm & Join"}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
 // MATCHMAKING SECTION
 // ============================================================
-function MatchmakingSection({ matches, onJoin, onLeave, onFindTurf, isLoading, joinedMatchIds }) {
+function MatchmakingSection({
+  matches,
+  onJoin,
+  onLeave,
+  onFindTurf,
+  isLoading,
+  joinedMatchIds,
+  turfFilter,
+  turfName,
+  onClearTurfFilter,
+  pendingMatchAction,
+}) {
+  const displayedMatches = turfFilter
+    ? matches.filter(m => m.turf_id === turfFilter)
+    : matches;
+
   return (
     <div className="vt-match-section" style={{ padding: "60px 24px" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
@@ -1538,34 +1700,109 @@ function MatchmakingSection({ matches, onJoin, onLeave, onFindTurf, isLoading, j
           <p style={{ color: V.chalkFaint, margin: "6px 0 0", fontFamily: FONT_BODY }}>Play with people at your level.</p>
         </div>
 
+        {turfFilter && (
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 12,
+            background: V.floodDim,
+            border: `1px solid ${V.flood}4D`,
+            borderRadius: 12,
+            padding: "12px 18px",
+            marginBottom: 24,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 18 }}>🏟️</span>
+              <span style={{ color: V.chalk, fontSize: 14, fontFamily: FONT_BODY }}>
+                Filtered to matches at <strong style={{ color: V.flood }}>{turfName || "Selected Turf"}</strong>
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={onClearTurfFilter}
+              style={{
+                background: "transparent",
+                border: `1px solid ${V.line}`,
+                borderRadius: 8,
+                color: V.chalkDim,
+                fontSize: 12,
+                fontWeight: 700,
+                padding: "6px 12px",
+                cursor: "pointer",
+                fontFamily: FONT_BODY,
+                transition: "color 0.2s, border-color 0.2s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.color = V.chalk; e.currentTarget.style.borderColor = V.lineStrong; }}
+              onMouseLeave={e => { e.currentTarget.style.color = V.chalkDim; e.currentTarget.style.borderColor = V.line; }}
+            >
+              View all games ✕
+            </button>
+          </div>
+        )}
+
         {isLoading ? (
           <div className="vt-match-list" style={{ display: "grid", gap: 16 }}>
             {[...Array(3)].map((_, i) => <SkeletonCard key={i} lines={2} />)}
           </div>
-        ) : matches.length === 0 ? (
-          <EmptyState
-            icon="🎮"
-            title="No games open right now"
-            subtitle="No games are open to join right now. Check back soon, or find a turf to book your own game."
-            action={<button type="button" onClick={onFindTurf} style={buttonStyle("primary", "md")}>Find a turf →</button>}
-            accent={V.flood}
-          />
+        ) : displayedMatches.length === 0 ? (
+          turfFilter ? (
+            <EmptyState
+              icon="🏟️"
+              title={`No open games at ${turfName || "this turf"}`}
+              subtitle="There are currently no matchmaking games scheduled here. You can browse games at other turfs or book your own slot."
+              action={
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+                  <button type="button" onClick={onClearTurfFilter} style={buttonStyle("primary", "md")}>
+                    View all games →
+                  </button>
+                  <button type="button" onClick={onFindTurf} style={buttonStyle("secondary", "md")}>
+                    Book a slot instead
+                  </button>
+                </div>
+              }
+              accent={V.flood}
+            />
+          ) : (
+            <EmptyState
+              icon="🎮"
+              title="No games open right now"
+              subtitle="No games are open to join right now. Check back soon, or find a turf to book your own game."
+              action={<button type="button" onClick={onFindTurf} style={buttonStyle("primary", "md")}>Find a turf →</button>}
+              accent={V.flood}
+            />
+          )
         ) : (
         <div style={{ display: "grid", gap: 16 }}>
-          {matches.map(m => {
+          {displayedMatches.map(m => {
             const fill = m.players / m.max;
             const skillColor = m.skill === "Beginner" ? V.confirmed : m.skill === "Intermediate" ? V.info : V.pending;
+            const isJoined = joinedMatchIds?.has(m.id);
+            const pendingAction = pendingMatchAction?.[m.id];
+            const isJoining = pendingAction === "join";
+            const isLeaving = pendingAction === "leave";
+
             return (
-              <div key={m.id} className="vt-match-card" style={{
-                ...panel(), borderRadius: 14, padding: "20px 24px",
-                display: "grid", gridTemplateColumns: "1fr auto", gap: 16, alignItems: "center",
-                transition: "border-color 0.2s",
-              }}
+              <div
+                key={m.id}
+                className="vt-match-card"
+                style={{
+                  ...panel(),
+                  borderRadius: 14,
+                  padding: "20px 24px",
+                  display: "flex",
+                  flexWrap: "wrap",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 16,
+                  transition: "border-color 0.2s",
+                }}
                 onMouseEnter={e => e.currentTarget.style.borderColor = V.lineStrong}
                 onMouseLeave={e => e.currentTarget.style.borderColor = V.line}
               >
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+                <div style={{ flex: "1 1 260px", minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8, flexWrap: "wrap" }}>
                     <span style={{ fontSize: 22, opacity: 0.7 }}>{m.sport === "Football" ? "⚽" : m.sport === "Basketball" ? "🏀" : "🏏"}</span>
                     <div>
                       <h3 style={{ color: V.chalk, margin: 0, fontSize: 20, fontFamily: FONT_DISPLAY, fontWeight: 400 }}>{m.sport} match</h3>
@@ -1581,7 +1818,7 @@ function MatchmakingSection({ matches, onJoin, onLeave, onFindTurf, isLoading, j
                       {m.skill}
                     </span>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 10, flexWrap: "wrap" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 5, color: V.chalkDim, fontSize: 13, fontFamily: FONT_BODY }}>
                       <Icon name="clock" size={13} color={V.chalkFaint} />
                       {m.date}, {m.time}
@@ -1594,29 +1831,60 @@ function MatchmakingSection({ matches, onJoin, onLeave, onFindTurf, isLoading, j
                   {/* Fill bar */}
                   <div style={{ height: 5, background: V.line, borderRadius: 3, overflow: "hidden" }}>
                     <div style={{
-                      height: "100%", width: `${fill * 100}%`,
-                      background: fill > 0.8 ? V.pending : V.flood,
+                      height: "100%", width: `${Math.min(1, fill) * 100}%`,
+                      background: fill >= 1 ? V.danger : fill > 0.8 ? V.pending : V.flood,
                       borderRadius: 3, transition: "width 1s ease",
                     }} />
                   </div>
                 </div>
-                {joinedMatchIds?.has(m.id) ? (
-                  <button onClick={() => onLeave(m)} style={{
-                    background: "transparent", border: `1px solid ${V.danger}55`, borderRadius: 10, padding: "12px 24px",
-                    color: V.danger, fontWeight: 800, cursor: "pointer", fontSize: 14, fontFamily: FONT_BODY, whiteSpace: "nowrap",
-                  }}>
-                    Leave
-                  </button>
-                ) : (
-                  <button disabled={fill >= 1} onClick={() => onJoin(m)} style={{
-                    background: fill >= 1 ? "transparent" : V.flood,
-                    border: fill >= 1 ? `1px solid ${V.line}` : "none", borderRadius: 10, padding: "12px 24px", color: fill >= 1 ? V.chalkFaint : V.pitch, fontWeight: 800,
-                    cursor: fill >= 1 ? "not-allowed" : "pointer", fontSize: 14, fontFamily: FONT_BODY,
-                    whiteSpace: "nowrap",
-                  }}>
-                    {fill >= 1 ? "Full" : "Join →"}
-                  </button>
-                )}
+
+                <div style={{ flex: "0 0 auto" }}>
+                  {isJoined ? (
+                    <button
+                      type="button"
+                      disabled={Boolean(pendingAction)}
+                      onClick={() => onLeave(m)}
+                      aria-label={`Leave ${m.sport} match at ${m.turf}`}
+                      style={{
+                        background: "transparent",
+                        border: `1px solid ${V.danger}55`,
+                        borderRadius: 10,
+                        padding: "12px 24px",
+                        color: V.danger,
+                        fontWeight: 800,
+                        cursor: pendingAction ? "not-allowed" : "pointer",
+                        fontSize: 14,
+                        fontFamily: FONT_BODY,
+                        whiteSpace: "nowrap",
+                        opacity: pendingAction ? 0.6 : 1,
+                      }}
+                    >
+                      {isLeaving ? "Leaving..." : "Leave"}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={fill >= 1 || Boolean(pendingAction)}
+                      onClick={() => onJoin(m)}
+                      aria-label={`Join ${m.sport} match at ${m.turf}`}
+                      style={{
+                        background: fill >= 1 ? "transparent" : V.flood,
+                        border: fill >= 1 ? `1px solid ${V.line}` : "none",
+                        borderRadius: 10,
+                        padding: "12px 24px",
+                        color: fill >= 1 ? V.chalkFaint : "#ffffff",
+                        fontWeight: 800,
+                        cursor: fill >= 1 || pendingAction ? "not-allowed" : "pointer",
+                        fontSize: 14,
+                        fontFamily: FONT_BODY,
+                        whiteSpace: "nowrap",
+                        opacity: pendingAction ? 0.7 : 1,
+                      }}
+                    >
+                      {isJoining ? "Joining..." : fill >= 1 ? "Full" : "Join →"}
+                    </button>
+                  )}
+                </div>
               </div>
             );
           })}
@@ -2272,6 +2540,10 @@ export default function PlayerAppClient({ profile }) {
   const resumeHandledRef = useRef(false);
   const [matches, setMatches] = useState([]);
   const [matchesLoading, setMatchesLoading] = useState(true);
+  const [matchTurfFilter, setMatchTurfFilter] = useState(null);
+  const [pendingMatchAction, setPendingMatchAction] = useState({});
+  const [resumeMatchCandidate, setResumeMatchCandidate] = useState(null);
+  const resumeMatchHandledRef = useRef(false);
   const [leaderboard, setLeaderboard] = useState([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(true);
   const [myBookings, setMyBookings] = useState([]);
@@ -2453,16 +2725,39 @@ export default function PlayerAppClient({ profile }) {
   };
 
   const handleLeaveMatch = async (match) => {
-    if (!profile?.id) return;
-    const { error } = await supabase.from("match_participants").delete()
-      .eq("match_id", match.id).eq("player_id", profile.id);
-    if (error) {
-      showToast("Couldn't leave the match.", { type: "error" });
-      return;
+    if (!match?.id || !profile?.id) return;
+    if (pendingMatchAction[match.id]) return;
+
+    setPendingMatchAction(prev => ({ ...prev, [match.id]: "leave" }));
+    try {
+      const { error } = await supabase
+        .from("match_participants")
+        .delete()
+        .eq("match_id", match.id)
+        .eq("player_id", profile.id);
+
+      if (error) {
+        const msg = String(error.message || "").toLowerCase();
+        if (msg.includes("network") || msg.includes("timeout") || msg.includes("connection")) {
+          showToast("Connection failed. Please try again.", { type: "error" });
+        } else {
+          showToast("Couldn't leave the match. Please try again.", { type: "error" });
+        }
+        return;
+      }
+
+      showToast(`Left "${match.sport} Match" at ${match.turf}.`, { type: "info" });
+      await Promise.all([fetchMatches(), fetchJoinedMatches()]);
+    } catch (err) {
+      console.error("handleLeaveMatch exception:", err);
+      showToast("Connection failed. Please try again.", { type: "error" });
+    } finally {
+      setPendingMatchAction(prev => {
+        const next = { ...prev };
+        delete next[match.id];
+        return next;
+      });
     }
-    showToast(`Left "${match.sport} Match" at ${match.turf}.`, { type: "info" });
-    fetchMatches();
-    fetchJoinedMatches();
   };
 
   useEffect(() => {
@@ -2552,20 +2847,104 @@ export default function PlayerAppClient({ profile }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [turfsLoading, turfsError, profile?.id, turfs]);
 
-  const handleJoin = async (match) => {
-    if (!profile?.id) { router.push("/signup"); return; }
-    const { error } = await supabase.from("match_participants").insert({ match_id: match.id, player_id: profile.id });
-    if (error) {
-      if (error.code === "23505") {
-        showToast("You've already joined this match.", { type: "info" });
-      } else {
-        showToast("Couldn't join the match. Try again.", { type: "error" });
-      }
+  // Resume a match joined before authentication. This prompts the user with
+  // latest availability and lets them confirm explicitly.
+  useEffect(() => {
+    if (resumeMatchHandledRef.current || matchesLoading || !profile?.id) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const resumeParam = params.get("resumeMatch");
+    const intent = decodeMatchIntent(resumeParam) || getStoredMatchIntent();
+    if (!intent) return;
+
+    resumeMatchHandledRef.current = true;
+    clearStoredMatchIntent();
+    if (params.has("resumeMatch")) {
+      params.delete("resumeMatch");
+      const qs = params.toString();
+      window.history.replaceState(null, "", window.location.pathname + (qs ? `?${qs}` : ""));
+    }
+
+    setActiveTab("matches");
+    if (matchesLoading) return;
+
+    const targetMatch = matches.find(m => m.id === intent.matchId);
+    if (!targetMatch) {
+      showToast("That game is no longer open or available.", { type: "info" });
       return;
     }
-    showToast(`Joined "${match.sport} Match" at ${match.turf}! 🎉`, { type: "success" });
-    fetchMatches();
-    fetchJoinedMatches();
+
+    if (joinedMatchIds.has(targetMatch.id)) {
+      showToast("You've already joined this game.", { type: "info" });
+      return;
+    }
+
+    setResumeMatchCandidate(targetMatch);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchesLoading, profile?.id, matches, joinedMatchIds]);
+
+  const handleJoin = async (match) => {
+    if (!match?.id) return;
+    if (pendingMatchAction[match.id]) return;
+
+    if (!profile?.id) {
+      const intent = {
+        matchId: match.id,
+        sport: match.sport,
+        turfName: match.turf,
+        turfId: match.turf_id,
+        date: match.date,
+        time: match.time,
+        action: "join",
+      };
+      saveMatchIntent(intent);
+      const encoded = encodeMatchIntent(intent);
+      router.push(encoded ? `/signup?matchIntent=${encoded}` : "/signup");
+      return;
+    }
+
+    setPendingMatchAction(prev => ({ ...prev, [match.id]: "join" }));
+    try {
+      const { error } = await supabase
+        .from("match_participants")
+        .insert({ match_id: match.id, player_id: profile.id });
+
+      if (error) {
+        const msg = String(error.message || "").toLowerCase();
+        const code = error.code;
+
+        if (code === "23505" || msg.includes("unique") || msg.includes("already joined")) {
+          showToast("You've already joined this game.", { type: "info" });
+        } else if (msg.includes("full") || msg.includes("closed") || msg.includes("capacity")) {
+          showToast("This game has just reached maximum capacity.", { type: "error" });
+          await fetchMatches();
+        } else if (code === "42501" || msg.includes("policy") || msg.includes("permission") || msg.includes("booked") || msg.includes("reserved")) {
+          showToast("This game is no longer available.", { type: "error" });
+          await fetchMatches();
+        } else if (code === "PGRST301" || msg.includes("jwt") || msg.includes("unauthenticated")) {
+          showToast("Please sign in to join this game.", { type: "error" });
+        } else if (msg.includes("network") || msg.includes("fetch") || msg.includes("timeout") || msg.includes("connection")) {
+          showToast("Connection failed. Please try again.", { type: "error" });
+        } else {
+          showToast("This game is no longer available. Please try another.", { type: "error" });
+          await fetchMatches();
+        }
+        return;
+      }
+
+      showToast(`Joined "${match.sport} Match" at ${match.turf}! 🎉`, { type: "success" });
+      setResumeMatchCandidate(null);
+      await Promise.all([fetchMatches(), fetchJoinedMatches()]);
+    } catch (err) {
+      console.error("handleJoin exception:", err);
+      showToast("Connection failed. Please try again.", { type: "error" });
+    } finally {
+      setPendingMatchAction(prev => {
+        const next = { ...prev };
+        delete next[match.id];
+        return next;
+      });
+    }
   };
 
   const handleBookingConfirmed = () => {
@@ -2690,7 +3069,7 @@ export default function PlayerAppClient({ profile }) {
           {/* Desktop Nav */}
           <div style={{ display: "flex", gap: 4 }}>
             {TABS.map((tab, index) => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
+              <button key={tab.id} onClick={() => { if (tab.id === "matches") setMatchTurfFilter(null); setActiveTab(tab.id); }} style={{
                 padding: "8px 16px", borderRadius: 8,
                 background: "transparent",
                 border: "none",
@@ -2802,8 +3181,32 @@ export default function PlayerAppClient({ profile }) {
               </section>
             </>
           )}
-          {activeTab === "discover" && <DiscoverSection turfs={turfs} onBook={handleBook} onMatch={(turf) => { setActiveTab("matches"); showToast(`Showing open matches — look for ones at ${turf.name}.`, { type: "info" }); }} isLoading={isTabLoading("discover")} initialSearch={searchQuery} />}
-          {activeTab === "matches" && <MatchmakingSection onJoin={handleJoin} onLeave={handleLeaveMatch} onFindTurf={() => setActiveTab("discover")} isLoading={isTabLoading("matches")} matches={matches} joinedMatchIds={joinedMatchIds} />}
+          {activeTab === "discover" && (
+            <DiscoverSection
+              turfs={turfs}
+              onBook={handleBook}
+              onMatch={(turf) => {
+                setMatchTurfFilter(turf.id);
+                setActiveTab("matches");
+              }}
+              isLoading={isTabLoading("discover")}
+              initialSearch={searchQuery}
+            />
+          )}
+          {activeTab === "matches" && (
+            <MatchmakingSection
+              onJoin={handleJoin}
+              onLeave={handleLeaveMatch}
+              onFindTurf={() => setActiveTab("discover")}
+              isLoading={isTabLoading("matches")}
+              matches={matches}
+              joinedMatchIds={joinedMatchIds}
+              turfFilter={matchTurfFilter}
+              turfName={turfs.find(t => t.id === matchTurfFilter)?.name || matches.find(m => m.turf_id === matchTurfFilter)?.turf || ""}
+              onClearTurfFilter={() => setMatchTurfFilter(null)}
+              pendingMatchAction={pendingMatchAction}
+            />
+          )}
           {activeTab === "loyalty" && (profile?.id
             ? <LoyaltySection isLoading={isTabLoading("loyalty") || myBookingsLoading} leaderboard={leaderboard} myPoints={leaderboard.find(p => p.isYou)?.points ?? 0} gamesPlayed={myBookings.filter((booking) => isPlayedBooking(booking)).length} />
             : <GuestPrompt icon="🏆" title="Track your rewards" body="Sign up to earn loyalty points on every booking and see where you rank." router={router} />
@@ -2823,7 +3226,7 @@ export default function PlayerAppClient({ profile }) {
           justifyContent: "space-around", padding: "8px 0 12px",
         }}>
           {TABS.map((tab, index) => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} aria-current={activeTab === tab.id ? "page" : undefined} style={{
+            <button key={tab.id} onClick={() => { if (tab.id === "matches") setMatchTurfFilter(null); setActiveTab(tab.id); }} aria-current={activeTab === tab.id ? "page" : undefined} style={{
               display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
               background: "none", border: "none", cursor: "pointer",
               padding: "6px 16px", borderRadius: 12,
@@ -2877,6 +3280,14 @@ export default function PlayerAppClient({ profile }) {
           />
         )}
         {disputeBooking && <DisputeModal booking={disputeBooking} profile={profile} supabase={supabase} onClose={() => setDisputeBooking(null)} showToast={showToast} />}
+        {resumeMatchCandidate && (
+          <ResumeMatchModal
+            match={resumeMatchCandidate}
+            isPending={Boolean(pendingMatchAction[resumeMatchCandidate.id])}
+            onClose={() => setResumeMatchCandidate(null)}
+            onConfirm={(m) => handleJoin(m)}
+          />
+        )}
 
         {/* Real-time indicator */}
         <div className="vt-live-indicator" style={{

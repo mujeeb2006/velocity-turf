@@ -24,8 +24,9 @@ import {
 } from "@/components/dashboard/kit";
 import { extractErrorMessage } from "@/lib/api-response";
 import { getTurfImages } from "@/lib/turf-images";
+import { AdminGamesTab } from "@/components/dashboard/AdminGamesSection";
 
-const TABS = ["overview", "approvals", "turfs", "bookings", "users", "payouts", "disputes"];
+const TABS = ["overview", "approvals", "game-approvals", "turfs", "bookings", "users", "payouts", "disputes"];
 const ROLE_COLORS = { Admin: V.violet, "Turf Owner": V.sky, Player: V.flood };
 const PAGE_SIZE = 50;
 
@@ -169,6 +170,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
   const [bookings, setBookings] = useState([]);
   const [disputesRaw, setDisputesRaw] = useState([]);
   const [usersRaw, setUsersRaw] = useState(initialUsers);
+  const [gamesRaw, setGamesRaw] = useState([]);
   const [usersFailed, setUsersFailed] = useState(usersError);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -320,18 +322,32 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
     }
   }
 
-  const refreshAll = () => { fetchAll(); fetchUsers(); fetchPayouts(); };
-  const refreshSoon = useDebounced(() => { fetchAll(); fetchPayouts(); }, 400);
+  async function fetchGames() {
+    try {
+      const response = await fetch("/api/admin/games");
+      if (response.ok) {
+        const { games } = await response.json();
+        setGamesRaw(games || []);
+      }
+    } catch (err) {
+      console.error("Could not load admin community games", err);
+    }
+  }
+
+  const refreshAll = () => { fetchAll(); fetchUsers(); fetchPayouts(); fetchGames(); };
+  const refreshSoon = useDebounced(() => { fetchAll(); fetchPayouts(); fetchGames(); }, 400);
 
   useEffect(() => {
     fetchAll();
     fetchPayouts();
+    fetchGames();
     const channel = supabase
       .channel("admin-live-updates")
       .on("postgres_changes", { event: "*", schema: "public", table: "turfs" }, refreshSoon)
       .on("postgres_changes", { event: "*", schema: "public", table: "disputes" }, refreshSoon)
       .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, refreshSoon)
       .on("postgres_changes", { event: "*", schema: "public", table: "payouts" }, refreshSoon)
+      .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, refreshSoon)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -818,9 +834,12 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
       : { key, dir: NUMERIC_SORT_KEYS.includes(key) ? "desc" : "asc" }
   ));
 
+  const pendingGamesCount = gamesRaw.filter((g) => g.approval_status === "pending" || g.status === "pending_approval").length;
+
   const items = [
     { id: "overview", label: "Overview", icon: "grid" },
     { id: "approvals", label: "Turf Approvals", icon: "building", badge: pendingTurfs.length || undefined },
+    { id: "game-approvals", label: "Game Approvals", icon: "trophy", badge: pendingGamesCount || undefined },
     { id: "turfs", label: "All Turfs", icon: "map" },
     { id: "bookings", label: "Bookings", icon: "list" },
     { id: "users", label: "Users", icon: "users" },
@@ -922,6 +941,15 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
               </div>
             )}
           </>
+        )}
+
+        {tab === "game-approvals" && (
+          <AdminGamesTab
+            games={gamesRaw}
+            loading={loading}
+            onRefresh={refreshAll}
+            showToast={showToast}
+          />
         )}
 
         {tab === "turfs" && (() => {

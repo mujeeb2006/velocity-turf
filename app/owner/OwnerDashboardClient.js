@@ -21,9 +21,10 @@ import {
   NotificationsPanel, Pill, SearchInput, SectionTitle, Segmented, SideNav, StatCard, StatGrid, StatusPill, Stars,
   Toolbar, TopBar, downloadCSV, font, inputStyle, labelStyle, mono, useDebounced, useNotifications,
 } from "@/components/dashboard/kit";
+import { CreateGameModal, OwnerGamesTab } from "@/components/dashboard/OwnerGamesSection";
 import { extractErrorMessage } from "@/lib/api-response";
 
-const TABS = ["overview", "turfs", "bookings", "analytics", "payouts", "reviews"];
+const TABS = ["overview", "turfs", "games", "bookings", "analytics", "payouts", "reviews"];
 const AMENITY_OPTIONS = ["Floodlights", "Parking", "Cafeteria", "Showers", "AC Hall", "Lockers", "WiFi", "Turf"];
 const BOOKING_SELECT = "id, turf_id, player_id, booking_date, start_time, sport, players_count, price, status, created_at";
 const OWNER_COLOR = V.aqua;
@@ -757,6 +758,8 @@ export default function OwnerDashboardClient({ profile }) {
   const [slotsTurf, setSlotsTurf] = useState(null);
   const [archivingTurf, setArchivingTurf] = useState(null);
   const [archivingTurfId, setArchivingTurfId] = useState(null);
+  const [gamesRaw, setGamesRaw] = useState([]);
+  const [showCreateGame, setShowCreateGame] = useState(false);
 
   useEffect(() => {
     const fromHash = window.location.hash.replace("#", "");
@@ -767,7 +770,7 @@ export default function OwnerDashboardClient({ profile }) {
     window.history.replaceState(null, "", `#${id}`);
   };
 
-  // ---- data: one pass loads turfs, bookings, payouts, reviews and occupancy
+  // ---- data: one pass loads turfs, bookings, payouts, reviews, games and occupancy
   async function fetchAll() {
     if (!profile?.id) { setLoading(false); return; }
     const today = dateKey();
@@ -802,9 +805,21 @@ export default function OwnerDashboardClient({ profile }) {
       const taken = slots.filter((s) => s.status !== "available").length;
       return [t.id, slots.length ? Math.round((taken / slots.length) * 100) : 0];
     }));
+    const loadGames = async () => {
+      try {
+        const res = await fetch("/api/owner/games");
+        if (res.ok) {
+          const data = await res.json();
+          return data.games || [];
+        }
+      } catch (e) {
+        console.warn("Owner games fetch failed:", e);
+      }
+      return [];
+    };
 
-    const [bookingsRes, payoutsRes, reviewsRes, occupancy] = await Promise.all([
-      loadBookings(), supabase.from("payouts").select("*").eq("owner_id", profile.id), loadReviews(), loadOccupancy(),
+    const [bookingsRes, payoutsRes, reviewsRes, occupancy, gamesList] = await Promise.all([
+      loadBookings(), supabase.from("payouts").select("*").eq("owner_id", profile.id), loadReviews(), loadOccupancy(), loadGames(),
     ]);
 
     const failed = [bookingsRes, payoutsRes, reviewsRes].find((r) => r.error);
@@ -820,6 +835,7 @@ export default function OwnerDashboardClient({ profile }) {
     if (bookingsRes.data) setBookings(bookingsRes.data);
     if (payoutsRes.data) setPayouts([...payoutsRes.data].sort((a, b) => (b.created_at || "").localeCompare(a.created_at || "")));
     if (reviewsRes.data) setReviews(reviewsRes.data);
+    if (gamesList) setGamesRaw(gamesList);
     setUpdatedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
     setLoading(false);
   }
@@ -957,6 +973,7 @@ export default function OwnerDashboardClient({ profile }) {
   const items = [
     { id: "overview", label: "Overview", icon: "grid" },
     { id: "turfs", label: "My Turfs", icon: "building" },
+    { id: "games", label: "Community Games", icon: "trophy" },
     { id: "bookings", label: "Bookings", icon: "clock", badge: pendingCount || undefined },
     { id: "analytics", label: "Analytics", icon: "chart" },
     { id: "payouts", label: "Payouts", icon: "wallet" },
@@ -1356,6 +1373,17 @@ export default function OwnerDashboardClient({ profile }) {
             </>
           );
         })()}
+
+        {tab === "games" && (
+          <OwnerGamesTab
+            games={gamesRaw}
+            turfs={turfs}
+            loading={loading}
+            onRefresh={fetchAll}
+            showToast={showToast}
+            onCreateClick={() => setShowCreateGame(true)}
+          />
+        )}
       </main>
 
       {declining && (
@@ -1377,6 +1405,7 @@ export default function OwnerDashboardClient({ profile }) {
         />
       )}
       {showAddTurf && <AddTurfModal profile={profile} supabase={supabase} onClose={() => setShowAddTurf(false)} onCreated={fetchAll} showToast={showToast} />}
+      {showCreateGame && <CreateGameModal turfs={turfs} onClose={() => setShowCreateGame(false)} onCreated={fetchAll} showToast={showToast} />}
       {slotsTurf && <ManageSlotsModal turf={slotsTurf} supabase={supabase} onClose={() => setSlotsTurf(null)} showToast={showToast} onChanged={refreshSoon} />}
     </div>
   );

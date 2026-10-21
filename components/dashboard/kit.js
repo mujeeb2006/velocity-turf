@@ -44,6 +44,7 @@ const ICONS = {
   camera: <><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" /><circle cx="12" cy="13" r="4" /></>,
   upload: <><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><path d="M17 8l-5-5-5 5" /><path d="M12 3v12" /></>,
   image: <><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" /></>,
+  trophy: <path d="M8 21h8m-4-4v4m-6-17h12v5a6 6 0 01-12 0V4zm0 2H4a2 2 0 00-2 2v1a4 4 0 004 4h2M16 6h4a2 2 0 012 2v1a4 4 0 01-4 4h-2" />,
 };
 
 export function Icon({ name, size = 18, color = "currentColor", filled = false }) {
@@ -89,13 +90,16 @@ export function Pill({ children, color = V.chalkDim }) {
 
 export const STATUS_COLORS = {
   live: V.confirmed,
+  approved: V.confirmed,
   confirmed: V.confirmed,
   completed: V.completed || V.confirmed,
   resolved: V.confirmed,
   paid: V.confirmed,
   processing: V.pending,
   pending: V.pending,
-  open: V.pending,
+  pending_approval: V.pending,
+  open: V.confirmed,
+  full: V.sky,
   rejected: V.danger,
   declined: V.danger,
   failed: V.danger,
@@ -105,20 +109,22 @@ export const STATUS_COLORS = {
 };
 
 export function StatusPill({ status }) {
-  const norm = String(status || "").toLowerCase();
-  const glyph = norm === "confirmed" || norm === "completed" || norm === "resolved" || norm === "paid"
-    ? "✓" : norm === "pending" || norm === "processing" || norm === "open"
+  const norm = String(status || "").toLowerCase().replace(/\s+/g, "_");
+  const glyph = norm === "confirmed" || norm === "completed" || norm === "resolved" || norm === "paid" || norm === "approved"
+    ? "✓" : norm === "pending" || norm === "processing" || norm === "pending_approval"
     ? "⏳" : norm === "rejected" || norm === "declined" || norm === "failed"
     ? "✕" : norm === "cancelled"
-    ? "—" : norm === "refunded"
+    ? "—" : norm === "full"
+    ? "👥" : norm === "open"
+    ? "●" : norm === "refunded"
     ? "↩" : "•";
   const color = STATUS_COLORS[norm] || V.chalkDim;
+  const label = status === "pending_approval" ? "Pending Approval" : status;
   return (
     <Pill color={color}>
       <span aria-hidden="true" style={{ marginRight: 4, fontWeight: 800 }}>{glyph}</span>
-      {status || "—"}
+      {label || "—"}
     </Pill>
-
   );
 }
 

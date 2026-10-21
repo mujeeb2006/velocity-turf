@@ -145,28 +145,67 @@ grant execute on function public.notify_admins(text, text) to authenticated;
 create table if not exists public.matches (
   id uuid primary key default gen_random_uuid(),
   turf_id uuid not null references public.turfs(id) on delete restrict,
+  creator_id uuid references public.profiles(id),
   sport text not null,
+  title text not null default 'Community Match',
+  description text,
   match_date date not null,
   start_time time not null,
+  end_time time,
   max_players integer not null check (max_players > 0),
   participant_count integer not null default 0 check (participant_count >= 0),
+  price_per_player numeric(10,2) not null default 0 check (price_per_player >= 0),
   skill_level text not null default 'Any',
-  status text not null default 'open' check (status in ('open', 'full', 'cancelled', 'completed')),
+  approval_status text not null default 'pending' check (approval_status in ('pending', 'approved', 'rejected')),
+  rejection_reason text,
+  approved_at timestamptz,
+  approved_by uuid references public.profiles(id),
+  status text not null default 'pending_approval' check (status in ('pending_approval', 'open', 'full', 'cancelled', 'completed', 'rejected')),
   created_at timestamptz not null default now(),
   constraint matches_participant_capacity check (participant_count <= max_players)
 );
 
 create index if not exists matches_status_date_idx on public.matches (status, match_date);
+create index if not exists matches_creator_id_idx on public.matches (creator_id);
+create index if not exists matches_turf_date_idx on public.matches (turf_id, match_date, start_time);
+create index if not exists matches_approval_idx on public.matches (approval_status, status);
 
 create table if not exists public.match_participants (
   id uuid primary key default gen_random_uuid(),
   match_id uuid not null references public.matches(id) on delete cascade,
   player_id uuid not null references public.profiles(id) on delete cascade,
+  payment_status text not null default 'paid' check (payment_status in ('pending', 'paid', 'failed', 'refunded')),
+  amount_paid numeric(10,2) not null default 0 check (amount_paid >= 0),
+  payment_id text,
+  idempotency_key text,
   created_at timestamptz not null default now(),
   unique (match_id, player_id)
 );
 
 create index if not exists match_participants_player_id_idx on public.match_participants (player_id);
+
+create table if not exists public.game_payments (
+  id uuid primary key default gen_random_uuid(),
+  match_id uuid not null references public.matches(id) on delete restrict,
+  player_id uuid not null references public.profiles(id) on delete restrict,
+  turf_id uuid not null references public.turfs(id) on delete restrict,
+  owner_id uuid not null references public.profiles(id) on delete restrict,
+  participation_id uuid references public.match_participants(id) on delete set null,
+  amount numeric(10,2) not null check (amount >= 0),
+  fee numeric(10,2) not null default 0 check (fee >= 0),
+  net_amount numeric(10,2) not null check (net_amount >= 0),
+  status text not null default 'pending' check (status in ('pending', 'completed', 'failed', 'refunded')),
+  payment_method text not null default 'demo_simulated',
+  transaction_reference text unique,
+  idempotency_key text unique,
+  created_at timestamptz not null default now(),
+  completed_at timestamptz,
+  metadata jsonb
+);
+
+create index if not exists game_payments_owner_status_idx on public.game_payments (owner_id, status);
+create index if not exists game_payments_player_idx on public.game_payments (player_id);
+create index if not exists game_payments_match_idx on public.game_payments (match_id);
 
 alter table public.profiles enable row level security;
 alter table public.turfs enable row level security;
@@ -178,10 +217,11 @@ alter table public.payouts enable row level security;
 alter table public.notifications enable row level security;
 alter table public.matches enable row level security;
 alter table public.match_participants enable row level security;
+alter table public.game_payments enable row level security;
 
 revoke all on public.profiles, public.turfs, public.bookings, public.blocked_slots,
   public.reviews, public.disputes, public.payouts, public.notifications,
-  public.matches, public.match_participants from anon, authenticated;
+  public.matches, public.match_participants, public.game_payments from anon, authenticated;
 
 grant select (id, full_name, role, created_at) on public.profiles to authenticated;
 grant update (full_name) on public.profiles to authenticated;
@@ -202,8 +242,9 @@ grant insert (raised_by, turf_id, booking_id, issue) on public.disputes to authe
 grant update (status, resolved_at) on public.disputes to authenticated;
 grant select on public.payouts, public.notifications to authenticated;
 grant update (read) on public.notifications to authenticated;
-grant select on public.matches to anon, authenticated;
-grant select (match_id, player_id), insert (match_id, player_id), delete on public.match_participants to authenticated;
+grant select, insert (turf_id, creator_id, sport, title, description, match_date, start_time, end_time, max_players, price_per_player, skill_level, status, approval_status), update (title, description, max_players, price_per_player, status) on public.matches to authenticated;
+grant select (match_id, player_id, payment_status, amount_paid, payment_id, idempotency_key), insert (match_id, player_id, payment_status, amount_paid, payment_id, idempotency_key), delete on public.match_participants to authenticated;
+grant select on public.game_payments to authenticated;
 
 drop policy if exists "profiles_authenticated_read" on public.profiles;
 create policy "profiles_authenticated_read" on public.profiles for select to authenticated
@@ -328,28 +369,78 @@ drop policy if exists "matches_read_open" on public.matches;
 create policy "matches_read_open" on public.matches for select to anon, authenticated
   using (
     (
-      matches.status in ('open', 'full')
+      matches.approval_status = 'approved'
+      and matches.status in ('open', 'full')
       and exists (
         select 1 from public.turfs t
         where t.id = matches.turf_id and t.archived_at is null
       )
     )
     or public.current_user_role() = 'admin'
+    or matches.creator_id = auth.uid()
+    or exists (
+      select 1 from public.turfs t
+      where t.id = matches.turf_id and t.owner_id = auth.uid()
+    )
   );
+
+drop policy if exists "matches_owner_insert" on public.matches;
+create policy "matches_owner_insert" on public.matches for insert to authenticated
+  with check (
+    (public.current_user_role() in ('owner', 'admin'))
+    and (creator_id = auth.uid() or public.current_user_role() = 'admin')
+    and approval_status = case when public.current_user_role() = 'admin' then approval_status else 'pending' end
+    and exists (
+      select 1 from public.turfs t
+      where t.id = turf_id
+        and (t.owner_id = auth.uid() or public.current_user_role() = 'admin')
+        and t.archived_at is null
+        and t.status = 'live'
+    )
+  );
+
+drop policy if exists "matches_owner_update" on public.matches;
+create policy "matches_owner_update" on public.matches for update to authenticated
+  using (
+    public.current_user_role() = 'admin'
+    or creator_id = auth.uid()
+    or exists (
+      select 1 from public.turfs t
+      where t.id = matches.turf_id and t.owner_id = auth.uid()
+    )
+  )
+  with check (
+    public.current_user_role() = 'admin'
+    or (
+      approval_status != 'approved'
+      or status = 'cancelled'
+    )
+  );
+
 drop policy if exists "match_participants_read_own" on public.match_participants;
 create policy "match_participants_read_own" on public.match_participants for select to authenticated
-  using (player_id = auth.uid());
+  using (
+    player_id = auth.uid()
+    or public.current_user_role() = 'admin'
+    or exists (
+      select 1 from public.matches m
+      join public.turfs t on t.id = m.turf_id
+      where m.id = match_participants.match_id and t.owner_id = auth.uid()
+    )
+  );
+
 drop policy if exists "match_participants_insert_own" on public.match_participants;
 create policy "match_participants_insert_own" on public.match_participants for insert to authenticated
   with check (
     player_id = auth.uid()
-    and public.current_user_role() = 'player'
+    and (public.current_user_role() in ('player', 'admin'))
     and exists (
       select 1
       from public.matches m
       join public.turfs t on t.id = m.turf_id
       where m.id = match_id
         and t.archived_at is null
+        and m.approval_status = 'approved'
         and m.status = 'open'
         and not exists (
           select 1 from public.bookings b
@@ -366,9 +457,18 @@ create policy "match_participants_insert_own" on public.match_participants for i
         )
     )
   );
+
 drop policy if exists "match_participants_delete_own" on public.match_participants;
 create policy "match_participants_delete_own" on public.match_participants for delete to authenticated
-  using (player_id = auth.uid());
+  using (player_id = auth.uid() or public.current_user_role() = 'admin');
+
+drop policy if exists "game_payments_read" on public.game_payments;
+create policy "game_payments_read" on public.game_payments for select to authenticated
+  using (
+    public.current_user_role() = 'admin'
+    or player_id = auth.uid()
+    or owner_id = auth.uid()
+  );
 
 create or replace function public.turf_slots(p_turf_id uuid, p_date date)
 returns table (slot_time time, status text)
@@ -408,7 +508,7 @@ as $$
     and booking.status in ('pending', 'confirmed', 'completed')
   left join public.matches match
     on match.turf_id = s.turf_id and match.match_date = p_date and match.start_time = s.slot_time
-    and match.status in ('open', 'full')
+    and match.approval_status = 'approved' and match.status in ('open', 'full')
   order by s.slot_time;
 $$;
 
@@ -565,7 +665,11 @@ begin
     update public.matches
     set participant_count = participant_count + 1,
         status = case when participant_count + 1 >= max_players then 'full' else 'open' end
-    where id = new.match_id and status = 'open' and participant_count < max_players;
+    where id = new.match_id
+      and status = 'open'
+      and approval_status = 'approved'
+      and participant_count < max_players;
+
     if not found then
       raise exception 'This match is full or closed.';
     end if;

@@ -25,6 +25,7 @@ import {
 import { extractErrorMessage } from "@/lib/api-response";
 import { getTurfImages } from "@/lib/turf-images";
 import { AdminGamesTab } from "@/components/dashboard/AdminGamesSection";
+import { AdminBookingExportModal } from "@/components/dashboard/BookingExportModal";
 
 const TABS = ["overview", "approvals", "game-approvals", "turfs", "bookings", "users", "payouts", "disputes"];
 const ROLE_COLORS = { Admin: V.violet, "Turf Owner": V.sky, Player: V.flood };
@@ -252,6 +253,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
   const [payoutSubmitError, setPayoutSubmitError] = useState("");
   const [viewBankOwner, setViewBankOwner] = useState(null);
   const [updatingPayoutId, setUpdatingPayoutId] = useState(null);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // ---- tab <-> URL hash, so a refresh keeps you where you were
   useEffect(() => {
@@ -1041,10 +1043,15 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
           return (
             <>
               <TopBar title="Bookings" sub={`${c.all} total · ${c.pending} awaiting review · ${c.confirmed} confirmed`} action={
-                <Btn icon="download" size="sm" disabled={!rows.length} onClick={() => downloadCSV(`bookings-${today}.csv`, rows, [
-                  { label: "Date", key: "date" }, { label: "Time", key: "time" }, { label: "Turf", key: "turf" }, { label: "Player", key: "player" },
-                  { label: "Sport", key: "sport" }, { label: "Amount (INR)", key: "amount" }, { label: "Status", key: "status" },
-                ])}>Export CSV</Btn>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <Btn icon="download" size="sm" variant="secondary" onClick={() => setShowExportModal(true)}>
+                    Export All to Excel
+                  </Btn>
+                  <Btn icon="download" size="sm" disabled={!rows.length} onClick={() => downloadCSV(`bookings-${today}.csv`, rows, [
+                    { label: "Date", key: "date" }, { label: "Time", key: "time" }, { label: "Turf", key: "turf" }, { label: "Player", key: "player" },
+                    { label: "Sport", key: "sport" }, { label: "Amount (INR)", key: "amount" }, { label: "Status", key: "status" },
+                  ])}>Export CSV</Btn>
+                </div>
               } />
               <Toolbar>
                 <SearchInput value={bookingQuery} onChange={(v) => { setBookingQuery(v); setBookingLimit(PAGE_SIZE); }} placeholder="Search turf, player or sport…" label="Search bookings" />
@@ -1883,6 +1890,15 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
             </div>
           </form>
         </Modal>
+      )}
+
+      {showExportModal && (
+        <AdminBookingExportModal
+          turfs={turfsRaw}
+          owners={users.filter((u) => u.role === "Turf Owner" || u.role === "owner")}
+          onClose={() => setShowExportModal(false)}
+          showToast={showToast}
+        />
       )}
     </div>
   );

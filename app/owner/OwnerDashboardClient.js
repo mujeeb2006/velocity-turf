@@ -22,6 +22,7 @@ import {
   Toolbar, TopBar, downloadCSV, font, inputStyle, labelStyle, mono, useDebounced, useNotifications,
 } from "@/components/dashboard/kit";
 import { CreateGameModal, OwnerGamesTab } from "@/components/dashboard/OwnerGamesSection";
+import { OwnerBookingExportModal } from "@/components/dashboard/BookingExportModal";
 import { extractErrorMessage } from "@/lib/api-response";
 
 const TABS = ["overview", "turfs", "games", "bookings", "analytics", "payouts", "reviews"];
@@ -760,6 +761,7 @@ export default function OwnerDashboardClient({ profile }) {
   const [archivingTurfId, setArchivingTurfId] = useState(null);
   const [gamesRaw, setGamesRaw] = useState([]);
   const [showCreateGame, setShowCreateGame] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   useEffect(() => {
     const fromHash = window.location.hash.replace("#", "");
@@ -1197,6 +1199,9 @@ export default function OwnerDashboardClient({ profile }) {
               <TopBar title="Bookings" sub={`${pendingCount} requests to review · ${d.upcoming.length} upcoming confirmed bookings`} action={
                 <>
                   {refreshButton}
+                  <Btn icon="download" size="sm" variant="secondary" onClick={() => setShowExportModal(true)}>
+                    Export Bookings to Excel
+                  </Btn>
                   {bookingView === "history" && (
                     <Btn icon="download" size="sm" disabled={!list.length} onClick={() => downloadCSV(`bookings-${today}.csv`, list, [
                       { label: "Date", key: "date" }, { label: "Time", key: "time" }, { label: "Turf", key: "turf" }, { label: "Player", key: "player" },
@@ -1407,6 +1412,7 @@ export default function OwnerDashboardClient({ profile }) {
       {showAddTurf && <AddTurfModal profile={profile} supabase={supabase} onClose={() => setShowAddTurf(false)} onCreated={fetchAll} showToast={showToast} />}
       {showCreateGame && <CreateGameModal turfs={turfs} onClose={() => setShowCreateGame(false)} onCreated={fetchAll} showToast={showToast} />}
       {slotsTurf && <ManageSlotsModal turf={slotsTurf} supabase={supabase} onClose={() => setSlotsTurf(null)} showToast={showToast} onChanged={refreshSoon} />}
+      {showExportModal && <OwnerBookingExportModal turfs={turfs} onClose={() => setShowExportModal(false)} showToast={showToast} />}
     </div>
   );
 }

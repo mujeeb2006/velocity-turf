@@ -14,6 +14,7 @@ import {
   closeExpiredBookings,
   annotateSlotsWithLiveTime,
 } from "@/lib/booking/session-lifecycle";
+import { redeemPackageSession, refundPackageSession } from "@/lib/package/service";
 
 // ── Idempotency helpers ───────────────────────────────────────────────────────
 
@@ -160,6 +161,8 @@ export async function POST(request) {
   const requestedSport = typeof body?.sport === "string" ? body.sport : "";
   const bookingDate = typeof body?.bookingDate === "string" ? body.bookingDate : dateKey();
   const idempotencyKey = request.headers.get("x-idempotency-key") || body?.idempotencyKey || null;
+  const teamId = typeof body?.teamId === "string" && UUID_PATTERN.test(body.teamId) ? body.teamId : null;
+  const userPackageId = typeof body?.userPackageId === "string" && UUID_PATTERN.test(body.userPackageId) ? body.userPackageId : null;
 
   // Per-user rate limit (post-auth)
   const userLimit = checkRateLimit(`booking:user:${userId}`, LIMITS.bookingCreate);
@@ -261,7 +264,56 @@ export async function POST(request) {
   const occupancy = slotList.length ? Math.round((bookedCount / slotList.length) * 100) : 0;
   const price = occupancy > 70 ? Number(turf.peak_price) : Number(turf.base_price);
 
+  // ── Team validation (if booking on behalf of team) ────────────────────────
+  if (teamId) {
+    const { data: memberRecord } = await admin
+      .from("team_members")
+      .select("id, role, status")
+      .eq("team_id", teamId)
+      .eq("player_id", userId)
+      .eq("status", "active")
+      .maybeSingle();
+
+    if (!memberRecord) {
+      return Errors.forbidden("You must be an active member of this team to book on its behalf.", requestId);
+    }
+
+    const { data: teamBookings } = await admin
+      .from("bookings")
+      .select("id, booking_date, start_time, status")
+      .eq("team_id", teamId)
+      .eq("booking_date", bookingDate)
+      .in("status", ["pending", "confirmed"]);
+
+    const hasTeamConflict = (teamBookings || []).some(
+      (b) => b.start_time?.slice(0, 5) === targetSlot.slot_time.slice(0, 5)
+    );
+    if (hasTeamConflict) {
+      return Errors.conflict("Your team already has an active booking for this time slot.", requestId);
+    }
+  }
+
+  // ── Package pass redemption (if paying with sports pass) ───────────────────
+  let packageRedemptionId = null;
+  if (userPackageId) {
+    const redeemRes = await redeemPackageSession(admin, {
+      userPackageId,
+      userId,
+      bookingDate,
+      startTime: targetSlot.slot_time,
+      sport,
+      turfId,
+      isPeak: occupancy > 70,
+    });
+
+    if (!redeemRes.ok) {
+      return Errors.badRequest(redeemRes.error, requestId);
+    }
+    packageRedemptionId = redeemRes.redemptionId;
+  }
+
   // ── Insert booking (DB trigger validates atomically + locks turf row) ─────
+  const effectivePrice = packageRedemptionId ? 0 : price;
   const { data: booking, error: insertError } = await admin
     .from("bookings")
     .insert({
@@ -271,13 +323,28 @@ export async function POST(request) {
       start_time: targetSlot.slot_time,
       sport,
       players_count: 1,
-      price,
+      price: effectivePrice,
+      team_id: teamId,
+      package_redemption_id: packageRedemptionId,
       status: "confirmed", // trigger enforces this
     })
-    .select("id, price, booking_date, start_time")
+    .select("id, price, booking_date, start_time, team_id, package_redemption_id")
     .single();
 
   if (insertError) {
+    // If pass was redeemed, roll it back immediately so sessions aren't lost
+    if (packageRedemptionId) {
+      try {
+        await refundPackageSession(admin, {
+          redemptionId: packageRedemptionId,
+          userId,
+          bookingDate,
+          startTime: targetSlot.slot_time,
+        });
+      } catch (refundErr) {
+        console.error("Pass rollback failed after booking error:", refundErr);
+      }
+    }
     const isConcurrentConflict =
       insertError.code === "23505" ||
       insertError.message?.includes("not available");

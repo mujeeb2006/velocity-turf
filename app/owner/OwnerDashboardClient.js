@@ -23,9 +23,10 @@ import {
 } from "@/components/dashboard/kit";
 import { CreateGameModal, OwnerGamesTab } from "@/components/dashboard/OwnerGamesSection";
 import { OwnerBookingExportModal } from "@/components/dashboard/BookingExportModal";
+import { OwnerTournamentsSection } from "@/components/dashboard/OwnerTournamentsSection";
 import { extractErrorMessage } from "@/lib/api-response";
 
-const TABS = ["overview", "turfs", "games", "bookings", "analytics", "payouts", "reviews"];
+const TABS = ["overview", "turfs", "tournaments", "games", "bookings", "analytics", "payouts", "reviews"];
 const AMENITY_OPTIONS = ["Floodlights", "Parking", "Cafeteria", "Showers", "AC Hall", "Lockers", "WiFi", "Turf"];
 const BOOKING_SELECT = "id, turf_id, player_id, booking_date, start_time, sport, players_count, price, status, created_at";
 const OWNER_COLOR = V.aqua;
@@ -1378,6 +1379,10 @@ export default function OwnerDashboardClient({ profile }) {
             </>
           );
         })()}
+
+        {tab === "tournaments" && (
+          <OwnerTournamentsSection turfs={turfs} showToast={showToast} />
+        )}
 
         {tab === "games" && (
           <OwnerGamesTab

@@ -5,6 +5,8 @@ import { normalizeUserRole } from "@/lib/auth/validation";
 import { notifyUser, readJson, UUID_PATTERN } from "@/lib/admin/server";
 import { formatBookingDate, formatTime12 } from "@/lib/dashboard/format";
 
+import { refundPackageSession } from "@/lib/package/service";
+
 // POST /api/bookings/cancel
 // Body: { bookingId: uuid, reason?: string }
 // Only the booking's own player (or an admin) may cancel.
@@ -26,7 +28,7 @@ export async function POST(request) {
   // ── Load booking ──────────────────────────────────────────────────────────
   const { data: booking, error: bookingError } = await admin
     .from("bookings")
-    .select("id, status, turf_id, player_id, booking_date, start_time, turf:turfs(name, owner_id)")
+    .select("id, status, turf_id, player_id, booking_date, start_time, package_redemption_id, turf:turfs(name, owner_id)")
     .eq("id", bookingId)
     .maybeSingle();
 
@@ -85,6 +87,21 @@ export async function POST(request) {
     });
   } catch (auditErr) {
     console.error("audit log write failed on cancel", auditErr);
+  }
+
+  // ── Restore pass session if booked via sports package ───────────────────
+  if (booking.package_redemption_id) {
+    try {
+      await refundPackageSession(admin, {
+        redemptionId: booking.package_redemption_id,
+        bookingId: booking.id,
+        userId: booking.player_id,
+        bookingDate: booking.booking_date,
+        startTime: booking.start_time,
+      });
+    } catch (refundErr) {
+      console.error("Pass session refund failed upon booking cancellation:", refundErr);
+    }
   }
 
   // ── Notify turf owner that the slot is free again (best-effort) ───────────

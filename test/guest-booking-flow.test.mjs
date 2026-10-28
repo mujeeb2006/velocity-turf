@@ -43,7 +43,10 @@ test("Guest flow 1: Guest selects a turf only (before picking slot), signs in, a
 });
 
 test("Guest flow 2: Guest selects a date and slot, signs up, and resumes with pre-selected slot", () => {
-  const futureDate = "2026-10-25";
+  const d = new Date();
+  d.setDate(d.getDate() + 5);
+  const pad = (n) => String(n).padStart(2, "0");
+  const futureDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   const slotTime = "18:00:00";
 
   const rawIntent = {

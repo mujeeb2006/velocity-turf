@@ -38,6 +38,9 @@ import {
   isSessionEnded,
   annotateSlotsWithLiveTime,
 } from "@/lib/booking/session-time";
+import { TeamsSection } from "@/components/dashboard/TeamsSection";
+import { TournamentsSection } from "@/components/dashboard/TournamentsSection";
+import { PackagesSection } from "@/components/dashboard/PackagesSection";
 
 function todayStr() {
   return dateKey();
@@ -395,6 +398,30 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
   const [copiedId, setCopiedId] = useState(false);
   const turfPhotos = useMemo(() => getTurfImages(turf), [turf]);
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
+  const [userTeams, setUserTeams] = useState([]);
+  const [userPasses, setUserPasses] = useState([]);
+  const [selectedTeamId, setSelectedTeamId] = useState("");
+  const [selectedPackageId, setSelectedPackageId] = useState("");
+
+  useEffect(() => {
+    if (!profile?.id) return;
+    fetch("/api/teams")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.myTeams) setUserTeams(d.myTeams);
+      })
+      .catch(() => {});
+
+    fetch("/api/player/packages")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.packages) {
+          const active = d.packages.filter((p) => p.status === "active" && p.remainingSessions > 0);
+          setUserPasses(active);
+        }
+      })
+      .catch(() => {});
+  }, [profile?.id]);
 
   // Client-side idempotency key for this booking session
   const [idempotencyKey] = useState(() =>
@@ -553,6 +580,8 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
           sport: turf.sports?.[0],
           bookingDate: selectedDate,
           idempotencyKey,
+          teamId: selectedTeamId || undefined,
+          userPackageId: selectedPackageId || undefined,
         }),
       });
 
@@ -995,14 +1024,54 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
                   </div>
                 ))}
 
+                {/* Team selection */}
+                {userTeams.length > 0 && (
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: V.chalkFaint, textTransform: "uppercase", marginBottom: 6 }}>
+                      Book on Behalf of Team
+                    </label>
+                    <select
+                      value={selectedTeamId}
+                      onChange={(e) => setSelectedTeamId(e.target.value)}
+                      style={{ width: "100%", padding: "8px 10px", background: V.pitch, border: `1px solid ${V.line}`, borderRadius: 8, color: V.chalk, fontSize: 13 }}
+                    >
+                      <option value="">Individual Booking (No team)</option>
+                      {userTeams.map((t) => (
+                        <option key={t.id} value={t.id}>{t.name} ({t.sport})</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Sports Pass payment option */}
+                {userPasses.length > 0 && (
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: V.chalkFaint, textTransform: "uppercase", marginBottom: 6 }}>
+                      Payment Method
+                    </label>
+                    <select
+                      value={selectedPackageId}
+                      onChange={(e) => setSelectedPackageId(e.target.value)}
+                      style={{ width: "100%", padding: "8px 10px", background: V.pitch, border: `1px solid ${V.line}`, borderRadius: 8, color: V.chalk, fontSize: 13 }}
+                    >
+                      <option value="">Standard Payment (₹{price})</option>
+                      {userPasses.map((p) => (
+                        <option key={p.id} value={p.id}>🎟️ {p.packageName} ({p.remainingSessions} sessions left)</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 <div style={{ height: 1, background: V.lineStrong, margin: "14px 0" }} />
 
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ color: V.chalk, fontSize: 16, fontWeight: 800, fontFamily: FONT_BODY }}>Total Payable</span>
-                  <span style={{ color: V.floodButton || V.flood, fontSize: 22, fontWeight: 800, fontFamily: FONT_BODY }}>₹{price}</span>
+                  <span style={{ color: V.floodButton || V.flood, fontSize: 22, fontWeight: 800, fontFamily: FONT_BODY }}>
+                    {selectedPackageId ? "Free (1 Pass Credit)" : `₹${price}`}
+                  </span>
                 </div>
                 <div style={{ marginTop: 8, fontSize: 12, color: V.confirmed, fontWeight: 700, fontFamily: FONT_BODY, display: "flex", alignItems: "center", gap: 4 }}>
-                  <span>🎁</span> +{points} loyalty reward points will be credited upon confirmation
+                  <span>🎁</span> {selectedPackageId ? "Redeeming 1 pass session credit from your subscription" : `+${points} loyalty reward points will be credited upon confirmation`}
                 </div>
               </div>
 
@@ -1038,7 +1107,7 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
                       <span>Confirming slot…</span>
                     </>
                   ) : (
-                    `Confirm & Book · ₹${price}`
+                    selectedPackageId ? "Confirm & Redeem Pass" : `Confirm & Book · ₹${price}`
                   )}
                 </button>
               </div>
@@ -3876,8 +3945,11 @@ export default function PlayerAppClient({ profile }) {
   const TABS = [
     { id: "home", label: "Home", icon: "home" },
     { id: "discover", label: "Discover", icon: "search" },
-    { id: "matches", label: "Matches", icon: "users" },
-    { id: "loyalty", label: "Rewards", icon: "trophy" },
+    { id: "matches", label: "Matches", icon: "lightning" },
+    { id: "teams", label: "Teams", icon: "users" },
+    { id: "tournaments", label: "Tournaments", icon: "trophy" },
+    { id: "packages", label: "Passes", icon: "star" },
+    { id: "loyalty", label: "Rewards", icon: "trending" },
     { id: "dashboard", label: "Dashboard", icon: "calendar" },
   ];
 
@@ -4121,6 +4193,16 @@ export default function PlayerAppClient({ profile }) {
               pendingMatchAction={pendingMatchAction}
             />
           )}
+          {activeTab === "teams" && (profile?.id
+            ? <TeamsSection profile={profile} showToast={showToast} onSelectTeamForBooking={() => setActiveTab("discover")} />
+            : <GuestPrompt icon="👥" title="Team management lives here" body="Sign up to create teams, invite teammates, and book venues together." router={router} />
+          )}
+          {activeTab === "tournaments" && (
+            <TournamentsSection profile={profile} showToast={showToast} />
+          )}
+          {activeTab === "packages" && (
+            <PackagesSection profile={profile} showToast={showToast} />
+          )}
           {activeTab === "loyalty" && (profile?.id
             ? <LoyaltySection isLoading={isTabLoading("loyalty") || myBookingsLoading} leaderboard={leaderboard} myPoints={leaderboard.find(p => p.isYou)?.points ?? 0} gamesPlayed={myBookings.filter((booking) => isPlayedBooking(booking)).length} />
             : <GuestPrompt icon="🏆" title="Track your rewards" body="Sign up to earn loyalty points on every booking and see where you rank." router={router} />
@@ -4149,13 +4231,19 @@ export default function PlayerAppClient({ profile }) {
           background: "rgba(255,255,255,0.96)",
           backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
           borderTop: `1px solid ${V.line}`,
-          justifyContent: "space-around", padding: "8px 0 12px",
+          overflowX: "auto",
+          whiteSpace: "nowrap",
+          scrollbarWidth: "none",
+          msOverflowStyle: "none",
+          padding: "6px 8px 10px",
+          gap: 4,
         }}>
           {TABS.map((tab, index) => (
             <button key={tab.id} onClick={() => { if (tab.id === "matches") setMatchTurfFilter(null); setActiveTab(tab.id); }} aria-current={activeTab === tab.id ? "page" : undefined} style={{
-              display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
               background: "none", border: "none", cursor: "pointer",
-              padding: "6px 16px", borderRadius: 12,
+              padding: "6px 10px", borderRadius: 10, flexShrink: 0,
+              minWidth: 54,
               color: activeTab === tab.id ? V.flood : V.chalkFaint,
               transition: "color 0.2s",
             }}>

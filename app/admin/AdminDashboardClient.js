@@ -26,8 +26,10 @@ import { extractErrorMessage } from "@/lib/api-response";
 import { getTurfImages } from "@/lib/turf-images";
 import { AdminGamesTab } from "@/components/dashboard/AdminGamesSection";
 import { AdminBookingExportModal } from "@/components/dashboard/BookingExportModal";
+import { AdminTournamentsSection } from "@/components/dashboard/AdminTournamentsSection";
+import { AdminPackagesSection } from "@/components/dashboard/AdminPackagesSection";
 
-const TABS = ["overview", "approvals", "game-approvals", "turfs", "bookings", "users", "payouts", "disputes"];
+const TABS = ["overview", "approvals", "game-approvals", "tournaments", "packages", "turfs", "bookings", "users", "payouts", "disputes"];
 const ROLE_COLORS = { Admin: V.violet, "Turf Owner": V.sky, Player: V.flood };
 const PAGE_SIZE = 50;
 
@@ -842,6 +844,8 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
     { id: "overview", label: "Overview", icon: "grid" },
     { id: "approvals", label: "Turf Approvals", icon: "building", badge: pendingTurfs.length || undefined },
     { id: "game-approvals", label: "Game Approvals", icon: "trophy", badge: pendingGamesCount || undefined },
+    { id: "tournaments", label: "Tournaments", icon: "trophy" },
+    { id: "packages", label: "Sports Passes", icon: "tag" },
     { id: "turfs", label: "All Turfs", icon: "map" },
     { id: "bookings", label: "Bookings", icon: "list" },
     { id: "users", label: "Users", icon: "users" },
@@ -953,6 +957,9 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
             showToast={showToast}
           />
         )}
+
+        {tab === "tournaments" && <AdminTournamentsSection showToast={showToast} />}
+        {tab === "packages" && <AdminPackagesSection showToast={showToast} />}
 
         {tab === "turfs" && (() => {
           const rows = sortRows(filterTurfs(turfs, { query: turfQuery, status: turfStatus }), turfSort.key, turfSort.dir);

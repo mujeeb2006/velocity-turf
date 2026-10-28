@@ -19,11 +19,6 @@ export async function GET() {
         address,
         sports,
         owner_id
-      ),
-      creator:profiles!matches_creator_id_fkey (
-        id,
-        full_name,
-        role
       )
     `)
     .order("created_at", { ascending: false });
@@ -33,24 +28,33 @@ export async function GET() {
     return Errors.internal("Failed to load community games for review.");
   }
 
-  // Load owner profiles for any missing creator joins
-  const ownerIds = [...new Set((games || []).map((g) => g.turf?.owner_id).filter(Boolean))];
-  let ownerMap = new Map();
-  if (ownerIds.length) {
-    const { data: owners } = await admin
+  // Load profiles for creators/hosts and owners
+  const userIds = [
+    ...new Set([
+      ...(games || []).map((g) => g.host_id || g.creator_id).filter(Boolean),
+      ...(games || []).map((g) => g.turf?.owner_id).filter(Boolean),
+    ]),
+  ];
+  let userMap = new Map();
+  if (userIds.length) {
+    const { data: users } = await admin
       .from("profiles")
       .select("id, full_name, role, email")
-      .in("id", ownerIds);
+      .in("id", userIds);
 
-    if (owners) {
-      ownerMap = new Map(owners.map((o) => [o.id, o]));
+    if (users) {
+      userMap = new Map(users.map((u) => [u.id, u]));
     }
   }
 
   const enrichedGames = (games || []).map((g) => {
-    const owner = ownerMap.get(g.turf?.owner_id) || g.creator || null;
+    const creator = userMap.get(g.host_id || g.creator_id) || null;
+    const owner = userMap.get(g.turf?.owner_id) || creator || null;
     return {
       ...g,
+      title: g.title || `${g.sport} Match`,
+      description: g.description || "",
+      creator,
       owner_name: owner?.full_name || "Owner",
       owner_email: owner?.email || "",
     };

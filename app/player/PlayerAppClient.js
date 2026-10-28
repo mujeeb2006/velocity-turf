@@ -32,6 +32,7 @@ import {
   saveMatchIntent,
 } from "@/lib/match/intent";
 import { extractErrorMessage } from "@/lib/api-response";
+import { SmartNotificationCenter } from "@/components/dashboard/SmartNotificationCenter";
 import {
   getTurfCurrentTime,
   isSessionStartedOrEnded,
@@ -4097,50 +4098,18 @@ export default function PlayerAppClient({ profile }) {
             )}
           </div>
         </nav>
-        {showNotifications && (
-          <>
-            <div onClick={() => setShowNotifications(false)} style={{ position: "fixed", inset: 0, zIndex: 899 }} />
-            <div style={{
-              position: "fixed", top: 70, right: 16, width: "min(320px, calc(100vw - 32px))", maxHeight: 420, overflowY: "auto",
-              background: V.pitchCard, border: `1px solid ${V.line}`, borderRadius: 14,
-              boxShadow: "0 20px 60px rgba(0,0,0,0.5)", zIndex: 1000,
-            }}>
-              <div style={{ padding: "14px 16px", borderBottom: `1px solid ${V.line}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 13, color: V.chalk, fontFamily: FONT_BODY }}>Notifications</div>
-                  <div style={{ marginTop: 3, fontSize: 10.5, color: V.chalkFaint, fontFamily: FONT_BODY }}>
-                    {unreadCount > 0 ? `${unreadCount} unread` : "You're all caught up"}
-                  </div>
-                </div>
-                {unreadCount > 0 && (
-                  <button onClick={handleMarkAllRead} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 999, color: V.chalkDim, padding: "6px 10px", cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: FONT_BODY }}>
-                    Mark all read
-                  </button>
-                )}
-              </div>
-              {notifications.length === 0 ? (
-                <div style={{ padding: "28px 16px", textAlign: "center", color: V.chalkFaint, fontSize: 13, fontFamily: FONT_BODY }}>
-                  Your booking updates will show up here.
-                </div>
-              ) : (
-                notifications.map(n => (
-                  <div key={n.id} style={{ padding: "12px 16px", borderBottom: `1px solid ${V.line}`, background: n.read ? "transparent" : V.floodDim }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center" }}>
-                      <div style={{ color: V.chalk, fontWeight: 700, fontSize: 13, fontFamily: FONT_BODY, marginBottom: 3 }}>
-                        {formatNotificationTitle(n.title)}
-                      </div>
-                      {!n.read && <span style={{ width: 7, height: 7, borderRadius: "50%", background: V.flood, display: "inline-block" }} />}
-                    </div>
-                    {n.body && <div style={{ color: V.chalkDim, fontSize: 12.5, fontFamily: FONT_BODY, lineHeight: 1.4 }}>{formatNotificationBody(n.title, n.body)}</div>}
-                    <div style={{ color: V.chalkFaint, fontSize: 10.5, marginTop: 4, fontFamily: FONT_BODY }}>
-                      {relativeTime(n.created_at)}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </>
-        )}
+        <SmartNotificationCenter
+          open={showNotifications}
+          onClose={() => setShowNotifications(false)}
+          notifications={notifications}
+          unreadCount={unreadCount}
+          onMarkAll={handleMarkAllRead}
+          onMarkOne={async (id) => {
+            await supabase.from("notifications").update({ read: true }).eq("id", id);
+            setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n));
+          }}
+          emptyText="Your booking updates, game reminders, and venue notices will show up here."
+        />
 
         {/* MAIN CONTENT */}
         <main className="vt-main-content" style={{ paddingTop: 64, paddingBottom: 80 }}>

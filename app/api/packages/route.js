@@ -11,6 +11,10 @@ export async function GET() {
     .order("price", { ascending: true });
 
   if (error) {
+    if (error.code === "PGRST205") {
+      // Table doesn't exist in Supabase yet (pending migration 20261035_teams_tournaments_packages.sql)
+      return ok({ packages: [] });
+    }
     console.error("Fetch packages error:", error);
     return Errors.internal("Could not fetch sports packages.");
   }

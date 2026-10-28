@@ -24,11 +24,14 @@ import {
 import { CreateGameModal, OwnerGamesTab } from "@/components/dashboard/OwnerGamesSection";
 import { OwnerBookingExportModal } from "@/components/dashboard/BookingExportModal";
 import { OwnerTournamentsSection } from "@/components/dashboard/OwnerTournamentsSection";
+import { MaintenanceSection } from "@/components/dashboard/MaintenanceSection";
+import { StaffSection } from "@/components/dashboard/StaffSection";
+import { SmartNotificationCenter } from "@/components/dashboard/SmartNotificationCenter";
 import { extractErrorMessage } from "@/lib/api-response";
 
-const TABS = ["overview", "turfs", "tournaments", "games", "bookings", "analytics", "payouts", "reviews"];
+const TABS = ["overview", "turfs", "tournaments", "games", "bookings", "maintenance", "staff", "analytics", "payouts", "reviews"];
 const AMENITY_OPTIONS = ["Floodlights", "Parking", "Cafeteria", "Showers", "AC Hall", "Lockers", "WiFi", "Turf"];
-const BOOKING_SELECT = "id, turf_id, player_id, booking_date, start_time, sport, players_count, price, status, created_at";
+const BOOKING_SELECT = "id, turf_id, player_id, booking_date, start_time, sport, players_count, price, status, checked_in_at, attendance_status, created_at";
 const OWNER_COLOR = V.aqua;
 
 const hourLabel = (h) => `${h % 12 === 0 ? 12 : h % 12} ${h < 12 ? "AM" : "PM"}`;
@@ -764,11 +767,39 @@ export default function OwnerDashboardClient({ profile }) {
   const [showCreateGame, setShowCreateGame] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
 
+  const [isStaff, setIsStaff] = useState(profile?.role === "staff");
+  const [staffRole, setStaffRole] = useState(null);
+  const [staffPermissions, setStaffPermissions] = useState([]);
+
+  useEffect(() => {
+    async function checkStaff() {
+      try {
+        const res = await fetch("/api/owner/staff");
+        const data = await res.json();
+        if (data.isStaff && data.staff) {
+          setIsStaff(true);
+          setStaffRole(data.staff.role);
+          setStaffPermissions(data.staff.permissions || []);
+        }
+      } catch (err) {
+        // ignore
+      }
+    }
+    checkStaff();
+  }, [profile?.id]);
+
   useEffect(() => {
     const fromHash = window.location.hash.replace("#", "");
-    if (TABS.includes(fromHash)) setTab(fromHash);
-  }, []);
+    if (TABS.includes(fromHash)) {
+      if (isStaff && fromHash === "payouts") {
+        setTab("overview");
+      } else {
+        setTab(fromHash);
+      }
+    }
+  }, [isStaff]);
   const selectTab = (id) => {
+    if (isStaff && id === "payouts") return;
     setTab(id);
     window.history.replaceState(null, "", `#${id}`);
   };
@@ -778,7 +809,11 @@ export default function OwnerDashboardClient({ profile }) {
     if (!profile?.id) { setLoading(false); return; }
     const today = dateKey();
 
-    const turfsRes = await supabase.from("turfs").select("*").eq("owner_id", profile.id).order("created_at", { ascending: false });
+    let turfsQuery = supabase.from("turfs").select("*").order("created_at", { ascending: false });
+    if (profile.role === "owner") {
+      turfsQuery = turfsQuery.eq("owner_id", profile.id);
+    }
+    const turfsRes = await turfsQuery;
     if (turfsRes.error) {
       console.error("Owner turfs fetch failed", turfsRes.error);
       setLoadError("Couldn't load your turfs. Check your connection and retry.");
@@ -897,7 +932,8 @@ export default function OwnerDashboardClient({ profile }) {
     const rows = bookings.map((b) => ({
       id: b.id, turfId: b.turf_id, turf: turfById[b.turf_id]?.name || "Turf", player: b.player?.full_name || "Player",
       date: bookingDay(b), time: b.start_time, sport: b.sport, players: b.players_count, amount: toNumber(b.price),
-      status: b.status, createdAt: b.created_at, sortKey: `${bookingDay(b)} ${b.start_time}`,
+      status: b.status, attendance_status: b.attendance_status || "not_arrived", checked_in_at: b.checked_in_at,
+      createdAt: b.created_at, sortKey: `${bookingDay(b)} ${b.start_time}`,
     }));
     const revenueByTurf = new Map(revenueBy(bookings, (b) => b.turf_id).map((r) => [r.key, r.revenue]));
     const todayByTurf = {};
@@ -971,15 +1007,38 @@ export default function OwnerDashboardClient({ profile }) {
     }
   }
 
+  async function handleCheckin(bookingId, status = "checked_in") {
+    try {
+      const res = await fetch("/api/bookings/checkin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId, status }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || "Failed to update attendance.", { type: "error" });
+        return;
+      }
+      showToast(status === "checked_in" ? "Player checked in successfully!" : "Attendance updated.", { type: "success" });
+      fetchAll();
+    } catch (err) {
+      console.error(err);
+      showToast("Network error updating attendance.", { type: "error" });
+    }
+  }
+
   const pendingCount = d.requests.length;
   const overdueCount = d.requests.filter((request) => isOverdueRequest(request, today)).length;
   const items = [
-    { id: "overview", label: "Overview", icon: "grid" },
+    { id: "overview", label: "Overview", icon: "building" },
     { id: "turfs", label: "My Turfs", icon: "building" },
-    { id: "games", label: "Community Games", icon: "trophy" },
+    { id: "tournaments", label: "Tournaments", icon: "star" },
+    { id: "games", label: "Community Games", icon: "users" },
     { id: "bookings", label: "Bookings", icon: "clock", badge: pendingCount || undefined },
+    { id: "maintenance", label: "Maintenance", icon: "shield" },
+    ...(!isStaff ? [{ id: "staff", label: "Staff", icon: "users" }] : []),
     { id: "analytics", label: "Analytics", icon: "chart" },
-    { id: "payouts", label: "Payouts", icon: "wallet" },
+    ...(!isStaff ? [{ id: "payouts", label: "Payouts", icon: "wallet" }] : []),
     { id: "reviews", label: "Reviews", icon: "star" },
   ];
 
@@ -990,14 +1049,16 @@ export default function OwnerDashboardClient({ profile }) {
   return (
     <div className="vt-dashboard-shell" style={{ display: "flex", position: "relative" }}>
       <SideNav
-        items={items} active={tab} onSelect={selectTab} roleLabel="OWNER PORTAL" roleIcon="building" roleColor={V.flood}
+        items={items} active={tab} onSelect={selectTab}
+        roleLabel={isStaff ? `STAFF PORTAL (${(staffRole || "staff").replace("_", " ").toUpperCase()})` : "OWNER PORTAL"}
+        roleIcon="building" roleColor={V.flood}
         name={profile?.full_name} email={profile?.email} onSignOut={handleSignOut} onSettings={() => router.push("/settings")}
         unreadCount={notes.unreadCount} onBell={() => notes.setOpen((o) => !o)}
       />
-      <NotificationsPanel
+      <SmartNotificationCenter
         open={notes.open} onClose={() => notes.setOpen(false)} notifications={notes.notifications} unreadCount={notes.unreadCount}
         onMarkAll={notes.markAllRead} onMarkOne={notes.markOne}
-        emptyText="Nothing yet — booking requests and turf approvals will show up here."
+        emptyText="Nothing yet — booking requests, maintenance tasks, and facility updates will show up here."
       />
 
       <main className="vt-dashboard-main" style={{ flex: 1, minWidth: 0, padding: "32px 36px" }}>
@@ -1191,9 +1252,43 @@ export default function OwnerDashboardClient({ profile }) {
             { key: "sport", label: "Sport", width: "0.9fr" },
             { key: "amount", label: "Amount", width: "0.9fr", align: "right", render: (r) => <span style={{ fontFamily: font, color: V.chalk, fontWeight: 700 }}>{formatINR(r.amount)}</span> },
             { key: "status", label: "Status", width: "0.9fr", render: (r) => <StatusPill status={r.status} /> },
-            { key: "actions", label: "Actions", width: "0.8fr", render: (r) => r.status === "confirmed" ? (
-              <Btn variant="danger" size="sm" disabled={respondingId === r.id} onClick={() => setDeclining(r)}>Reject</Btn>
-            ) : <span style={{ color: V.chalkFaint }}>—</span> },
+            {
+              key: "attendance",
+              label: "Attendance",
+              width: "1fr",
+              render: (r) => {
+                const att = r.attendance_status || "not_arrived";
+                const badge = att === "checked_in"
+                  ? { bg: V.floodDim, text: V.flood, label: "Checked In" }
+                  : att === "no_show"
+                  ? { bg: "rgba(239, 68, 68, 0.15)", text: V.danger, label: "No Show" }
+                  : { bg: "rgba(255, 255, 255, 0.05)", text: V.chalkFaint, label: "Not Arrived" };
+                return (
+                  <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 6, background: badge.bg, color: badge.text }}>
+                    {badge.label}
+                  </span>
+                );
+              },
+            },
+            {
+              key: "actions",
+              label: "Actions",
+              width: "1.3fr",
+              render: (r) => (
+                <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                  {r.status === "confirmed" && r.attendance_status !== "checked_in" && (!isStaff || staffPermissions.includes("checkin_players")) && (
+                    <Btn size="sm" variant="primary" onClick={() => handleCheckin(r.id, "checked_in")}>
+                      Check in
+                    </Btn>
+                  )}
+                  {r.status === "confirmed" && (!isStaff || staffPermissions.includes("manage_bookings")) && (
+                    <Btn variant="danger" size="sm" disabled={respondingId === r.id} onClick={() => setDeclining(r)}>
+                      Reject
+                    </Btn>
+                  )}
+                </div>
+              ),
+            },
           ];
           return (
             <>
@@ -1392,6 +1487,22 @@ export default function OwnerDashboardClient({ profile }) {
             onRefresh={fetchAll}
             showToast={showToast}
             onCreateClick={() => setShowCreateGame(true)}
+          />
+        )}
+
+        {tab === "maintenance" && (
+          <MaintenanceSection
+            turfs={turfs}
+            isStaff={isStaff}
+            staffPermissions={staffPermissions}
+            showToast={showToast}
+          />
+        )}
+
+        {tab === "staff" && !isStaff && (
+          <StaffSection
+            turfs={turfs}
+            showToast={showToast}
           />
         )}
       </main>

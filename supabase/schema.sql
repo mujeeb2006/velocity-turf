@@ -883,3 +883,81 @@ end; $$;
 
 -- To provision the first admin, sign up as a player and run this in SQL Editor:
 -- update public.profiles set role = 'admin' where email = 'you@example.com';
+
+-- ── 20261036: Facility Maintenance, Staff Permissions & Smart Notifications ──
+create table if not exists public.venue_staff (
+  id                uuid primary key default gen_random_uuid(),
+  owner_id          uuid not null references public.profiles(id) on delete cascade,
+  turf_id           uuid references public.turfs(id) on delete cascade,
+  user_id           uuid references public.profiles(id) on delete set null,
+  email             text not null,
+  full_name         text not null default '',
+  role              text not null default 'receptionist' check (role in ('venue_manager', 'receptionist', 'maintenance_staff', 'custom')),
+  permissions       text[] not null default '{}' check (permissions <@ array['view_schedule', 'checkin_players', 'manage_maintenance', 'view_bookings', 'manage_bookings', 'manage_staff']::text[]),
+  status            text not null default 'invited' check (status in ('invited', 'active', 'revoked', 'expired')),
+  invite_token      text unique,
+  invite_expires_at timestamptz not null,
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now()
+);
+
+create table if not exists public.staff_audit_log (
+  id          uuid primary key default gen_random_uuid(),
+  turf_id     uuid references public.turfs(id) on delete set null,
+  actor_id    uuid not null references public.profiles(id) on delete cascade,
+  actor_role  text not null,
+  action      text not null check (char_length(action) <= 100),
+  target_type text,
+  target_id   text,
+  details     jsonb not null default '{}'::jsonb,
+  ip_address  text,
+  created_at  timestamptz not null default now()
+);
+
+create table if not exists public.maintenance_tasks (
+  id            uuid primary key default gen_random_uuid(),
+  turf_id       uuid not null references public.turfs(id) on delete cascade,
+  title         text not null check (char_length(trim(title)) between 2 and 150),
+  description   text not null default '' check (char_length(description) <= 2000),
+  facility_type text not null check (facility_type in ('cleaning', 'turf_repair', 'lighting', 'equipment', 'nets', 'washrooms', 'other')),
+  priority      text not null default 'medium' check (priority in ('low', 'medium', 'high', 'urgent')),
+  status        text not null default 'open' check (status in ('open', 'in_progress', 'completed', 'cancelled')),
+  assigned_to   uuid references public.profiles(id) on delete set null,
+  due_date      date,
+  notes         text not null default '',
+  completed_at  timestamptz,
+  created_by    uuid references public.profiles(id) on delete set null,
+  court_name    text not null default 'All Courts',
+  start_date    date,
+  end_date      date,
+  start_time    time,
+  end_time      time,
+  blocks_slots  boolean not null default false,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+create table if not exists public.maintenance_windows (
+  id            uuid primary key default gen_random_uuid(),
+  turf_id       uuid not null references public.turfs(id) on delete cascade,
+  task_id       uuid references public.maintenance_tasks(id) on delete cascade,
+  court_name    text not null default 'All Courts',
+  window_date   date not null,
+  start_time    time not null,
+  end_time      time not null,
+  reason        text not null default 'Scheduled Maintenance',
+  status        text not null default 'scheduled' check (status in ('scheduled', 'in_progress', 'completed', 'cancelled')),
+  created_at    timestamptz not null default now()
+);
+
+create table if not exists public.notification_preferences (
+  user_id         uuid primary key references public.profiles(id) on delete cascade,
+  in_app          boolean not null default true,
+  email           boolean not null default true,
+  whatsapp        boolean not null default false,
+  reminders_24h   boolean not null default true,
+  reminders_2h    boolean not null default true,
+  promotional     boolean not null default false,
+  updated_at      timestamptz not null default now()
+);
+

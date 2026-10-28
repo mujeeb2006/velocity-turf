@@ -25,6 +25,10 @@ export async function GET(request) {
     .eq("status", "active");
 
   if (memberErr) {
+    if (memberErr.code === "PGRST205") {
+      // Table doesn't exist in Supabase yet (pending migration 20261035_teams_tournaments_packages.sql)
+      return ok({ myTeams: [], publicTeams: [] });
+    }
     console.error("Fetch user team memberships error:", memberErr);
     return Errors.internal("Could not fetch teams.");
   }

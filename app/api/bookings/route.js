@@ -15,6 +15,7 @@ import {
   annotateSlotsWithLiveTime,
 } from "@/lib/booking/session-lifecycle";
 import { redeemPackageSession, refundPackageSession } from "@/lib/package/service";
+import { sendSmartNotification, NOTIFICATION_EVENT_TYPES, NOTIFICATION_CATEGORIES, buildDedupKey } from "@/lib/notifications/service";
 
 // ── Idempotency helpers ───────────────────────────────────────────────────────
 
@@ -368,17 +369,35 @@ export async function POST(request) {
   // ── Finalise idempotency key ──────────────────────────────────────────────
   await finaliseIdempotency(admin, idempotencyKey, userId, booking.id, responseBody, true);
 
-  // ── Notify turf owner (best-effort, non-blocking) ─────────────────────────
+  // ── Notify turf owner & player (best-effort, non-blocking) ────────────────
   try {
     if (turf.owner_id) {
-      await admin.from("notifications").insert({
-        user_id: turf.owner_id,
+      await sendSmartNotification(admin, {
+        userId: turf.owner_id,
         title: "New booking confirmed",
         body: `${userName} booked ${sport} at ${turf.name} on ${bookingDate} at ${startTime.slice(0, 5)}.`,
+        eventType: NOTIFICATION_EVENT_TYPES.BOOKING_CONFIRMED,
+        category: NOTIFICATION_CATEGORIES.BOOKINGS,
+        link: "/owner",
+        metadata: { bookingId: booking.id, turfId },
+        dedupKey: buildDedupKey(NOTIFICATION_EVENT_TYPES.BOOKING_CONFIRMED, booking.id, turf.owner_id),
+      });
+    }
+
+    if (userId) {
+      await sendSmartNotification(admin, {
+        userId,
+        title: "Booking confirmed",
+        body: `Your ${sport} booking at ${turf.name} on ${bookingDate} at ${startTime.slice(0, 5)} is confirmed!`,
+        eventType: NOTIFICATION_EVENT_TYPES.BOOKING_CONFIRMED,
+        category: NOTIFICATION_CATEGORIES.BOOKINGS,
+        link: "/player",
+        metadata: { bookingId: booking.id, turfId },
+        dedupKey: buildDedupKey(NOTIFICATION_EVENT_TYPES.BOOKING_CONFIRMED, booking.id, userId),
       });
     }
   } catch (notifErr) {
-    console.warn("Could not send owner notification", notifErr);
+    console.warn("Could not send booking notifications", notifErr);
   }
 
   logger.info("booking created", { requestId, userId, turfId, bookingId: booking.id, startTime, bookingDate, sport, price, durationMs: elapsed() });

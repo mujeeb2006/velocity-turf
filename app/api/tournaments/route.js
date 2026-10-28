@@ -29,6 +29,10 @@ export async function GET(request) {
 
   const { data: tournaments, error } = await query;
   if (error) {
+    if (error.code === "PGRST205") {
+      // Table doesn't exist in Supabase yet (pending migration 20261035_teams_tournaments_packages.sql)
+      return ok({ tournaments: [] });
+    }
     console.error("Fetch tournaments error:", error);
     return Errors.internal("Could not fetch tournaments.");
   }

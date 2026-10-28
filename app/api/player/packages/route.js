@@ -21,6 +21,10 @@ export async function GET() {
     .order("created_at", { ascending: false });
 
   if (pkgErr) {
+    if (pkgErr.code === "PGRST205") {
+      // Table doesn't exist in Supabase yet (pending migration 20261035_teams_tournaments_packages.sql)
+      return ok({ activePackages: [], allPackages: [], redemptions: [] });
+    }
     console.error("Fetch player packages error:", pkgErr);
     return Errors.internal("Could not load your sports passes.");
   }

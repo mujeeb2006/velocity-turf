@@ -28,8 +28,10 @@ import { AdminGamesTab } from "@/components/dashboard/AdminGamesSection";
 import { AdminBookingExportModal } from "@/components/dashboard/BookingExportModal";
 import { AdminTournamentsSection } from "@/components/dashboard/AdminTournamentsSection";
 import { AdminPackagesSection } from "@/components/dashboard/AdminPackagesSection";
+import { AdminDemoDataSection } from "@/components/dashboard/AdminDemoDataSection";
+import { DemoNameWithBadge } from "@/components/ui/demo-badge";
 
-const TABS = ["overview", "approvals", "game-approvals", "tournaments", "packages", "turfs", "bookings", "users", "payouts", "disputes"];
+const TABS = ["overview", "approvals", "game-approvals", "tournaments", "packages", "turfs", "bookings", "users", "payouts", "disputes", "demo-data"];
 const ROLE_COLORS = { Admin: V.violet, "Turf Owner": V.sky, Player: V.flood };
 const PAGE_SIZE = 50;
 
@@ -851,6 +853,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
     { id: "users", label: "Users", icon: "users" },
     { id: "payouts", label: "Payouts & Banks", icon: "wallet", badge: processingPayoutsCount || undefined },
     { id: "disputes", label: "Disputes & Refunds", icon: "alert", badge: openDisputes.length || undefined },
+    { id: "demo-data", label: "Demo Data", icon: "refresh" },
   ];
 
   const refreshButton = <Btn icon="refresh" size="sm" onClick={refreshAll}>{updatedAt ? `Updated ${updatedAt}` : "Refresh"}</Btn>;
@@ -960,6 +963,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
 
         {tab === "tournaments" && <AdminTournamentsSection showToast={showToast} />}
         {tab === "packages" && <AdminPackagesSection showToast={showToast} />}
+        {tab === "demo-data" && <AdminDemoDataSection showToast={showToast} onDataChanged={fetchAll} />}
 
         {tab === "turfs" && (() => {
           const rows = sortRows(filterTurfs(turfs, { query: turfQuery, status: turfStatus }), turfSort.key, turfSort.dir);
@@ -968,7 +972,9 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
           const columns = [
             { key: "name", label: "Turf", width: "1.7fr", sortable: true, render: (t) => (
               <div style={{ minWidth: 0 }}>
-                <div style={{ color: V.chalk, fontWeight: 700, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>
+                <div style={{ color: V.chalk, fontWeight: 700, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <DemoNameWithBadge name={t.name} />
+                </div>
                 <div title={t.address} style={{ color: V.chalkFaint, fontSize: 11.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.address}</div>
               </div>
             ) },
@@ -1035,7 +1041,11 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
                 <div style={{ color: V.chalkFaint, fontSize: 11.5 }}>{formatTime12(b.time)}</div>
               </div>
             ) },
-            { key: "turf", label: "Turf", width: "1.5fr", sortable: true, render: (b) => <span style={{ color: V.chalk, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.turf}</span> },
+            { key: "turf", label: "Turf", width: "1.5fr", sortable: true, render: (b) => (
+              <span style={{ color: V.chalk, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <DemoNameWithBadge name={b.turf} />
+              </span>
+            ) },
             { key: "player", label: "Player", width: "1.2fr", sortable: true },
             { key: "sport", label: "Sport", width: "0.9fr" },
             { key: "amount", label: "Amount", width: "1.2fr", align: "right", sortable: true, render: (b) => <span style={{ fontFamily: font, color: V.chalk, fontWeight: 700 }}>{formatINR(b.amount)}</span> },
@@ -1093,7 +1103,9 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
           const columns = [
             { key: "name", label: "Name", width: "1.8fr", sortable: true, render: (u) => (
               <div style={{ minWidth: 0 }}>
-                <div style={{ color: V.chalk, fontWeight: 700, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.name}</div>
+                <div style={{ color: V.chalk, fontWeight: 700, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <DemoNameWithBadge name={u.name} />
+                </div>
                 <div style={{ color: V.chalkFaint, fontSize: 11.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.email}</div>
               </div>
             ) },

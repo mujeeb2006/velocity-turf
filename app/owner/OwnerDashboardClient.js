@@ -23,6 +23,7 @@ import {
 } from "@/components/dashboard/kit";
 import { CreateGameModal, OwnerGamesTab } from "@/components/dashboard/OwnerGamesSection";
 import { OwnerBookingExportModal } from "@/components/dashboard/BookingExportModal";
+import { DemoNameWithBadge } from "@/components/ui/demo-badge";
 import { OwnerTournamentsSection } from "@/components/dashboard/OwnerTournamentsSection";
 import { MaintenanceSection } from "@/components/dashboard/MaintenanceSection";
 import { StaffSection } from "@/components/dashboard/StaffSection";
@@ -856,8 +857,10 @@ export default function OwnerDashboardClient({ profile }) {
       return [];
     };
 
+    const loadPayouts = () => isStaff ? Promise.resolve({ data: [], error: null }) : supabase.from("payouts").select("*").eq("owner_id", profile.id);
+
     const [bookingsRes, payoutsRes, reviewsRes, occupancy, gamesList] = await Promise.all([
-      loadBookings(), supabase.from("payouts").select("*").eq("owner_id", profile.id), loadReviews(), loadOccupancy(), loadGames(),
+      loadBookings(), loadPayouts(), loadReviews(), loadOccupancy(), loadGames(),
     ]);
 
     const failed = [bookingsRes, payoutsRes, reviewsRes].find((r) => r.error);
@@ -1180,7 +1183,9 @@ export default function OwnerDashboardClient({ profile }) {
 
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 12 }}>
                       <div style={{ minWidth: 0 }}>
-                        <div style={{ color: V.chalk, fontWeight: 800, fontSize: 16 }}>{t.name}</div>
+                        <div style={{ color: V.chalk, fontWeight: 800, fontSize: 16 }}>
+                          <DemoNameWithBadge name={t.name} />
+                        </div>
                         <div style={{ color: V.chalkFaint, fontSize: 12.5, marginTop: 2 }}>{t.address ? `${t.address}, ` : ""}{t.city}</div>
                       </div>
                       <StatusPill status={t.status} />

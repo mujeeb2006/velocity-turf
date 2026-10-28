@@ -42,6 +42,7 @@ import {
 import { TeamsSection } from "@/components/dashboard/TeamsSection";
 import { TournamentsSection } from "@/components/dashboard/TournamentsSection";
 import { PackagesSection } from "@/components/dashboard/PackagesSection";
+import { DemoNameWithBadge } from "@/components/ui/demo-badge";
 
 function todayStr() {
   return dateKey();
@@ -321,7 +322,9 @@ function TurfCard({ turf, onBook, onMatch, index = 0 }) {
       <div className="vt-venue-content">
         <div className="vt-venue-heading">
           <div>
-            <h3 className="vt-venue-name">{turf.name}</h3>
+            <h3 className="vt-venue-name">
+              <DemoNameWithBadge name={turf.name} />
+            </h3>
             <div className="vt-venue-location">
               <Icon name="map" size={14} color={V.chalkFaint} />
               <span title={turf.location}>{turf.location}</span>

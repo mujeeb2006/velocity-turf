@@ -90,6 +90,23 @@ function SetupPasswordForm() {
         } = await supabase.auth.getSession();
         if (session?.user) {
           if (!isMounted) return;
+          const isStaffType = searchParams?.get("type") === "staff";
+          const staffToken = searchParams?.get("token");
+          if (isStaffType && staffToken) {
+            try {
+              const res = await fetch("/api/owner/staff/accept", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ token: staffToken }),
+              });
+              if (res.ok) {
+                window.location.href = "/owner";
+                return;
+              }
+            } catch {
+              // fall through
+            }
+          }
           setUserEmail(session.user.email || "");
           setStatus("ready");
           return;
@@ -168,15 +185,26 @@ function SetupPasswordForm() {
         return;
       }
 
-      // 2. Finalize server-side role confirmation and profile activation
-      const response = await fetch("/api/auth/complete-invite", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
+      // 2. Finalize server-side role confirmation or staff invitation acceptance
+      const isStaffType = searchParams?.get("type") === "staff";
+      const staffToken = searchParams?.get("token");
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.warn("Server confirmation notice:", errorData.error);
+      if (isStaffType && staffToken) {
+        await fetch("/api/owner/staff/accept", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: staffToken }),
+        }).catch((err) => console.warn("Staff accept error:", err));
+      } else {
+        const response = await fetch("/api/auth/complete-invite", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.warn("Server confirmation notice:", errorData.error);
+        }
       }
 
       setStatus("success");

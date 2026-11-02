@@ -5,9 +5,9 @@ import { createContext, useCallback, useContext, useRef, useState } from "react"
 const ToastContext = createContext(null);
 
 const TYPE_STYLES = {
-  success: { accent: "#22C55E", glyph: "✓" },
+  success: { accent: "#1769E8", glyph: "✓" },
   error: { accent: "#EF4444", glyph: "✕" },
-  info: { accent: "#0EA5E9", glyph: "i" },
+  info: { accent: "#18A8E0", glyph: "i" },
   warning: { accent: "#F97316", glyph: "!" },
 };
 
@@ -89,38 +89,38 @@ function ToastViewport({ toasts, onDismiss }) {
               display: "flex",
               alignItems: "center",
               gap: 12,
-              background: "rgba(13,21,38,0.96)",
+              background: "#FFFFFF",
               backdropFilter: "blur(20px)",
               WebkitBackdropFilter: "blur(20px)",
-              border: `1px solid ${s.accent}55`,
-              borderLeft: `3px solid ${s.accent}`,
+              border: `1px solid #E5EDF5`,
+              borderLeft: `4px solid ${s.accent}`,
               borderRadius: 14,
               padding: "12px 16px",
               minWidth: 260,
               maxWidth: 420,
-              boxShadow: "0 12px 40px rgba(0,0,0,0.45)",
-              fontFamily: "'Exo 2', sans-serif",
+              boxShadow: "0 12px 40px rgba(23, 105, 232, 0.14)",
+              fontFamily: "'Manrope', sans-serif",
               animation: "toastIn 0.25s ease",
             }}
           >
             <span
               style={{
-                width: 20,
-                height: 20,
+                width: 22,
+                height: 22,
                 borderRadius: "50%",
-                background: s.accent + "22",
+                background: s.accent + "18",
                 color: s.accent,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 fontWeight: 800,
-                fontSize: 11,
+                fontSize: 12,
                 flexShrink: 0,
               }}
             >
               {s.glyph}
             </span>
-            <span style={{ flex: 1, color: "#fff", fontSize: 13.5, fontWeight: 600, lineHeight: 1.3 }}>
+            <span style={{ flex: 1, color: "#172B4D", fontSize: 13.5, fontWeight: 700, lineHeight: 1.3 }}>
               {t.message}
             </span>
             <button
@@ -129,15 +129,18 @@ function ToastViewport({ toasts, onDismiss }) {
               style={{
                 background: "none",
                 border: "none",
-                color: "rgba(255,255,255,0.35)",
+                color: "#718096",
                 cursor: "pointer",
                 fontSize: 16,
                 lineHeight: 1,
-                padding: 2,
-                flexShrink: 0,
+                padding: "2px 4px",
+                borderRadius: 4,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
-              ×
+              ✕
             </button>
           </div>
         );

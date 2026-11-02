@@ -6,9 +6,9 @@
 import { COLORS as V } from "@/lib/design-tokens";
 
 const RANK_STYLES = {
-  1: { bg: "#FBBF24", fg: "#050A14", ring: "#FBBF24" },
-  2: { bg: "#CBD5E1", fg: "#050A14", ring: "#CBD5E1" },
-  3: { bg: "#D97706", fg: "#050A14", ring: "#D97706" },
+  1: { bg: "#FBBF24", fg: "#172B4D", ring: "#FBBF24" },
+  2: { bg: "#CBD5E1", fg: "#172B4D", ring: "#CBD5E1" },
+  3: { bg: "#F59E0B", fg: "#172B4D", ring: "#F59E0B" },
 };
 
 export function RankBadge({ rank, size = 28 }) {
@@ -30,7 +30,7 @@ export function RankBadge({ rank, size = 28 }) {
           justifyContent: "center",
           fontSize: size * 0.42,
           fontWeight: 700,
-          fontFamily: "'Space Mono', monospace",
+          fontFamily: "'Manrope', sans-serif",
           flexShrink: 0,
         }}
       >

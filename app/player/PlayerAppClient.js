@@ -43,6 +43,7 @@ import { TeamsSection } from "@/components/dashboard/TeamsSection";
 import { TournamentsSection } from "@/components/dashboard/TournamentsSection";
 import { PackagesSection } from "@/components/dashboard/PackagesSection";
 import { DemoNameWithBadge } from "@/components/ui/demo-badge";
+import CinematicHome from "@/components/home/CinematicHome";
 
 function todayStr() {
   return dateKey();
@@ -160,32 +161,32 @@ function SlotGrid({ slots = [], onSelect, selected, loading = false, price }) {
         const isBooked = (slot.status === "booked" || slot.status === "confirmed") && !isClosed;
 
         const bg = isSelected
-          ? V.floodButton || V.flood
+          ? "#1769E8"
           : isAvailable
-          ? "rgba(27, 158, 102, 0.08)"
+          ? "#E9F9ED"
           : isLocked
-          ? "rgba(180, 83, 9, 0.08)"
+          ? "#FFF2E5"
           : isClosed
-          ? "rgba(107, 114, 128, 0.05)"
-          : "rgba(17, 24, 39, 0.04)";
+          ? "#F4F7FA"
+          : "#F4F7FA";
 
         const borderColor = isSelected
-          ? V.floodButton || V.flood
+          ? "#1769E8"
           : isAvailable
-          ? "rgba(27, 158, 102, 0.35)"
+          ? "rgba(16, 185, 129, 0.45)"
           : isLocked
-          ? "rgba(180, 83, 9, 0.35)"
+          ? "rgba(245, 158, 11, 0.45)"
           : isClosed
-          ? "rgba(107, 114, 128, 0.22)"
-          : V.line;
+          ? "#E5EDF5"
+          : "#E5EDF5";
 
         const textColor = isSelected
-          ? "#ffffff"
+          ? "#FFFFFF"
           : isAvailable
-          ? V.chalk
+          ? "#172B4D"
           : isLocked
-          ? V.pending
-          : V.chalkFaint;
+          ? "#D97706"
+          : "#A0AEC0";
 
         const statusLabel = isSelected
           ? "Selected"
@@ -292,9 +293,10 @@ function TurfCard({ turf, onBook, onMatch, index = 0 }) {
             position: "absolute",
             top: 10,
             right: 10,
-            background: "rgba(10, 18, 14, 0.75)",
+            background: "rgba(255, 255, 255, 0.92)",
             backdropFilter: "blur(6px)",
-            color: "#fff",
+            color: "#172B4D",
+            border: "1px solid #E5EDF5",
             padding: "2px 7px",
             borderRadius: 6,
             fontSize: 10.5,
@@ -641,7 +643,7 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(10, 18, 14, 0.72)",
+        background: "rgba(23, 43, 77, 0.45)",
         backdropFilter: "blur(8px)",
         WebkitBackdropFilter: "blur(8px)",
         display: "flex",
@@ -735,20 +737,21 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
                       <div style={{
                         position: "absolute",
                         inset: 0,
-                        background: "linear-gradient(to top, rgba(10, 18, 14, 0.75) 0%, transparent 60%)",
+                        background: "linear-gradient(to top, rgba(23, 43, 77, 0.45) 0%, transparent 60%)",
                       }} />
                       {photos.length > 1 && (
                         <div style={{
                           position: "absolute",
                           bottom: 10,
                           right: 12,
-                          background: "rgba(0,0,0,0.68)",
+                          background: "rgba(255, 255, 255, 0.9)",
                           backdropFilter: "blur(6px)",
                           padding: "3px 8px",
                           borderRadius: 6,
                           fontSize: 11,
                           fontWeight: 700,
-                          color: "#fff",
+                          color: "#172B4D",
+                          border: "1px solid #E5EDF5",
                         }}>
                           {activePhotoIdx + 1} / {photos.length} photos
                         </div>
@@ -764,9 +767,9 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
                         }}>
                           {turf.amenities.slice(0, 3).map((a) => (
                             <span key={a} style={{
-                              background: "rgba(10, 18, 14, 0.7)",
+                              background: "rgba(255, 255, 255, 0.92)",
                               backdropFilter: "blur(6px)",
-                              color: V.chalkDim,
+                              color: "#172B4D",
                               padding: "2px 7px",
                               borderRadius: 6,
                               fontSize: 10.5,
@@ -879,9 +882,9 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
                           flex: "0 0 auto",
                           padding: "10px 14px",
                           borderRadius: 12,
-                          border: `1.5px solid ${isDateSelected ? V.floodButton || V.flood : V.lineStrong}`,
-                          background: isDateSelected ? "rgba(21, 128, 81, 0.1)" : V.pitchCard,
-                          color: isDateSelected ? V.floodButton || V.flood : V.chalk,
+                          border: `1.5px solid ${isDateSelected ? "#1769E8" : "#E5EDF5"}`,
+                          background: isDateSelected ? "#EAF7FF" : "#FFFFFF",
+                          color: isDateSelected ? "#1769E8" : "#172B4D",
                           cursor: "pointer",
                           display: "flex",
                           flexDirection: "column",
@@ -889,11 +892,12 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
                           gap: 2,
                           minWidth: 72,
                           fontFamily: FONT_BODY,
+                          boxShadow: isDateSelected ? "0 4px 12px rgba(23, 105, 232, 0.15)" : "none",
                           transition: "all 0.15s",
                         }}
                       >
                         <span style={{ fontSize: 12, fontWeight: isDateSelected ? 800 : 600 }}>{opt.weekday}</span>
-                        <span style={{ fontSize: 11, color: isDateSelected ? V.floodButton || V.flood : V.chalkFaint, fontWeight: 500 }}>{opt.dayMonth}</span>
+                        <span style={{ fontSize: 11, color: isDateSelected ? "#1769E8" : "#718096", fontWeight: 600 }}>{opt.dayMonth}</span>
                       </button>
                     );
                   })}
@@ -902,14 +906,14 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
 
               {/* Slot Legend & Grid */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 6 }}>
-                <span style={{ color: V.chalkDim, fontSize: 13, fontWeight: 700, fontFamily: FONT_BODY }}>
+                <span style={{ color: "#172B4D", fontSize: 13, fontWeight: 800, fontFamily: FONT_BODY }}>
                   2. Select Time Slot
                 </span>
                 <div style={{ display: "flex", gap: 10, fontSize: 11, fontFamily: FONT_BODY }}>
-                  <span style={{ color: V.floodButton || V.flood, display: "inline-flex", alignItems: "center", gap: 3 }}>● Open</span>
-                  <span style={{ color: V.pending, display: "inline-flex", alignItems: "center", gap: 3 }}>● Held</span>
-                  <span style={{ color: V.chalkFaint, display: "inline-flex", alignItems: "center", gap: 3 }}>● Taken</span>
-                  <span style={{ color: "#9ca3af", display: "inline-flex", alignItems: "center", gap: 3 }}>● Closed</span>
+                  <span style={{ color: "#10B981", display: "inline-flex", alignItems: "center", gap: 3, fontWeight: 700 }}>● Open</span>
+                  <span style={{ color: "#F59E0B", display: "inline-flex", alignItems: "center", gap: 3, fontWeight: 700 }}>● Held</span>
+                  <span style={{ color: "#A0AEC0", display: "inline-flex", alignItems: "center", gap: 3, fontWeight: 700 }}>● Taken</span>
+                  <span style={{ color: "#CBD5E0", display: "inline-flex", alignItems: "center", gap: 3, fontWeight: 700 }}>● Closed</span>
                 </div>
               </div>
 
@@ -1303,7 +1307,7 @@ function CancelBookingModal({ booking, onClose, onCancelled, showToast }) {
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(10, 18, 14, 0.72)",
+        background: "rgba(23, 43, 77, 0.45)",
         backdropFilter: "blur(8px)",
         WebkitBackdropFilter: "blur(8px)",
         display: "flex",
@@ -1617,7 +1621,7 @@ function ResumeMatchModal({ match, onClose, onConfirm, isPending }) {
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(10, 18, 14, 0.75)",
+        background: "rgba(23, 43, 77, 0.45)",
         backdropFilter: "blur(8px)",
         WebkitBackdropFilter: "blur(8px)",
         display: "flex",
@@ -1863,7 +1867,7 @@ function GameDetailsModal({
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(10, 18, 14, 0.72)",
+        background: "rgba(23, 43, 77, 0.45)",
         backdropFilter: "blur(8px)",
         WebkitBackdropFilter: "blur(8px)",
         display: "flex",
@@ -2940,10 +2944,10 @@ function DashboardSection({ isLoading, bookings, matchesJoined, joinedGames = []
           {/* Stat Cards */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14, marginBottom: 32 }}>
             {[
-              { label: "Total spent", value: `₹${totalSpent.toLocaleString()}`, icon: "trending" },
-              { label: "Games played", value: gamesPlayed, icon: "clock" },
-              { label: "Squad matches joined", value: matchesJoined, icon: "trophy" },
-              { label: "Upcoming bookings", value: upcoming.length, icon: "calendar" },
+              { label: "Total spent", value: `₹${totalSpent.toLocaleString()}`, icon: "trending", bg: "#EAF7FF", color: "#1769E8" },
+              { label: "Games played", value: gamesPlayed, icon: "clock", bg: "#E9F9ED", color: "#10B981" },
+              { label: "Squad matches joined", value: matchesJoined, icon: "trophy", bg: "#F1EEFF", color: "#7C3AED" },
+              { label: "Upcoming bookings", value: upcoming.length, icon: "calendar", bg: "#FFF2E5", color: "#F59E0B" },
             ].map(s => (
               <div
                 key={s.label}
@@ -2951,18 +2955,21 @@ function DashboardSection({ isLoading, bookings, matchesJoined, joinedGames = []
                   ...panel(),
                   borderRadius: 16,
                   padding: "18px 20px",
-                  transition: "transform 0.2s, border-color 0.2s",
+                  background: "#FFFFFF",
+                  border: "1px solid #E5EDF5",
+                  boxShadow: "0 6px 18px rgba(23, 105, 232, 0.05)",
+                  transition: "transform 0.2s, box-shadow 0.2s",
                 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-                  <div style={{ background: "rgba(21, 128, 81, 0.1)", borderRadius: 10, padding: 8 }}>
-                    <Icon name={s.icon} size={18} color={V.floodButton || V.flood} />
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                  <div style={{ background: s.bg, borderRadius: 10, padding: 8, display: "inline-flex" }}>
+                    <Icon name={s.icon} size={18} color={s.color} />
                   </div>
                 </div>
-                <div style={{ color: V.chalk, fontWeight: 800, fontSize: 24, fontFamily: typeof s.value === "string" && s.value.startsWith("₹") ? FONT_BODY : FONT_DATA }}>
+                <div style={{ color: "#172B4D", fontWeight: 900, fontSize: 24, fontFamily: typeof s.value === "string" && s.value.startsWith("₹") ? FONT_BODY : FONT_DATA }}>
                   {s.value}
                 </div>
-                <div style={{ color: V.chalkFaint, fontSize: 12.5, marginTop: 4, fontFamily: FONT_BODY, fontWeight: 600 }}>
+                <div style={{ color: "#718096", fontSize: 13, marginTop: 4, fontFamily: FONT_BODY, fontWeight: 700 }}>
                   {s.label}
                 </div>
               </div>
@@ -4001,9 +4008,9 @@ export default function PlayerAppClient({ profile }) {
             so account actions (notifications, sign out) live here instead. */}
         <div className="vt-mobile-topbar" style={{
           position: "fixed", top: 0, left: 0, right: 0, zIndex: 900,
-          background: "rgba(255,255,255,0.96)",
+          background: "rgba(255, 255, 255, 0.96)",
           backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
-          borderBottom: `1px solid ${V.line}`,
+          borderBottom: "1px solid rgba(24, 168, 224, 0.18)",
           padding: "0 16px", height: 56,
           alignItems: "center", justifyContent: "space-between",
         }}>
@@ -4011,27 +4018,27 @@ export default function PlayerAppClient({ profile }) {
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             {profile?.id ? (
               <>
-                <button onClick={toggleNotifications} aria-label="Notifications" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: V.chalk, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+                <button onClick={toggleNotifications} aria-label="Notifications" style={{ background: "transparent", border: "1px solid rgba(24, 168, 224, 0.2)", borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: "#172B4D", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
                   <Icon name="notification" size={15} />
                   {unreadCount > 0 && (
-                    <span style={{ position: "absolute", top: -2, right: -2, minWidth: 14, height: 14, padding: "0 4px", borderRadius: 999, background: V.flood, color: "#ffffff", fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
+                    <span style={{ position: "absolute", top: -2, right: -2, minWidth: 14, height: 14, padding: "0 4px", borderRadius: 999, background: "#1769E8", color: "#FFFFFF", fontSize: 9, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
                       {unreadCount > 9 ? "9+" : unreadCount}
                     </span>
                   )}
                 </button>
-                <button onClick={() => router.push("/settings")} aria-label="Account settings" title="Account settings" className="vt-mobile-account-button" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, padding: "6px 9px", cursor: "pointer", color: V.chalk, fontSize: 11, fontWeight: 700, fontFamily: FONT_BODY }}>
+                <button onClick={() => router.push("/settings")} aria-label="Account settings" title="Account settings" className="vt-mobile-account-button" style={{ background: "#EAF7FF", border: "1px solid rgba(24, 168, 224, 0.25)", borderRadius: 8, padding: "6px 9px", cursor: "pointer", color: "#1769E8", fontSize: 11, fontWeight: 800, fontFamily: FONT_BODY }}>
                   {initial}
                 </button>
-                <button onClick={handleSignOut} aria-label="Sign out" title="Sign out" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: V.chalkDim, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <button onClick={handleSignOut} aria-label="Sign out" title="Sign out" style={{ background: "transparent", border: "1px solid rgba(113, 128, 150, 0.2)", borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: "#718096", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Icon name="logout" size={15} />
                 </button>
               </>
             ) : (
               <>
-                <button onClick={() => router.push("/login")} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: V.chalk, fontSize: 12.5, fontWeight: 700, fontFamily: FONT_BODY }}>
+                <button onClick={() => router.push("/login")} style={{ background: "transparent", border: "1px solid rgba(24, 168, 224, 0.25)", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: "#172B4D", fontSize: 12.5, fontWeight: 700, fontFamily: FONT_BODY }}>
                   Sign in
                 </button>
-                <button onClick={() => router.push("/signup")} style={{ background: V.flood, border: "none", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: "#ffffff", fontSize: 12.5, fontWeight: 800, fontFamily: FONT_BODY }}>
+                <button onClick={() => router.push("/signup")} style={{ background: "#C8F542", border: "none", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: "#172B4D", fontSize: 12.5, fontWeight: 800, fontFamily: FONT_BODY, boxShadow: "0 2px 8px rgba(200, 245, 66, 0.4)" }}>
                   Sign up
                 </button>
               </>
@@ -4039,62 +4046,92 @@ export default function PlayerAppClient({ profile }) {
           </div>
         </div>
 
-        {/* TOP NAV (Desktop) */}
+        {/* TOP NAV (Desktop Floating) */}
         <nav className="vt-top-nav" style={{
-          position: "fixed", top: 0, left: 0, right: 0, zIndex: 900,
-          background: "rgba(255,255,255,0.96)",
+          position: "fixed", top: 14, left: "50%", transform: "translateX(-50%)",
+          width: "calc(100% - 32px)", maxWidth: 1320, zIndex: 900,
+          background: "rgba(255, 255, 255, 0.95)",
           backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
-          borderBottom: `1px solid ${V.line}`,
-          padding: "0 32px",
+          border: "1px solid rgba(24, 168, 224, 0.18)",
+          borderRadius: 16,
+          boxShadow: "0 10px 30px rgba(23, 105, 232, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)",
+          padding: "0 24px",
           height: 64,
           alignItems: "center",
           justifyContent: "space-between",
         }}>
           {/* Logo */}
-          <BrandLockup markSize={46} />
+          <BrandLockup markSize={44} />
 
           {/* Desktop Nav */}
-          <div style={{ display: "flex", gap: 4 }}>
-            {TABS.map((tab, index) => (
-              <button key={tab.id} onClick={() => { if (tab.id === "matches") setMatchTurfFilter(null); setActiveTab(tab.id); }} style={{
-                padding: "8px 16px", borderRadius: 8,
-                background: "transparent",
-                border: "none",
-                borderBottom: activeTab === tab.id ? `2px solid ${V.flood}` : "2px solid transparent",
-                color: activeTab === tab.id ? V.flood : V.chalkDim,
-                cursor: "pointer", fontSize: 14, fontWeight: 600,
-                transition: "color 0.2s, border-color 0.2s", fontFamily: FONT_BODY,
-              }}>
-                {tab.label}
-              </button>
-            ))}
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            {TABS.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    if (tab.id === "matches") setMatchTurfFilter(null);
+                    setActiveTab(tab.id);
+                  }}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: 10,
+                    background: isActive ? "#EAF7FF" : "transparent",
+                    border: "none",
+                    color: isActive ? "#1769E8" : "#718096",
+                    cursor: "pointer",
+                    fontSize: 14,
+                    fontWeight: isActive ? 800 : 600,
+                    transition: "all 0.2s ease",
+                    fontFamily: FONT_BODY,
+                    position: "relative",
+                  }}
+                >
+                  {tab.label}
+                  {isActive && (
+                    <span
+                      style={{
+                        position: "absolute",
+                        bottom: -4,
+                        left: "20%",
+                        right: "20%",
+                        height: 3,
+                        borderRadius: 3,
+                        background: "#1769E8",
+                      }}
+                    />
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           {/* Right side */}
           <div style={{ display: "flex", alignItems: "center", gap: 12, position: "relative" }}>
             {profile?.id ? (
               <>
-                <button onClick={toggleNotifications} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 36, height: 36, cursor: "pointer", color: V.chalk, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
-                  <Icon name="notification" size={16} />
+                <button onClick={toggleNotifications} style={{ background: "#FFFFFF", border: "1px solid rgba(24, 168, 224, 0.2)", borderRadius: 10, width: 38, height: 38, cursor: "pointer", color: "#172B4D", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", transition: "border-color 0.2s" }}>
+                  <Icon name="notification" size={17} />
                   {unreadCount > 0 && (
-                    <span style={{ position: "absolute", top: -2, right: -2, minWidth: 15, height: 15, padding: "0 4px", borderRadius: 999, background: V.flood, color: "#ffffff", fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
+                    <span style={{ position: "absolute", top: -2, right: -2, minWidth: 16, height: 16, padding: "0 4px", borderRadius: 999, background: "#1769E8", color: "#FFFFFF", fontSize: 9.5, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
                       {unreadCount > 9 ? "9+" : unreadCount}
                     </span>
                   )}
                 </button>
-                <button onClick={handleSignOut} title="Sign out" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 36, height: 36, cursor: "pointer", color: V.chalkDim, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <Icon name="logout" size={16} />
+                <button onClick={handleSignOut} title="Sign out" style={{ background: "transparent", border: "1px solid rgba(113, 128, 150, 0.2)", borderRadius: 10, width: 38, height: 38, cursor: "pointer", color: "#718096", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Icon name="logout" size={17} />
                 </button>
-                <button onClick={() => router.push("/settings")} title="Account settings" aria-label="Account settings" style={{ width: 36, height: 36, borderRadius: 8, background: V.flood, border: "none", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, color: "#ffffff", fontFamily: FONT_BODY, cursor: "pointer" }}>
+                <button onClick={() => router.push("/settings")} title="Account settings" aria-label="Account settings" style={{ width: 38, height: 38, borderRadius: 10, background: "linear-gradient(135deg, #18A8E0 0%, #1769E8 100%)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 14, color: "#FFFFFF", fontFamily: FONT_BODY, cursor: "pointer", boxShadow: "0 4px 12px rgba(23, 105, 232, 0.28)" }}>
                   {initial}
                 </button>
               </>
             ) : (
               <>
-                <button onClick={() => router.push("/login")} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 10, padding: "9px 16px", cursor: "pointer", color: V.chalk, fontSize: 13.5, fontWeight: 700, fontFamily: FONT_BODY }}>
+                <button onClick={() => router.push("/login")} style={{ background: "transparent", border: "1px solid rgba(24, 168, 224, 0.25)", borderRadius: 10, padding: "9px 18px", cursor: "pointer", color: "#172B4D", fontSize: 13.5, fontWeight: 700, fontFamily: FONT_BODY, transition: "background 0.2s" }}>
                   Sign in
                 </button>
-                <button onClick={() => router.push("/signup")} style={{ background: V.flood, border: "none", borderRadius: 10, padding: "9px 16px", cursor: "pointer", color: "#ffffff", fontSize: 13.5, fontWeight: 800, fontFamily: FONT_BODY }}>
+                <button onClick={() => router.push("/signup")} style={{ background: "#C8F542", border: "none", borderRadius: 10, padding: "9px 20px", cursor: "pointer", color: "#172B4D", fontSize: 13.5, fontWeight: 800, fontFamily: FONT_BODY, boxShadow: "0 4px 14px rgba(200, 245, 66, 0.45)", transition: "transform 0.15s, box-shadow 0.2s" }}>
                   Sign up
                 </button>
               </>
@@ -4115,26 +4152,26 @@ export default function PlayerAppClient({ profile }) {
         />
 
         {/* MAIN CONTENT */}
-        <main className="vt-main-content" style={{ paddingTop: 64, paddingBottom: 80 }}>
+        <main className="vt-main-content" style={{ paddingTop: 88, paddingBottom: 80 }}>
           {activeTab === "home" && (
-            <>
-              <HeroSection
-                onExplore={(query) => { setSearchQuery(query || ""); setActiveTab("discover"); }}
-                venueCount={turfs.length}
-                isLoading={turfsLoading}
-              />
-              <section className="vt-home-promo">
-                <div className="vt-home-promo-icon" aria-hidden="true">↗</div>
-                <div className="vt-home-promo-copy">
-                  <span className="vt-section-eyebrow">READY TO PLAY?</span>
-                  <strong>Gather the squad. We&apos;ll sort the ground.</strong>
-                  <p>Compare turfs, pick a time, and book. Your game is set in a few taps.</p>
-                </div>
-                <button className="vt-home-promo-button" onClick={() => setActiveTab("discover")}>
-                  See all turfs <span aria-hidden="true">→</span>
-                </button>
-              </section>
-            </>
+            <CinematicHome
+              turfs={turfs}
+              matches={matches}
+              isLoading={turfsLoading}
+              onBookTurf={(turf) => setBookingTurf(turf)}
+              onSelectSport={(sport) => {
+                setSearchQuery(sport || "");
+                setActiveTab("discover");
+              }}
+              onExplore={(query, sport) => {
+                setSearchQuery(query || sport || "");
+                setActiveTab("discover");
+              }}
+              onViewAllMatches={() => setActiveTab("matches")}
+              onViewTournaments={() => setActiveTab("tournaments")}
+              onViewPackages={() => setActiveTab("packages")}
+              onJoinMatch={(match) => setSelectedGameForCheckout(match)}
+            />
           )}
           {activeTab === "discover" && (
             <DiscoverSection
@@ -4200,32 +4237,36 @@ export default function PlayerAppClient({ profile }) {
         {/* BOTTOM TAB BAR (Mobile feel) */}
         <nav className="vt-bottom-nav" aria-label="Primary navigation" style={{
           position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 900,
-          background: "rgba(255,255,255,0.96)",
+          background: "rgba(255, 255, 255, 0.96)",
           backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
-          borderTop: `1px solid ${V.line}`,
+          borderTop: "1px solid rgba(24, 168, 224, 0.18)",
           overflowX: "auto",
           whiteSpace: "nowrap",
           scrollbarWidth: "none",
           msOverflowStyle: "none",
           padding: "6px 8px 10px",
           gap: 4,
+          boxShadow: "0 -4px 18px rgba(23, 105, 232, 0.08)",
         }}>
-          {TABS.map((tab, index) => (
-            <button key={tab.id} onClick={() => { if (tab.id === "matches") setMatchTurfFilter(null); setActiveTab(tab.id); }} aria-current={activeTab === tab.id ? "page" : undefined} style={{
-              display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
-              background: "none", border: "none", cursor: "pointer",
-              padding: "6px 10px", borderRadius: 10, flexShrink: 0,
-              minWidth: 54,
-              color: activeTab === tab.id ? V.flood : V.chalkFaint,
-              transition: "color 0.2s",
-            }}>
-              <Icon name={tab.icon} size={20} color={activeTab === tab.id ? V.flood : V.chalkFaint} />
-              <span style={{ fontSize: 10, fontWeight: 600, fontFamily: FONT_BODY }}>{tab.label}</span>
-              {activeTab === tab.id && (
-                <div style={{ width: 4, height: 4, borderRadius: "50%", background: V.flood }} />
-              )}
-            </button>
-          ))}
+          {TABS.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button key={tab.id} onClick={() => { if (tab.id === "matches") setMatchTurfFilter(null); setActiveTab(tab.id); }} aria-current={isActive ? "page" : undefined} style={{
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
+                background: "none", border: "none", cursor: "pointer",
+                padding: "6px 10px", borderRadius: 10, flexShrink: 0,
+                minWidth: 54,
+                color: isActive ? "#1769E8" : "#718096",
+                transition: "color 0.2s",
+              }}>
+                <Icon name={tab.icon} size={20} color={isActive ? "#1769E8" : "#718096"} />
+                <span style={{ fontSize: 10, fontWeight: isActive ? 800 : 600, fontFamily: FONT_BODY }}>{tab.label}</span>
+                {isActive && (
+                  <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#1769E8" }} />
+                )}
+              </button>
+            );
+          })}
         </nav>
 
         {/* BOOKING MODAL */}

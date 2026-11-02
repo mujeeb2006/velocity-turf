@@ -132,9 +132,9 @@ export function StatusPill({ status }) {
 export function Btn({ children, variant = "secondary", size = "md", busy = false, disabled = false, icon, style, ...rest }) {
   const sizes = { sm: { padding: "7px 12px", fontSize: 12.5, minHeight: 36 }, md: { padding: "10px 16px", fontSize: 13, minHeight: 44 } };
   const variants = {
-    primary: { background: V.floodButton || V.flood, color: "#fff", border: "1px solid transparent" },
-    secondary: { background: V.pitchCard, color: V.chalk, border: `1px solid ${V.lineStrong}` },
-    danger: { background: "rgba(220,38,38,0.08)", color: V.danger, border: "1px solid rgba(220,38,38,0.3)" },
+    primary: { background: V.floodButton || V.flood, color: "#172B4D", border: "none", boxShadow: "0 4px 14px rgba(200, 245, 66, 0.45)" },
+    secondary: { background: "#FFFFFF", color: V.chalk, border: `1px solid ${V.line}`, boxShadow: "0 2px 6px rgba(0, 0, 0, 0.04)" },
+    danger: { background: "#FFF2F2", color: "#EF4444", border: "1px solid rgba(239,68,68,0.25)" },
     ghost: { background: "transparent", color: V.chalkDim, border: "1px solid transparent" },
   };
   const inactive = disabled || busy;
@@ -496,7 +496,7 @@ export function Modal({ title, subtitle, onClose, children, footer, maxWidth = 5
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (
-    <div className="vt-modal-backdrop" style={{ position: "fixed", inset: 0, background: "rgba(16,24,20,0.55)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 16 }} onClick={onClose}>
+    <div className="vt-modal-backdrop" style={{ position: "fixed", inset: 0, background: "rgba(23, 43, 77, 0.45)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 16 }} onClick={onClose}>
       <div
         ref={ref}
         role="dialog"
@@ -504,7 +504,7 @@ export function Modal({ title, subtitle, onClose, children, footer, maxWidth = 5
         aria-label={title}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        style={{ ...panel(), borderRadius: 18, width: "100%", maxWidth, maxHeight: "88vh", display: "flex", flexDirection: "column", outline: "none", boxShadow: "0 24px 70px rgba(16,24,20,0.25)" }}
+        style={{ ...panel(), borderRadius: 20, width: "100%", maxWidth, maxHeight: "88vh", display: "flex", flexDirection: "column", outline: "none", boxShadow: "0 24px 60px rgba(23, 105, 232, 0.16)" }}
       >
         <div style={{ padding: "18px 22px 14px", borderBottom: `1px solid ${V.line}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
           <div>
@@ -569,24 +569,24 @@ export function TopBar({ title, sub, action }) {
 export function SideNav({ items, active, onSelect, roleLabel, roleIcon = "shield", roleColor, name, email, onSignOut, onSettings, unreadCount, onBell, bellRef }) {
   const initial = (name || email || "?").trim().charAt(0).toUpperCase();
   return (
-    <nav aria-label="Dashboard" className="vt-dashboard-sidebar" style={{ width: 240, flexShrink: 0, minHeight: "100vh", position: "sticky", top: 0, alignSelf: "flex-start", background: V.pitchCard, borderRight: `1px solid ${V.line}`, padding: "22px 14px", display: "flex", flexDirection: "column" }}>
+    <nav aria-label="Dashboard" className="vt-dashboard-sidebar" style={{ width: 240, flexShrink: 0, minHeight: "100vh", position: "sticky", top: 0, alignSelf: "flex-start", background: "#FFFFFF", borderRight: `1px solid ${V.line}`, padding: "22px 14px", display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 6px", marginBottom: 18 }}>
-        <BrandLockup markSize={38} compact dark />
+        <BrandLockup markSize={38} compact />
         <button ref={bellRef} type="button" className="vt-btn" onClick={onBell} aria-label={unreadCount ? `Notifications, ${unreadCount} unread` : "Notifications"} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: V.chalk, display: "flex", alignItems: "center", justifyContent: "center", position: "relative", flexShrink: 0 }}>
           <Icon name="notification" size={15} />
           {unreadCount > 0 && (
-            <span style={{ position: "absolute", top: -5, right: -5, minWidth: 16, height: 16, padding: "0 4px", borderRadius: 8, background: V.flood, color: "#fff", fontSize: 9.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: font }}>
+            <span style={{ position: "absolute", top: -5, right: -5, minWidth: 16, height: 16, padding: "0 4px", borderRadius: 8, background: "#1769E8", color: "#fff", fontSize: 9.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: font }}>
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}
         </button>
       </div>
 
-      <div className="vt-dashboard-identity" style={{ display: "flex", alignItems: "center", gap: 10, background: roleColor + "10", border: `1px solid ${roleColor}30`, borderRadius: 12, padding: "10px 12px", marginBottom: 18 }}>
-        <div style={{ width: 32, height: 32, borderRadius: "50%", background: roleColor + "22", color: roleColor, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, flexShrink: 0 }}>{initial}</div>
+      <div className="vt-dashboard-identity" style={{ display: "flex", alignItems: "center", gap: 10, background: "#EAF7FF", border: "1px solid rgba(24, 168, 224, 0.25)", borderRadius: 12, padding: "10px 12px", marginBottom: 18 }}>
+        <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, #18A8E0 0%, #1769E8 100%)", color: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, flexShrink: 0 }}>{initial}</div>
         <div style={{ minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 5, color: roleColor, fontSize: 10.5, fontWeight: 800, fontFamily: mono, letterSpacing: 0.4 }}>
-            <Icon name={roleIcon} size={11} color={roleColor} />
+          <div style={{ display: "flex", alignItems: "center", gap: 5, color: "#1769E8", fontSize: 10.5, fontWeight: 800, fontFamily: mono, letterSpacing: 0.4 }}>
+            <Icon name={roleIcon} size={11} color="#1769E8" />
             {roleLabel}
           </div>
           <div style={{ color: V.chalk, fontSize: 12.5, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name || email}</div>
@@ -594,7 +594,7 @@ export function SideNav({ items, active, onSelect, roleLabel, roleIcon = "shield
         </div>
       </div>
 
-      <div className="vt-dashboard-links" role="tablist" aria-orientation="vertical" style={{ display: "flex", flexDirection: "column", gap: 3, flex: 1 }}>
+      <div className="vt-dashboard-links" role="tablist" aria-orientation="vertical" style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
         {items.map((it) => {
           const on = active === it.id;
           return (
@@ -607,14 +607,15 @@ export function SideNav({ items, active, onSelect, roleLabel, roleIcon = "shield
               onClick={() => onSelect(it.id)}
               style={{
                 display: "flex", alignItems: "center", gap: 11, padding: "10px 12px", borderRadius: 11,
-                background: on ? V.floodDim : "transparent",
-                border: `1px solid ${on ? V.flood + "55" : "transparent"}`,
-                color: on ? V.chalk : V.chalkDim, cursor: "pointer", fontSize: 13.5, fontWeight: on ? 800 : 600, fontFamily: font, textAlign: "left",
+                background: on ? "#EAF7FF" : "transparent",
+                border: `1px solid ${on ? "rgba(23, 105, 232, 0.22)" : "transparent"}`,
+                color: on ? "#1769E8" : V.chalkDim, cursor: "pointer", fontSize: 13.5, fontWeight: on ? 800 : 600, fontFamily: font, textAlign: "left",
+                transition: "all 0.15s ease",
               }}
             >
-              <Icon name={it.icon} size={16} color={on ? V.flood : V.chalkFaint} />
+              <Icon name={it.icon} size={16} color={on ? "#1769E8" : V.chalkFaint} />
               {it.label}
-              {it.badge ? <span style={{ marginLeft: "auto", background: V.pending, color: "#fff", fontSize: 10, fontWeight: 800, padding: "1px 7px", borderRadius: 10 }}>{it.badge}</span> : null}
+              {it.badge ? <span style={{ marginLeft: "auto", background: "#1769E8", color: "#fff", fontSize: 10, fontWeight: 800, padding: "1px 7px", borderRadius: 10 }}>{it.badge}</span> : null}
             </button>
           );
         })}
@@ -639,15 +640,15 @@ export function NotificationsPanel({ open, onClose, notifications, unreadCount, 
   return (
     <>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 899 }} />
-      <div className="vt-notif-panel" role="dialog" aria-label="Notifications" style={{ position: "fixed", zIndex: 1000, width: "min(340px, calc(100vw - 32px))", maxHeight: 440, overflowY: "auto", background: V.pitchCard, border: `1px solid ${V.line}`, borderRadius: 14, boxShadow: "0 20px 50px rgba(16,24,20,0.18)" }}>
-        <div style={{ padding: "14px 16px", borderBottom: `1px solid ${V.line}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, position: "sticky", top: 0, background: V.pitchCard }}>
+      <div className="vt-notif-panel" role="dialog" aria-label="Notifications" style={{ position: "fixed", zIndex: 1000, width: "min(340px, calc(100vw - 32px))", maxHeight: 440, overflowY: "auto", background: "#FFFFFF", border: `1px solid ${V.line}`, borderRadius: 16, boxShadow: "0 20px 50px rgba(23, 105, 232, 0.12)" }}>
+        <div style={{ padding: "14px 16px", borderBottom: `1px solid ${V.line}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, position: "sticky", top: 0, background: "#FFFFFF" }}>
           <div>
             <div style={{ fontWeight: 800, fontSize: 13.5, color: V.chalk }}>Notifications</div>
             <div style={{ color: V.chalkFaint, fontSize: 11, marginTop: 2 }}>
               {unreadCount > 0 ? `${unreadCount} unread` : "You're all caught up"}
             </div>
           </div>
-          {unreadCount > 0 && <Btn size="sm" onClick={onMarkAll}>Mark all read</Btn>}
+          {unreadCount > 0 && <Btn size="sm" variant="primary" onClick={onMarkAll}>Mark all read</Btn>}
         </div>
         {notifications.length === 0 ? (
           <div style={{ padding: "28px 16px", textAlign: "center", color: V.chalkFaint, fontSize: 13 }}>{emptyText}</div>
@@ -658,7 +659,7 @@ export function NotificationsPanel({ open, onClose, notifications, unreadCount, 
               type="button"
               className="vt-row vt-row-click"
               onClick={() => !n.read && onMarkOne(n.id)}
-              style={{ display: "block", width: "100%", textAlign: "left", padding: "12px 16px", border: 0, borderBottom: `1px solid ${V.line}`, background: n.read ? "transparent" : V.floodDim, cursor: n.read ? "default" : "pointer", fontFamily: font }}
+              style={{ display: "block", width: "100%", textAlign: "left", padding: "12px 16px", border: 0, borderBottom: `1px solid ${V.line}`, background: n.read ? "transparent" : "#EAF7FF", cursor: n.read ? "default" : "pointer", fontFamily: font }}
             >
               <div style={{ color: V.chalk, fontWeight: 700, fontSize: 13, marginBottom: 3 }}>{formatNotificationTitle(n.title)}</div>
               {n.body && <div style={{ color: V.chalkDim, fontSize: 12.5, lineHeight: 1.45 }}>{formatNotificationBody(n.title, n.body)}</div>}

@@ -408,7 +408,7 @@ function AddTurfModal({ profile, supabase, onClose, onCreated, showToast }) {
                         style={{
                           position: "absolute",
                           inset: 0,
-                          background: "rgba(10, 18, 14, 0.72)",
+                          background: "rgba(23, 43, 77, 0.65)",
                           opacity: 0,
                           display: "flex",
                           flexDirection: "column",
@@ -1144,13 +1144,13 @@ export default function OwnerDashboardClient({ profile }) {
                   <SectionTitle action={pendingCount > 3 ? <Btn variant="ghost" size="sm" onClick={() => selectTab("bookings")}>View all {pendingCount}</Btn> : null}>Requests to review</SectionTitle>
                   {loading ? <div style={{ display: "grid", gap: 12 }}>{[...Array(2)].map((_, i) => <SkeletonRow key={i} columns={3} />)}</div>
                     : pendingCount === 0 ? <EmptyBlock emoji="✅" title="All caught up" subtitle="No pending booking requests right now." />
-                    : (
-                      <div style={{ display: "grid", gap: 12 }}>
-                        {d.requests.slice(0, 3).map((r) => (
-                          <RequestCard key={r.id} r={r} today={today} busy={respondingId === r.id} onAccept={() => respond(r, "accept")} onDecline={() => setDeclining(r)} />
-                        ))}
-                      </div>
-                    )}
+                      : (
+                        <div style={{ display: "grid", gap: 12 }}>
+                          {d.requests.slice(0, 3).map((r) => (
+                            <RequestCard key={r.id} r={r} today={today} busy={respondingId === r.id} onAccept={() => respond(r, "accept")} onDecline={() => setDeclining(r)} />
+                          ))}
+                        </div>
+                      )}
                 </>
               )}
             </>
@@ -1170,76 +1170,76 @@ export default function OwnerDashboardClient({ profile }) {
                 {d.turfRows.filter((t) => !t.archived_at).map((t) => {
                   const imgData = getTurfImages(t);
                   return (
-                  <Card key={t.id} className="vt-stat">
-                    <div style={{ position: "relative", width: "100%", height: 130, borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
-                      <img src={imgData.cover} alt={t.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
-                      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(16,24,20,0.7) 0%, transparent 60%)" }} />
-                      {imgData.gallery.length > 1 && (
-                        <span style={{ position: "absolute", bottom: 8, right: 8, background: "rgba(0,0,0,0.65)", color: "#fff", padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700, backdropFilter: "blur(4px)" }}>
-                          📷 {imgData.gallery.length} photos
-                        </span>
+                    <Card key={t.id} className="vt-stat">
+                      <div style={{ position: "relative", width: "100%", height: 130, borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
+                        <img src={imgData.cover} alt={t.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(16,24,20,0.7) 0%, transparent 60%)" }} />
+                        {imgData.gallery.length > 1 && (
+                          <span style={{ position: "absolute", bottom: 8, right: 8, background: "rgba(0,0,0,0.65)", color: "#fff", padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700, backdropFilter: "blur(4px)" }}>
+                            📷 {imgData.gallery.length} photos
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 12 }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ color: V.chalk, fontWeight: 800, fontSize: 16 }}>
+                            <DemoNameWithBadge name={t.name} />
+                          </div>
+                          <div style={{ color: V.chalkFaint, fontSize: 12.5, marginTop: 2 }}>{t.address ? `${t.address}, ` : ""}{t.city}</div>
+                        </div>
+                        <StatusPill status={t.status} />
+                      </div>
+
+                      {t.status !== "live" && (
+                        <div style={{ background: (t.status === "pending" ? V.pending : V.danger) + "12", border: `1px solid ${(t.status === "pending" ? V.pending : V.danger)}40`, borderRadius: 10, padding: "8px 12px", fontSize: 12.5, color: V.chalkDim, marginBottom: 12 }}>
+                          {t.status === "pending" ? "Awaiting admin review. Players can't book this turf yet." : "This listing wasn't approved. Contact support to resubmit."}
+                        </div>
                       )}
-                    </div>
 
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 12 }}>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ color: V.chalk, fontWeight: 800, fontSize: 16 }}>
-                          <DemoNameWithBadge name={t.name} />
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+                        {(t.sports || []).map((s) => <Pill key={s} color={V.sky}>{s}</Pill>)}
+                        {(t.amenities || []).slice(0, 4).map((a) => <Pill key={a} color={V.chalkDim}>{a}</Pill>)}
+                        {(t.amenities || []).length > 4 && <Pill color={V.chalkFaint}>+{t.amenities.length - 4}</Pill>}
+                      </div>
+
+                      <div style={{ display: "flex", gap: 18, flexWrap: "wrap", fontSize: 12.5, color: V.chalkDim, marginBottom: 14 }}>
+                        <span>{formatINR(t.base_price)}–{formatINR(t.peak_price)}<span style={{ color: V.chalkFaint }}>/hr</span></span>
+                        <span>{formatTime12(t.open_time)} – {formatTime12(t.close_time)}</span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          <Icon name="star" size={12} filled color={V.pending} />
+                          {t.review_count ? <>{Number(t.rating).toFixed(1)} <span style={{ color: V.chalkFaint }}>({t.review_count})</span></> : <span style={{ color: V.chalkFaint }}>No reviews</span>}
+                        </span>
+                      </div>
+
+                      {t.status === "live" && (
+                        <>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 12 }}>
+                            <span style={{ color: V.chalkDim }}>Occupancy today</span>
+                            <span style={{ color: V.chalk, fontWeight: 800, fontFamily: mono }}>{t.occupancy}%</span>
+                          </div>
+                          <div style={{ height: 6, background: V.line, borderRadius: 3, marginBottom: 14 }}>
+                            <div style={{ height: "100%", width: `${t.occupancy}%`, background: V.flood, borderRadius: 3 }} />
+                          </div>
+                        </>
+                      )}
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                        <div style={{ background: V.pitchCardRaised, borderRadius: 10, padding: 10 }}>
+                          <div style={{ color: V.chalkFaint, fontSize: 11 }}>Today</div>
+                          <div style={{ color: V.chalk, fontWeight: 800, fontSize: 14 }}>{t.todayBookings} booking{t.todayBookings === 1 ? "" : "s"}</div>
                         </div>
-                        <div style={{ color: V.chalkFaint, fontSize: 12.5, marginTop: 2 }}>{t.address ? `${t.address}, ` : ""}{t.city}</div>
-                      </div>
-                      <StatusPill status={t.status} />
-                    </div>
-
-                    {t.status !== "live" && (
-                      <div style={{ background: (t.status === "pending" ? V.pending : V.danger) + "12", border: `1px solid ${(t.status === "pending" ? V.pending : V.danger)}40`, borderRadius: 10, padding: "8px 12px", fontSize: 12.5, color: V.chalkDim, marginBottom: 12 }}>
-                        {t.status === "pending" ? "Awaiting admin review. Players can't book this turf yet." : "This listing wasn't approved. Contact support to resubmit."}
-                      </div>
-                    )}
-
-                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
-                      {(t.sports || []).map((s) => <Pill key={s} color={V.sky}>{s}</Pill>)}
-                      {(t.amenities || []).slice(0, 4).map((a) => <Pill key={a} color={V.chalkDim}>{a}</Pill>)}
-                      {(t.amenities || []).length > 4 && <Pill color={V.chalkFaint}>+{t.amenities.length - 4}</Pill>}
-                    </div>
-
-                    <div style={{ display: "flex", gap: 18, flexWrap: "wrap", fontSize: 12.5, color: V.chalkDim, marginBottom: 14 }}>
-                      <span>{formatINR(t.base_price)}–{formatINR(t.peak_price)}<span style={{ color: V.chalkFaint }}>/hr</span></span>
-                      <span>{formatTime12(t.open_time)} – {formatTime12(t.close_time)}</span>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                        <Icon name="star" size={12} filled color={V.pending} />
-                        {t.review_count ? <>{Number(t.rating).toFixed(1)} <span style={{ color: V.chalkFaint }}>({t.review_count})</span></> : <span style={{ color: V.chalkFaint }}>No reviews</span>}
-                      </span>
-                    </div>
-
-                    {t.status === "live" && (
-                      <>
-                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 12 }}>
-                          <span style={{ color: V.chalkDim }}>Occupancy today</span>
-                          <span style={{ color: V.chalk, fontWeight: 800, fontFamily: mono }}>{t.occupancy}%</span>
+                        <div style={{ background: V.pitchCardRaised, borderRadius: 10, padding: 10 }}>
+                          <div style={{ color: V.chalkFaint, fontSize: 11 }}>Revenue</div>
+                          <div style={{ color: V.chalk, fontWeight: 800, fontSize: 14, fontFamily: font }}>{formatINR(t.revenue)}</div>
                         </div>
-                        <div style={{ height: 6, background: V.line, borderRadius: 3, marginBottom: 14 }}>
-                          <div style={{ height: "100%", width: `${t.occupancy}%`, background: V.flood, borderRadius: 3 }} />
-                        </div>
-                      </>
-                    )}
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                      <div style={{ background: V.pitchCardRaised, borderRadius: 10, padding: 10 }}>
-                        <div style={{ color: V.chalkFaint, fontSize: 11 }}>Today</div>
-                        <div style={{ color: V.chalk, fontWeight: 800, fontSize: 14 }}>{t.todayBookings} booking{t.todayBookings === 1 ? "" : "s"}</div>
                       </div>
-                      <div style={{ background: V.pitchCardRaised, borderRadius: 10, padding: 10 }}>
-                        <div style={{ color: V.chalkFaint, fontSize: 11 }}>Revenue</div>
-                        <div style={{ color: V.chalk, fontWeight: 800, fontSize: 14, fontFamily: font }}>{formatINR(t.revenue)}</div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 14 }}>
+                        <Btn icon="calendar" onClick={() => setSlotsTurf(t)}>Manage slots</Btn>
+                        <Btn variant="danger" onClick={() => setArchivingTurf(t)}>Archive</Btn>
                       </div>
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 14 }}>
-                      <Btn icon="calendar" onClick={() => setSlotsTurf(t)}>Manage slots</Btn>
-                      <Btn variant="danger" onClick={() => setArchivingTurf(t)}>Archive</Btn>
-                    </div>
-                  </Card>
-                );
-              })}
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </>
@@ -1266,8 +1266,8 @@ export default function OwnerDashboardClient({ profile }) {
                 const badge = att === "checked_in"
                   ? { bg: V.floodDim, text: V.flood, label: "Checked In" }
                   : att === "no_show"
-                  ? { bg: "rgba(239, 68, 68, 0.15)", text: V.danger, label: "No Show" }
-                  : { bg: "rgba(255, 255, 255, 0.05)", text: V.chalkFaint, label: "Not Arrived" };
+                    ? { bg: "rgba(239, 68, 68, 0.15)", text: V.danger, label: "No Show" }
+                    : { bg: "rgba(255, 255, 255, 0.05)", text: V.chalkFaint, label: "Not Arrived" };
                 return (
                   <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 6, background: badge.bg, color: badge.text }}>
                     {badge.label}

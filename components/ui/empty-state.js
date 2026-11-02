@@ -35,7 +35,7 @@ export function EmptyState({ icon = "📭", title, subtitle, action, accent = "#
       >
         {icon}
       </div>
-      <div style={{ color: V.chalk, fontWeight: 700, fontSize: 15.5, fontFamily: "'Exo 2', sans-serif" }}>
+      <div style={{ color: V.chalk, fontWeight: 800, fontSize: 16, fontFamily: "'Manrope', sans-serif" }}>
         {title}
       </div>
       {subtitle && (

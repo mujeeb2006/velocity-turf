@@ -3,8 +3,8 @@ import BrandMark from "@/components/brand-mark";
 export default function BrandLockup({ markSize = 46, compact = false, dark = false }) {
   const fontSize = compact ? 12 : 15;
   const taglineSize = compact ? 6.5 : 8;
-  const textColor = dark ? "#F4F4F2" : "#172126";
-  const taglineColor = dark ? "#B8C5BF" : "#58645F";
+  const textColor = dark ? "#FFFFFF" : "#172B4D";
+  const taglineColor = dark ? "#EAF7FF" : "#718096";
 
   return (
     <div
@@ -16,21 +16,21 @@ export default function BrandLockup({ markSize = 46, compact = false, dark = fal
       <span style={{ display: "grid", gap: compact ? 1 : 2, lineHeight: 0.92 }}>
         <span style={{
           color: textColor,
-          fontFamily: "Arial, Helvetica, sans-serif",
+          fontFamily: "'Manrope', sans-serif",
           fontSize,
           fontWeight: 800,
           letterSpacing: compact ? 0.35 : 0.65,
         }}>VELOCITY</span>
         <span style={{
-          color: "#20B16C",
-          fontFamily: "Arial, Helvetica, sans-serif",
+          color: "#1769E8",
+          fontFamily: "'Manrope', sans-serif",
           fontSize,
           fontWeight: 800,
           letterSpacing: compact ? 0.35 : 0.65,
         }}>TURF</span>
         <span style={{
           color: taglineColor,
-          fontFamily: "Arial, Helvetica, sans-serif",
+          fontFamily: "'Manrope', sans-serif",
           fontSize: taglineSize,
           fontWeight: 700,
           letterSpacing: compact ? 0.75 : 1.6,

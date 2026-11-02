@@ -24,7 +24,7 @@ export async function DELETE(request, { params }) {
   // 1. Load the turf (verify it exists and capture metadata).
   const { data: turf, error: turfErr } = await admin
     .from("turfs")
-    .select("id, name, owner_id, images, image")
+    .select("id, name, owner_id, image")
     .eq("id", turfId)
     .maybeSingle();
 
@@ -93,34 +93,64 @@ export async function DELETE(request, { params }) {
       );
     }
 
-    // 3b. Delete disputes linked to this turf (ON DELETE RESTRICT on turf_id and booking_id).
+    // 3b. Delete disputes linked to this turf (ON DELETE RESTRICT).
     e = (await admin.from("disputes").delete().eq("turf_id", turfId)).error;
     if (e) throw new Error("disputes: " + e.message);
 
-    // 3c. Delete reviews on this turf (ON DELETE CASCADE, but be explicit).
+    // 3c. Delete reviews on this turf.
     e = (await admin.from("reviews").delete().eq("turf_id", turfId)).error;
     if (e) throw new Error("reviews: " + e.message);
 
-    // 3d. Delete all bookings on this turf (ON DELETE RESTRICT).
+    // 3d. Delete tournament payments (ON DELETE RESTRICT on turf_id).
+    e = (await admin.from("tournament_payments").delete().eq("turf_id", turfId)).error;
+    if (e) throw new Error("tournament_payments: " + e.message);
+
+    // 3e. Delete tournaments (ON DELETE RESTRICT; registrations + fixtures CASCADE from tournaments).
+    e = (await admin.from("tournaments").delete().eq("turf_id", turfId)).error;
+    if (e) throw new Error("tournaments: " + e.message);
+
+    // 3f. Delete all bookings on this turf (ON DELETE RESTRICT).
     e = (await admin.from("bookings").delete().eq("turf_id", turfId)).error;
     if (e) throw new Error("bookings: " + e.message);
 
-    // 3e. Delete blocked slots (ON DELETE CASCADE, but be explicit).
+    // 3g. Delete blocked slots.
     e = (await admin.from("blocked_slots").delete().eq("turf_id", turfId)).error;
     if (e) throw new Error("blocked_slots: " + e.message);
 
-    // 3f. Delete matches and their participants (match_participants CASCADE from matches).
+    // 3h. Delete matches (ON DELETE RESTRICT; match_participants CASCADE from matches).
     e = (await admin.from("matches").delete().eq("turf_id", turfId)).error;
     if (e) throw new Error("matches: " + e.message);
 
-    // 3g. Delete the turf row itself.
+    // 3i. Delete maintenance records (CASCADE, but be explicit for safety).
+    e = (await admin.from("maintenance_tasks").delete().eq("turf_id", turfId)).error;
+    if (e) throw new Error("maintenance_tasks: " + e.message);
+
+    e = (await admin.from("maintenance_windows").delete().eq("turf_id", turfId)).error;
+    if (e) throw new Error("maintenance_windows: " + e.message);
+
+    // 3j. Delete turf slots (CASCADE, but explicit for safety).
+    e = (await admin.from("turf_slots").delete().eq("turf_id", turfId)).error;
+    if (e) throw new Error("turf_slots: " + e.message);
+
+    // 3k. Delete the turf row itself.
     e = (await admin.from("turfs").delete().eq("id", turfId)).error;
     if (e) throw new Error("turf row: " + e.message);
 
-    // 3h. Remove turf images from Supabase Storage (best-effort — never block deletion).
+    // 3l. Remove turf images from Supabase Storage (best-effort — never block deletion).
+    // The `image` field may be a plain URL string or a JSON string like
+    // {"cover":"https://...","gallery":["https://..."]}.
     const imageUrls = [];
-    if (Array.isArray(turf.images)) imageUrls.push(...turf.images);
-    if (typeof turf.image === "string" && turf.image.startsWith("http")) imageUrls.push(turf.image);
+    if (typeof turf.image === "string" && turf.image.trim().startsWith("{")) {
+      try {
+        const parsed = JSON.parse(turf.image);
+        if (typeof parsed.cover === "string") imageUrls.push(parsed.cover);
+        if (Array.isArray(parsed.gallery)) imageUrls.push(...parsed.gallery);
+      } catch {
+        // Not valid JSON — ignore.
+      }
+    } else if (typeof turf.image === "string" && turf.image.startsWith("http")) {
+      imageUrls.push(turf.image);
+    }
 
     const storagePaths = imageUrls
       .filter((u) => typeof u === "string" && u.includes("/storage/v1/object/public/turf-images/"))
@@ -141,7 +171,7 @@ export async function DELETE(request, { params }) {
       }
     }
 
-    // 3i. Notify the owner (best-effort).
+    // 3m. Notify the owner (best-effort).
     try {
       await notifyUser(
         admin,

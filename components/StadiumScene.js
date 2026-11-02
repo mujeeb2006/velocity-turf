@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
 function addPitchMarkings(scene) {
-  const lineMaterial = new THREE.LineBasicMaterial({ color: "#e3f5df", transparent: true, opacity: 0.8 });
+  const lineMaterial = new THREE.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.9 });
   const drawLine = (points, loop = false) => {
     const geometry = new THREE.BufferGeometry().setFromPoints(points.map(([x, z]) => new THREE.Vector3(x, 0.045, z)));
     scene.add(loop ? new THREE.LineLoop(geometry, lineMaterial) : new THREE.Line(geometry, lineMaterial));
@@ -25,8 +25,8 @@ function addPitchMarkings(scene) {
 }
 
 function addGoal(scene, z, direction) {
-  const material = new THREE.MeshStandardMaterial({ color: "#edf4ed", metalness: 0.42, roughness: 0.3 });
-  const netMaterial = new THREE.LineBasicMaterial({ color: "#d7e7dc", transparent: true, opacity: 0.4 });
+  const material = new THREE.MeshStandardMaterial({ color: "#FFFFFF", metalness: 0.42, roughness: 0.3 });
+  const netMaterial = new THREE.LineBasicMaterial({ color: "#EAF7FF", transparent: true, opacity: 0.6 });
   const frame = new THREE.Group();
   const postGeometry = new THREE.CylinderGeometry(0.055, 0.055, 2.15, 8);
   [-1.7, 1.7].forEach(x => {
@@ -55,7 +55,7 @@ function addGoal(scene, z, direction) {
 }
 
 function addStands(scene) {
-  const tierColors = ["#122b25", "#17372e", "#1d4235", "#153329"];
+  const tierColors = ["#1769E8", "#18A8E0", "#48D6E8", "#0E46A3"];
   const tierMaterials = tierColors.map((color) => new THREE.MeshStandardMaterial({ color, roughness: 0.86, metalness: 0.08 }));
   const tierCount = 6;
   const stands = new THREE.Group();
@@ -79,10 +79,10 @@ function addStands(scene) {
   scene.add(stands);
 
   const crowdGeometry = new THREE.SphereGeometry(0.085, 7, 6);
-  const crowdMaterial = new THREE.MeshStandardMaterial({ roughness: 0.75, metalness: 0.04, vertexColors: true, emissive: "#14251e", emissiveIntensity: 0.18 });
+  const crowdMaterial = new THREE.MeshStandardMaterial({ roughness: 0.75, metalness: 0.04, vertexColors: true, emissive: "#1769E8", emissiveIntensity: 0.15 });
   const crowdCapacity = tierCount * (76 * 2 + 44 * 2);
   const crowd = new THREE.InstancedMesh(crowdGeometry, crowdMaterial, crowdCapacity);
-  const colorsForCrowd = ["#d4ff4f", "#dce5de", "#70b899", "#f0a56b", "#7392a0", "#b7d7c5"];
+  const colorsForCrowd = ["#C8F542", "#18A8E0", "#1769E8", "#48D6E8", "#FFFFFF", "#F1EEFF"];
   const dummy = new THREE.Object3D();
   const tint = new THREE.Color();
   let index = 0;
@@ -119,8 +119,8 @@ function addStands(scene) {
 }
 
 function addRoofAndLights(scene) {
-  const roofMaterial = new THREE.MeshStandardMaterial({ color: "#10251f", roughness: 0.48, metalness: 0.38 });
-  const beamMaterial = new THREE.MeshStandardMaterial({ color: "#263f36", roughness: 0.52, metalness: 0.62 });
+  const roofMaterial = new THREE.MeshStandardMaterial({ color: "#172B4D", roughness: 0.48, metalness: 0.38 });
+  const beamMaterial = new THREE.MeshStandardMaterial({ color: "#718096", roughness: 0.52, metalness: 0.62 });
   const supportGeometry = new THREE.CylinderGeometry(0.12, 0.2, 8.6, 8);
 
   for (const side of [-1, 1]) {
@@ -139,7 +139,7 @@ function addRoofAndLights(scene) {
 
     const fascia = new THREE.Mesh(
       new THREE.BoxGeometry(0.28, 0.72, 32),
-      new THREE.MeshStandardMaterial({ color: "#20885b", emissive: "#0a4c32", emissiveIntensity: 0.55, roughness: 0.38 })
+      new THREE.MeshStandardMaterial({ color: "#1769E8", emissive: "#18A8E0", emissiveIntensity: 0.55, roughness: 0.38 })
     );
     fascia.position.set(side * 14.45, 7.9, 0);
     scene.add(fascia);
@@ -160,10 +160,10 @@ function addRoofAndLights(scene) {
     scene.add(canopy);
   }
 
-  const poleMaterial = new THREE.MeshStandardMaterial({ color: "#50645a", roughness: 0.42, metalness: 0.68 });
+  const poleMaterial = new THREE.MeshStandardMaterial({ color: "#718096", roughness: 0.42, metalness: 0.68 });
   const bankMaterial = new THREE.MeshStandardMaterial({
-    color: "#e8f4da",
-    emissive: "#d4ff9a",
+    color: "#EAF7FF",
+    emissive: "#C8F542",
     emissiveIntensity: 3.5,
     roughness: 0.25,
   });
@@ -172,7 +172,7 @@ function addRoofAndLights(scene) {
       const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.15, 10.8, 8), poleMaterial);
       mast.position.set(x, 5.4, z);
       scene.add(mast);
-      const flood = new THREE.PointLight(0xe4ffd2, 380, 42, 2);
+      const flood = new THREE.PointLight(0x48D6E8, 380, 42, 2);
       flood.position.set(x * 0.94, 10.4, z * 0.94);
       scene.add(flood);
 
@@ -180,7 +180,7 @@ function addRoofAndLights(scene) {
       bank.position.set(x * 0.94, 10.8, z * 0.94);
       scene.add(bank);
 
-      const lensMaterial = new THREE.MeshBasicMaterial({ color: "#edffd0" });
+      const lensMaterial = new THREE.MeshBasicMaterial({ color: "#C8F542" });
       const lenses = new THREE.InstancedMesh(new THREE.SphereGeometry(0.07, 8, 6), lensMaterial, 8);
       const lens = new THREE.Object3D();
       for (let i = 0; i < 8; i += 1) {
@@ -194,17 +194,17 @@ function addRoofAndLights(scene) {
 
   const board = new THREE.Mesh(
     new THREE.BoxGeometry(6.2, 1.65, 0.36),
-    new THREE.MeshStandardMaterial({ color: "#071b15", roughness: 0.35, metalness: 0.18, emissive: "#06160f", emissiveIntensity: 0.6 })
+    new THREE.MeshStandardMaterial({ color: "#172B4D", roughness: 0.35, metalness: 0.18, emissive: "#0E46A3", emissiveIntensity: 0.6 })
   );
   board.position.set(0, 6.25, -15.1);
   scene.add(board);
   const display = new THREE.Mesh(
     new THREE.PlaneGeometry(5.65, 1.12),
-    new THREE.MeshBasicMaterial({ color: "#a9f57a" })
+    new THREE.MeshBasicMaterial({ color: "#C8F542" })
   );
   display.position.set(0, 6.25, -14.91);
   scene.add(display);
-  const displayStripeMaterial = new THREE.MeshBasicMaterial({ color: "#155b3b" });
+  const displayStripeMaterial = new THREE.MeshBasicMaterial({ color: "#1769E8" });
   for (let i = 0; i < 9; i += 1) {
     const stripe = new THREE.Mesh(new THREE.BoxGeometry(i % 3 === 0 ? 0.58 : 0.23, 0.045, 0.02), displayStripeMaterial);
     stripe.position.set(-2.35 + i * 0.58, 6.25 + (i % 2 ? 0.23 : -0.23), -14.89);
@@ -216,11 +216,11 @@ function addBall(scene) {
   const ball = new THREE.Group();
   const shell = new THREE.Mesh(
     new THREE.SphereGeometry(0.47, 32, 24),
-    new THREE.MeshStandardMaterial({ color: "#f5f5e9", roughness: 0.4, metalness: 0.02 })
+    new THREE.MeshStandardMaterial({ color: "#FFFFFF", roughness: 0.4, metalness: 0.02 })
   );
   ball.add(shell);
   const patchGeometry = new THREE.CircleGeometry(0.105, 5);
-  const patchMaterial = new THREE.MeshStandardMaterial({ color: "#163027", roughness: 0.58, side: THREE.DoubleSide });
+  const patchMaterial = new THREE.MeshStandardMaterial({ color: "#172B4D", roughness: 0.58, side: THREE.DoubleSide });
   const golden = (1 + Math.sqrt(5)) / 2;
   const directions = [
     [0, 1, golden], [0, 1, -golden], [0, -1, golden], [0, -1, -golden],
@@ -240,7 +240,7 @@ function addBall(scene) {
 }
 
 function addPitchDetails(scene) {
-  const boardMaterial = new THREE.MeshStandardMaterial({ color: "#d8e1d5", roughness: 0.52, metalness: 0.18, emissive: "#244330", emissiveIntensity: 0.16 });
+  const boardMaterial = new THREE.MeshStandardMaterial({ color: "#EAF7FF", roughness: 0.52, metalness: 0.18, emissive: "#1769E8", emissiveIntensity: 0.16 });
   const touchline = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.58, 24.5), boardMaterial);
   touchline.position.set(-7.22, 0.28, 0);
   const oppositeTouchline = touchline.clone();
@@ -253,9 +253,9 @@ function addPitchDetails(scene) {
     scene.add(board);
   }
 
-  const flagMaterial = new THREE.MeshStandardMaterial({ color: "#eaf1e7", roughness: 0.3, metalness: 0.35 });
+  const flagMaterial = new THREE.MeshStandardMaterial({ color: "#FFFFFF", roughness: 0.3, metalness: 0.35 });
   const flagGeometry = new THREE.CylinderGeometry(0.025, 0.025, 0.74, 6);
-  const flagMaterialCloth = new THREE.MeshBasicMaterial({ color: "#d4ff4f", side: THREE.DoubleSide });
+  const flagMaterialCloth = new THREE.MeshBasicMaterial({ color: "#C8F542", side: THREE.DoubleSide });
   for (const x of [-7, 7]) {
     for (const z of [-12, 12]) {
       const pole = new THREE.Mesh(flagGeometry, flagMaterial);
@@ -276,7 +276,7 @@ function addPitchDetails(scene) {
     [-5.3, 1.8], [-2.8, 4.8], [2.2, 2.3], [5.1, 7.2],
     [-0.5, -1.9], [0.9, 8.6], [-3.7, 9.3], [3.6, -9.1],
   ];
-  const playerColors = ["#ecf5e9", "#d4ff4f", "#ecf5e9", "#ea8a52"];
+  const playerColors = ["#1769E8", "#C8F542", "#FFFFFF", "#18A8E0"];
   const playerGeometry = new THREE.CapsuleGeometry(0.09, 0.3, 3, 6);
   const headGeometry = new THREE.SphereGeometry(0.075, 8, 6);
   const playerMaterials = playerColors.map((color) => new THREE.MeshStandardMaterial({ color, roughness: 0.48, emissive: color, emissiveIntensity: 0.1 }));
@@ -319,19 +319,19 @@ export default function StadiumScene({ className = "" }) {
     renderer.domElement.setAttribute("aria-hidden", "true");
     element.appendChild(renderer.domElement);
 
-    scene.background = new THREE.Color("#07130f");
-    scene.fog = new THREE.Fog("#07130f", 42, 90);
-    scene.add(new THREE.HemisphereLight(0xabc8e4, 0x06100b, 1.25));
-    const keyLight = new THREE.DirectionalLight(0xd9f6cf, 2.2);
-    keyLight.position.set(-12, 22, -10);
+    scene.background = new THREE.Color("#EAF7FF");
+    scene.fog = new THREE.FogExp2("#EAF7FF", 0.018);
+    scene.add(new THREE.HemisphereLight(0x18A8E0, 0xEAF7FF, 1.2));
+    const keyLight = new THREE.DirectionalLight(0x18A8E0, 2.6);
+    keyLight.position.set(-14, 24, -12);
     scene.add(keyLight);
-    const fillLight = new THREE.DirectionalLight(0x719acb, 1.1);
-    fillLight.position.set(15, 12, 14);
-    scene.add(fillLight);
+    const voltLight = new THREE.DirectionalLight(0xC8F542, 2.0);
+    voltLight.position.set(16, 24, 16);
+    scene.add(voltLight);
 
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(38, 46),
-      new THREE.MeshStandardMaterial({ color: "#09130f", roughness: 0.92, metalness: 0.06 })
+      new THREE.MeshStandardMaterial({ color: "#D0E8F8", roughness: 0.92, metalness: 0.06 })
     );
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -0.16;
@@ -339,13 +339,13 @@ export default function StadiumScene({ className = "" }) {
 
     const pitch = new THREE.Mesh(
       new THREE.PlaneGeometry(14, 24),
-      new THREE.MeshStandardMaterial({ color: "#17603e", roughness: 0.92, metalness: 0.02 })
+      new THREE.MeshStandardMaterial({ color: "#1CA95E", roughness: 0.88, metalness: 0.04 })
     );
     pitch.rotation.x = -Math.PI / 2;
     pitch.position.y = 0;
     scene.add(pitch);
 
-    const stripeMaterial = new THREE.MeshStandardMaterial({ color: "#1b6845", roughness: 0.94 });
+    const stripeMaterial = new THREE.MeshStandardMaterial({ color: "#22B768", roughness: 0.90 });
     for (let stripe = 0; stripe < 8; stripe += 1) {
       if (stripe % 2 === 0) continue;
       const grassStripe = new THREE.Mesh(new THREE.PlaneGeometry(14, 3), stripeMaterial);
@@ -378,39 +378,32 @@ export default function StadiumScene({ className = "" }) {
     const timer = new THREE.Timer();
     timer.connect(document);
     const ballStart = ball.position.clone();
-    let frame = 0;
-    let animationId;
-    const animate = (timestamp) => {
-      timer.update(timestamp);
+
+    let frameId;
+    const animate = () => {
+      timer.update();
       const elapsed = timer.getElapsed();
-      const travel = elapsed * 0.42;
-      ball.position.x = ballStart.x + Math.sin(travel) * 2.1;
-      ball.position.z = ballStart.z + Math.sin(travel * 0.72) * 4.2;
-      ball.position.y = ballStart.y + Math.abs(Math.sin(travel * 1.15)) * 1.05;
-      ball.rotation.x += 0.025;
-      ball.rotation.z += 0.018;
-      camera.position.x = 21 + Math.sin(elapsed * 0.12) * 0.42;
-      camera.position.y = 22 + Math.sin(elapsed * 0.15) * 0.18;
-      camera.lookAt(0, 1.8, 0);
-      frame += 1;
-      if (frame % 2 === 0) renderer.render(scene, camera);
-      animationId = window.requestAnimationFrame(animate);
+      if (!reducedMotion) {
+        camera.position.x = 21 + Math.sin(elapsed * 0.22) * 2.2;
+        camera.position.z = 31 + Math.cos(elapsed * 0.18) * 2.6;
+        camera.lookAt(0, 1.8, 0);
+        ball.position.y = ballStart.y + Math.abs(Math.sin(elapsed * 2.6)) * 0.22;
+        ball.rotation.y = elapsed * 1.8;
+      }
+      renderer.render(scene, camera);
+      frameId = requestAnimationFrame(animate);
     };
-    if (!reducedMotion) animationId = window.requestAnimationFrame(animate);
+    frameId = requestAnimationFrame(animate);
 
     return () => {
+      cancelAnimationFrame(frameId);
       resizeObserver.disconnect();
-      if (animationId) window.cancelAnimationFrame(animationId);
-      timer.dispose();
-      scene.traverse(object => {
-        object.geometry?.dispose();
-        if (Array.isArray(object.material)) object.material.forEach(item => item.dispose());
-        else object.material?.dispose();
-      });
       renderer.dispose();
-      renderer.domElement.remove();
+      while (element.firstChild) {
+        element.removeChild(element.firstChild);
+      }
     };
   }, []);
 
-  return <div ref={host} className={`vt-stadium-scene ${className}`} aria-hidden="true" />;
+  return <div ref={host} className={className} style={{ width: "100%", height: "100%", overflow: "hidden" }} />;
 }

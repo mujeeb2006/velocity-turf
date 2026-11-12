@@ -42,6 +42,7 @@ import {
 import { TeamsSection } from "@/components/dashboard/TeamsSection";
 import { TournamentsSection } from "@/components/dashboard/TournamentsSection";
 import { PackagesSection } from "@/components/dashboard/PackagesSection";
+import { RewardsSection } from "@/components/dashboard/RewardsSection";
 import { DemoNameWithBadge } from "@/components/ui/demo-badge";
 import CinematicHome from "@/components/home/CinematicHome";
 import {
@@ -396,6 +397,11 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
   const [userPasses, setUserPasses] = useState([]);
   const [selectedTeamId, setSelectedTeamId] = useState("");
   const [selectedPackageId, setSelectedPackageId] = useState("");
+  const [rewardWallet, setRewardWallet] = useState(null);
+  const [rewardSettings, setRewardSettings] = useState(null);
+  const [useRewardPoints, setUseRewardPoints] = useState(false);
+  const [pointsToRedeem, setPointsToRedeem] = useState(0);
+  const [bookingConfirmationData, setBookingConfirmationData] = useState(null);
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -415,6 +421,16 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
         }
       })
       .catch(() => {});
+
+    fetch("/api/player/rewards")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.wallet) {
+          setRewardWallet(d.wallet);
+          setRewardSettings(d.settings);
+        }
+      })
+      .catch(() => {});
   }, [profile?.id]);
 
   // Client-side idempotency key for this booking session
@@ -429,6 +445,27 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
   const isDynamic = occupancy > 70;
   const price = bookingPrice ?? (turf ? calcPrice(turf, occupancy) : 0);
   const points = Math.floor(price * 0.1);
+
+  const conversionRate = Number(rewardSettings?.conversion_rate_points_per_inr || 1);
+  const availablePoints = Number(rewardWallet?.available_points || 0);
+  const minRedemptionPoints = Number(rewardSettings?.min_redemption_points || 100);
+  const maxDiscountPct = Number(rewardSettings?.max_discount_percentage || 100);
+  const fullSlotAllowed = rewardSettings?.full_slot_redemption_allowed !== false;
+
+  const maxRedeemableForThisBooking = useMemo(() => {
+    if (!price || availablePoints <= 0) return 0;
+    const pointsForFullPrice = Math.ceil(price * conversionRate);
+    if (fullSlotAllowed && availablePoints >= pointsForFullPrice) {
+      return pointsForFullPrice;
+    }
+    const capByPercentage = Math.floor((price * (maxDiscountPct / 100)) * conversionRate);
+    return Math.min(availablePoints, capByPercentage);
+  }, [price, availablePoints, conversionRate, fullSlotAllowed, maxDiscountPct]);
+
+  const activePointsRedeemed = (useRewardPoints && !selectedPackageId) ? Math.min(pointsToRedeem, maxRedeemableForThisBooking) : 0;
+  const pointsDiscountINR = Math.floor(activePointsRedeemed / conversionRate);
+  const finalPayable = Math.max(0, price - pointsDiscountINR);
+  const isFullSlotFree = activePointsRedeemed > 0 && finalPayable === 0;
 
   // Generate 7 upcoming days
   const today = todayStr();
@@ -576,6 +613,7 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
           idempotencyKey,
           teamId: selectedTeamId || undefined,
           userPackageId: selectedPackageId || undefined,
+          pointsToRedeem: (useRewardPoints && !selectedPackageId) ? Number(activePointsRedeemed) : 0,
         }),
       });
 
@@ -611,9 +649,10 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
         return;
       }
 
-      const finalPrice = Number(result.price ?? price);
+      const finalPrice = Number(result.price ?? finalPayable);
       setBookingId(result.id);
       setBookingPrice(finalPrice);
+      setBookingConfirmationData(result);
       setStep(3);
     } catch (requestError) {
       console.error("Booking creation request failed", requestError);
@@ -1070,13 +1109,117 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
                   </div>
                 )}
 
+                {/* Reward Points Redemption Option */}
+                {!selectedPackageId && availablePoints >= minRedemptionPoints && (
+                  <div
+                    style={{
+                      marginBottom: 16,
+                      background: useRewardPoints ? "rgba(24, 168, 224, 0.08)" : V.pitch,
+                      border: `1px solid ${useRewardPoints ? V.flood : V.line}`,
+                      borderRadius: 12,
+                      padding: "14px 16px",
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", userSelect: "none" }}>
+                        <input
+                          type="checkbox"
+                          checked={useRewardPoints}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setUseRewardPoints(checked);
+                            if (checked) {
+                              setPointsToRedeem(maxRedeemableForThisBooking);
+                            }
+                          }}
+                          style={{ width: 18, height: 18, accentColor: V.flood, cursor: "pointer" }}
+                        />
+                        <div>
+                          <span style={{ fontSize: 13.5, fontWeight: 800, color: V.chalk }}>
+                            {availablePoints >= (price * conversionRate) && fullSlotAllowed
+                              ? "Book 100% Free with Points"
+                              : "Redeem Reward Points for Discount"}
+                          </span>
+                          <div style={{ fontSize: 11.5, color: V.chalkFaint, marginTop: 2 }}>
+                            {availablePoints.toLocaleString()} points available (Rate: {conversionRate} pt = ₹1)
+                          </div>
+                        </div>
+                      </label>
+                      {useRewardPoints && isFullSlotFree && (
+                        <span style={{ fontSize: 11, fontWeight: 800, background: "rgba(21, 128, 81, 0.15)", color: V.confirmed, padding: "3px 8px", borderRadius: 6 }}>
+                          100% Free Slot
+                        </span>
+                      )}
+                    </div>
+
+                    {useRewardPoints && (
+                      <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${V.lineStrong}` }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, fontSize: 12.5 }}>
+                          <span style={{ color: V.chalkDim }}>Points to apply:</span>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ fontWeight: 800, color: V.flood, fontSize: 14 }}>
+                              {activePointsRedeemed} pts
+                            </span>
+                            <span style={{ color: V.chalkFaint }}>(-₹{pointsDiscountINR})</span>
+                            <button
+                              type="button"
+                              onClick={() => setPointsToRedeem(maxRedeemableForThisBooking)}
+                              style={{
+                                background: V.pitchCard,
+                                border: `1px solid ${V.lineStrong}`,
+                                borderRadius: 6,
+                                padding: "2px 8px",
+                                fontSize: 11,
+                                fontWeight: 700,
+                                color: V.chalk,
+                                cursor: "pointer",
+                              }}
+                            >
+                              Max
+                            </button>
+                          </div>
+                        </div>
+
+                        <input
+                          type="range"
+                          min={minRedemptionPoints}
+                          max={maxRedeemableForThisBooking}
+                          step={10}
+                          value={activePointsRedeemed}
+                          onChange={(e) => setPointsToRedeem(Number(e.target.value))}
+                          style={{ width: "100%", accentColor: V.flood, cursor: "pointer" }}
+                        />
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: V.chalkFaint, marginTop: 4 }}>
+                          <span>Min: {minRedemptionPoints} pts</span>
+                          <span>Max: {maxRedeemableForThisBooking} pts</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div style={{ height: 1, background: V.lineStrong, margin: "14px 0" }} />
 
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ color: V.chalk, fontSize: 16, fontWeight: 800, fontFamily: FONT_BODY }}>Total Payable</span>
-                  <span style={{ color: V.floodButton || V.flood, fontSize: 22, fontWeight: 800, fontFamily: FONT_BODY }}>
-                    {selectedPackageId ? "Free (1 Pass Credit)" : `₹${price}`}
-                  </span>
+                  <div>
+                    <span style={{ color: V.chalk, fontSize: 16, fontWeight: 800, fontFamily: FONT_BODY }}>Total Payable</span>
+                    {activePointsRedeemed > 0 && (
+                      <div style={{ fontSize: 12, color: V.confirmed, fontWeight: 700, marginTop: 2 }}>
+                        Points discount: -₹{pointsDiscountINR} ({activePointsRedeemed} pts)
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    {activePointsRedeemed > 0 && (
+                      <div style={{ fontSize: 13, color: V.chalkFaint, textDecoration: "line-through" }}>
+                        ₹{price}
+                      </div>
+                    )}
+                    <span style={{ color: isFullSlotFree ? V.confirmed : (V.floodButton || V.flood), fontSize: 22, fontWeight: 800, fontFamily: FONT_BODY }}>
+                      {selectedPackageId ? "Free (1 Pass Credit)" : (isFullSlotFree ? "₹0 (100% Free Slot)" : `₹${finalPayable}`)}
+                    </span>
+                  </div>
                 </div>
                 <div style={{ marginTop: 8, fontSize: 12, color: V.confirmed, fontWeight: 700, fontFamily: FONT_BODY, display: "flex", alignItems: "center", gap: 6 }}>
                   <Gift size={13} color={V.confirmed} /> {selectedPackageId ? "Redeeming 1 pass session credit from your subscription" : `+${points} loyalty reward points will be credited upon confirmation`}
@@ -1117,7 +1260,11 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
                       <span>Confirming slot…</span>
                     </>
                   ) : (
-                    selectedPackageId ? "Confirm & Redeem Pass" : `Confirm & Book · ₹${price}`
+                    selectedPackageId
+                      ? "Confirm & Redeem Pass"
+                      : isFullSlotFree
+                      ? "Confirm 100% Free Slot"
+                      : `Confirm & Book · ₹${finalPayable}`
                   )}
                 </button>
               </div>
@@ -1200,7 +1347,14 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
                   </div>
                   <div>
                     <span style={{ color: V.chalkFaint, fontSize: 11 }}>Total Paid</span>
-                    <div style={{ fontWeight: 800, color: V.floodButton || V.flood, marginTop: 2 }}>₹{bookingPrice ?? price}</div>
+                    <div style={{ fontWeight: 800, color: (Number(bookingPrice ?? price) === 0) ? V.confirmed : (V.floodButton || V.flood), marginTop: 2 }}>
+                      {Number(bookingPrice ?? price) === 0 ? "₹0 (100% Free Slot)" : `₹${bookingPrice ?? price}`}
+                    </div>
+                    {bookingConfirmationData?.pointsRedeemed > 0 && (
+                      <div style={{ fontSize: 10.5, color: V.confirmed, fontWeight: 700, marginTop: 2 }}>
+                        Redeemed {bookingConfirmationData.pointsRedeemed} pts (Saved ₹{bookingConfirmationData.discountAmount})
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -4039,7 +4193,7 @@ export default function PlayerAppClient({ profile }) {
     { id: "teams", label: "Teams", icon: "users" },
     { id: "tournaments", label: "Tournaments", icon: "trophy" },
     { id: "packages", label: "Passes", icon: "star" },
-    { id: "loyalty", label: "Rewards", icon: "trending" },
+    { id: "loyalty", label: "Rewards", icon: "gift" },
     { id: "dashboard", label: "Dashboard", icon: "calendar" },
   ];
 
@@ -4292,8 +4446,8 @@ export default function PlayerAppClient({ profile }) {
             <PackagesSection profile={profile} showToast={showToast} />
           )}
           {activeTab === "loyalty" && (profile?.id
-            ? <LoyaltySection isLoading={isTabLoading("loyalty") || myBookingsLoading} leaderboard={leaderboard} myPoints={leaderboard.find(p => p.isYou)?.points ?? 0} gamesPlayed={myBookings.filter((booking) => isPlayedBooking(booking)).length} />
-            : <GuestPrompt icon="trophy" title="Track your rewards" body="Sign up to earn loyalty points on every booking and see where you rank." router={router} />
+            ? <RewardsSection profile={profile} showToast={showToast} onFindTurf={() => setActiveTab("discover")} />
+            : <GuestPrompt icon="gift" title="Reward Wallet & Friend Invites" body="Sign up to earn reward points on every booking, refer friends, and unlock free slots." router={router} />
           )}
           {activeTab === "dashboard" && (profile?.id
             ? <DashboardSection

@@ -6,6 +6,7 @@ import { notifyUser, readJson, UUID_PATTERN } from "@/lib/admin/server";
 import { formatBookingDate, formatTime12 } from "@/lib/dashboard/format";
 
 import { refundPackageSession } from "@/lib/package/service";
+import { refundBookingPoints } from "@/lib/rewards/service";
 
 // POST /api/bookings/cancel
 // Body: { bookingId: uuid, reason?: string }
@@ -102,6 +103,16 @@ export async function POST(request) {
     } catch (refundErr) {
       console.error("Pass session refund failed upon booking cancellation:", refundErr);
     }
+  }
+
+  // ── Refund reward points if redeemed on this booking ────────────────────
+  try {
+    await refundBookingPoints(admin, {
+      bookingId: booking.id,
+      userId: booking.player_id,
+    });
+  } catch (ptsRefundErr) {
+    console.error("Reward points refund failed upon booking cancellation:", ptsRefundErr);
   }
 
   // ── Notify turf owner that the slot is free again (best-effort) ───────────

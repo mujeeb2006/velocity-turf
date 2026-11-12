@@ -4,6 +4,7 @@ import { getProfile } from "@/lib/supabase/server";
 import { normalizeUserRole } from "@/lib/auth/validation";
 import { notifyUser, readJson, UUID_PATTERN } from "@/lib/admin/server";
 import { formatBookingDate, formatTime12 } from "@/lib/dashboard/format";
+import { refundBookingPoints } from "@/lib/rewards/service";
 
 // Valid state transitions for owner/admin decisions
 const ALLOWED_TRANSITIONS = {
@@ -100,6 +101,16 @@ export async function POST(request) {
 
   // ── Notify player ──────────────────────────────────────────────────────────
   if (decision === "reject") {
+    // Refund reward points if redeemed on this booking
+    try {
+      await refundBookingPoints(admin, {
+        bookingId: booking.id,
+        userId: booking.player_id,
+      });
+    } catch (ptsErr) {
+      console.error("Reward points refund failed upon booking rejection:", ptsErr);
+    }
+
     const turfName  = booking.turf?.name || "the turf";
     const wasConfirmed = booking.status === "confirmed";
     const action = wasConfirmed ? "cancelled" : "rejected";

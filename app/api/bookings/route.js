@@ -16,6 +16,12 @@ import {
 } from "@/lib/booking/session-lifecycle";
 import { redeemPackageSession, refundPackageSession } from "@/lib/package/service";
 import { sendSmartNotification, NOTIFICATION_EVENT_TYPES, NOTIFICATION_CATEGORIES, buildDedupKey } from "@/lib/notifications/service";
+import {
+  redeemPointsForBooking,
+  logRedemptionTransaction,
+  adminAdjustPoints,
+  processBookingRewardAndReferralCompletion,
+} from "@/lib/rewards/service";
 
 // ── Idempotency helpers ───────────────────────────────────────────────────────
 
@@ -164,6 +170,7 @@ export async function POST(request) {
   const idempotencyKey = request.headers.get("x-idempotency-key") || body?.idempotencyKey || null;
   const teamId = typeof body?.teamId === "string" && UUID_PATTERN.test(body.teamId) ? body.teamId : null;
   const userPackageId = typeof body?.userPackageId === "string" && UUID_PATTERN.test(body.userPackageId) ? body.userPackageId : null;
+  const pointsToRedeem = Math.max(0, parseInt(body?.pointsToRedeem, 10) || 0);
 
   // Per-user rate limit (post-auth)
   const userLimit = checkRateLimit(`booking:user:${userId}`, LIMITS.bookingCreate);
@@ -313,8 +320,29 @@ export async function POST(request) {
     packageRedemptionId = redeemRes.redemptionId;
   }
 
+  // ── Reward points redemption (if user chose to apply reward points) ────────
+  let pointsRedeemed = 0;
+  let discountINR = 0;
+  let balanceAfter = null;
+
+  if (pointsToRedeem > 0 && !packageRedemptionId) {
+    const redeemRes = await redeemPointsForBooking(admin, {
+      userId,
+      pointsToRedeem,
+      bookingPrice: price,
+    });
+
+    if (!redeemRes.ok) {
+      return Errors.badRequest(redeemRes.error, requestId);
+    }
+
+    pointsRedeemed = redeemRes.pointsRedeemed;
+    discountINR = redeemRes.discountINR;
+    balanceAfter = redeemRes.balanceAfter;
+  }
+
   // ── Insert booking (DB trigger validates atomically + locks turf row) ─────
-  const effectivePrice = packageRedemptionId ? 0 : price;
+  const effectivePrice = packageRedemptionId ? 0 : Math.max(0, price - discountINR);
   const { data: booking, error: insertError } = await admin
     .from("bookings")
     .insert({
@@ -327,9 +355,11 @@ export async function POST(request) {
       price: effectivePrice,
       team_id: teamId,
       package_redemption_id: packageRedemptionId,
+      points_redeemed: pointsRedeemed,
+      discount_amount: discountINR,
       status: "confirmed", // trigger enforces this
     })
-    .select("id, price, booking_date, start_time, team_id, package_redemption_id")
+    .select("id, price, booking_date, start_time, team_id, package_redemption_id, points_redeemed, discount_amount")
     .single();
 
   if (insertError) {
@@ -344,6 +374,19 @@ export async function POST(request) {
         });
       } catch (refundErr) {
         console.error("Pass rollback failed after booking error:", refundErr);
+      }
+    }
+    // If points were redeemed, roll them back immediately
+    if (pointsRedeemed > 0) {
+      try {
+        await adminAdjustPoints(admin, {
+          userId,
+          pointsDelta: pointsRedeemed,
+          reason: "Booking creation rollback",
+          adminId: "system",
+        });
+      } catch (ptsErr) {
+        console.error("Points rollback failed after booking error:", ptsErr);
       }
     }
     const isConcurrentConflict =
@@ -361,9 +404,33 @@ export async function POST(request) {
     return isConcurrentConflict ? Errors.slotTaken(requestId) : Errors.internal(errMsg, requestId);
   }
 
+  // Log points redemption transaction on confirmed booking
+  if (pointsRedeemed > 0) {
+    try {
+      await logRedemptionTransaction(admin, {
+        userId,
+        bookingId: booking.id,
+        pointsRedeemed,
+        discountINR,
+        balanceAfter,
+      });
+    } catch (txErr) {
+      console.warn("Could not log redemption transaction", txErr);
+    }
+  }
+
+  // Credit booking reward points + complete referral bonus if applicable
+  processBookingRewardAndReferralCompletion(admin, {
+    bookingId: booking.id,
+    userId,
+    bookingPrice: price,
+  }).catch((err) => console.warn("Reward completion background error:", err));
+
   const responseBody = {
     id: booking.id,
     price: Number(booking.price ?? price),
+    pointsRedeemed,
+    discountAmount: discountINR,
   };
 
   // ── Finalise idempotency key ──────────────────────────────────────────────

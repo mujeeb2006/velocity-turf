@@ -586,6 +586,30 @@ export function Copy(props) {
   );
 }
 
+export function Share2(props) {
+  return (
+    <Svg {...props}>
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+    </Svg>
+  );
+}
+
+export function Sparkles(props) {
+  return (
+    <Svg {...props}>
+      <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+      <path d="M5 3v4" />
+      <path d="M19 17v4" />
+      <path d="M3 5h4" />
+      <path d="M17 19h4" />
+    </Svg>
+  );
+}
+
 export function FileText(props) {
   return (
     <Svg {...props}>
@@ -853,6 +877,9 @@ const REGISTRY = {
   rain: CloudRain,
   cloudRain: CloudRain,
   copy: Copy,
+  share: Share2,
+  share2: Share2,
+  sparkles: Sparkles,
   fileText: FileText,
   messageSquare: MessageSquare,
   settings: Settings,

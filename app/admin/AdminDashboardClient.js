@@ -29,10 +29,11 @@ import { AdminBookingExportModal } from "@/components/dashboard/BookingExportMod
 import { AdminTournamentsSection } from "@/components/dashboard/AdminTournamentsSection";
 import { AdminPackagesSection } from "@/components/dashboard/AdminPackagesSection";
 import { AdminDemoDataSection } from "@/components/dashboard/AdminDemoDataSection";
+import { AdminRewardsSection } from "@/components/dashboard/AdminRewardsSection";
 import { DemoNameWithBadge } from "@/components/ui/demo-badge";
 import { Check, AlertTriangle, Key, Lock, ArrowRight, CheckCircle } from "@/components/ui/icons";
 
-const TABS = ["overview", "approvals", "game-approvals", "tournaments", "packages", "turfs", "bookings", "users", "payouts", "disputes", "demo-data"];
+const TABS = ["overview", "approvals", "game-approvals", "tournaments", "packages", "turfs", "bookings", "users", "payouts", "disputes", "rewards", "demo-data"];
 const ROLE_COLORS = { Admin: V.violet, "Turf Owner": V.sky, Player: V.flood };
 const PAGE_SIZE = 50;
 
@@ -852,6 +853,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
     { id: "turfs", label: "All Turfs", icon: "map" },
     { id: "bookings", label: "Bookings", icon: "list" },
     { id: "users", label: "Users", icon: "users" },
+    { id: "rewards", label: "Referrals & Rewards", icon: "gift" },
     { id: "payouts", label: "Payouts & Banks", icon: "wallet", badge: processingPayoutsCount || undefined },
     { id: "disputes", label: "Disputes & Refunds", icon: "alert", badge: openDisputes.length || undefined },
     { id: "demo-data", label: "Demo Data", icon: "refresh" },
@@ -964,6 +966,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
 
         {tab === "tournaments" && <AdminTournamentsSection showToast={showToast} />}
         {tab === "packages" && <AdminPackagesSection showToast={showToast} />}
+        {tab === "rewards" && <AdminRewardsSection showToast={showToast} />}
         {tab === "demo-data" && <AdminDemoDataSection showToast={showToast} onDataChanged={fetchAll} />}
 
         {tab === "turfs" && (() => {

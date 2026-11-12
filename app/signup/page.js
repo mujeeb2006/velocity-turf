@@ -39,10 +39,15 @@ function SignupForm() {
   const rawBookingIntentParam = searchParams?.get("bookingIntent");
   const rawMatchIntentParam = searchParams?.get("matchIntent");
   const rawNextParam = searchParams?.get("next");
+  const rawRefParam = searchParams?.get("ref") || "";
   const [bookingIntent, setBookingIntent] = useState(null);
   const [matchIntent, setMatchIntent] = useState(null);
+  const [referralCode, setReferralCode] = useState(rawRefParam.toUpperCase());
 
   useEffect(() => {
+    if (rawRefParam) {
+      setReferralCode(rawRefParam.toUpperCase());
+    }
     const decodedBooking = decodeBookingIntent(rawBookingIntentParam) || getStoredBookingIntent();
     if (decodedBooking) {
       setBookingIntent(decodedBooking);
@@ -53,7 +58,7 @@ function SignupForm() {
       setMatchIntent(decodedMatch);
       saveMatchIntent(decodedMatch);
     }
-  }, [rawBookingIntentParam, rawMatchIntentParam]);
+  }, [rawBookingIntentParam, rawMatchIntentParam, rawRefParam]);
 
   // "/" routes the verified player to /player and keeps the intent param.
   const targetReturnUrl = matchIntent
@@ -105,6 +110,7 @@ function SignupForm() {
           data: {
             full_name: trimmedFullName,
             role: normalizeSignupRole(),
+            referral_code: referralCode.trim() ? referralCode.trim().toUpperCase() : undefined,
           },
         },
       });
@@ -119,6 +125,19 @@ function SignupForm() {
       setLoading(false);
       setError(error.message);
       return;
+    }
+
+    // If referral code was entered and direct session granted, attribute immediately
+    if (data?.session && referralCode.trim()) {
+      try {
+        await fetch("/api/player/referrals/claim", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ referralCode: referralCode.trim().toUpperCase() }),
+        });
+      } catch (refErr) {
+        console.warn("Could not claim referral code immediately", refErr);
+      }
     }
 
     setLoading(false);
@@ -293,6 +312,16 @@ function SignupForm() {
           minLength={8}
           autoComplete="new-password"
           style={{ ...inputStyle, width: "100%", minHeight: 48, borderRadius: 10, padding: "13px 15px", boxSizing: "border-box" }}
+        />
+        <input
+          type="text"
+          aria-label="Referral code (optional)"
+          placeholder="Referral code (e.g. VT9K2M4P) — optional"
+          value={referralCode}
+          onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+          maxLength={12}
+          autoCapitalize="characters"
+          style={{ ...inputStyle, width: "100%", minHeight: 48, borderRadius: 10, padding: "13px 15px", boxSizing: "border-box", letterSpacing: 0.5 }}
         />
 
         <button

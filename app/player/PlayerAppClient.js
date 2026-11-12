@@ -373,6 +373,7 @@ function TurfCard({ turf, onBook, onMatch, index = 0 }) {
 // BOOKING MODAL & CANCELLATION MODAL
 // ============================================================
 function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, onGoToDashboard, resume = null }) {
+  const router = useRouter();
   // `resume` is only a HINT from a pre-login selection. The date is range-checked
   // here, and the slot is only pre-selected after availability is re-fetched below.
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -380,7 +381,7 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
     const hinted = resume?.bookingDate;
     return hinted && hinted >= today && hinted <= addDays(today, 6) ? hinted : today;
   });
-  const resumeSlotRef = useRef(resume?.startTime ? { startTime: resume.startTime, date: resume.bookingDate } : null);
+  const resumeSlotRef = useRef(resume?.startTime ? { startTime: resume.startTime, date: resume.bookingDate, step: resume?.step } : null);
   const [resumeNotice, setResumeNotice] = useState("");
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [modalSlots, setModalSlots] = useState(() => turf?.slots || []);
@@ -511,7 +512,10 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
             const index = liveList.findIndex(s => String(s.raw_time).slice(0, 5) === wanted);
             if (index >= 0 && liveList[index].status === "available" && !liveList[index].isClosed) {
               setSelectedSlot(index);
-              setResumeNotice(`Welcome back! We re-checked availability: ${liveList[index].time} on ${selectedDate} is still open. Review the price, then confirm when you're ready.`);
+              setResumeNotice(`Welcome back! We re-checked availability: ${liveList[index].time} on ${selectedDate} is still open. Review the details and confirm your booking below.`);
+              if (pending.step === 2 || resume?.step === 2) {
+                setStep(2);
+              }
             } else {
               setSlotConflictMsg(`The ${fmtTime(pending.startTime)} slot you picked earlier has ended or is no longer available. Your booking has not been made. Choose another available time to continue.`);
             }
@@ -571,9 +575,60 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
   };
 
   const handlePay = async () => {
+    // 1. Verify authentication using existing Supabase session or profile
+    let currentProfile = profile;
+    if (!currentProfile?.id && supabase) {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData?.session?.user) {
+          currentProfile = { ...profile, id: sessionData.session.user.id };
+        }
+      } catch (err) {
+        console.warn("Could not check session", err);
+      }
+    }
+
+    // 2. Unauthenticated user clicked Book Confirmation -> preserve details and redirect to Signup/Login
+    if (!currentProfile?.id) {
+      const slot = selectedSlot !== null ? modalSlots[selectedSlot] : null;
+      if (!turf?.id || !slot) {
+        showToast("Please choose an available slot before confirming your booking.", { type: "info" });
+        return;
+      }
+      if (slot.status === "closed" || slot.status === "completed" || slot.isExpired || slot.isClosed) {
+        showToast("This session has ended. Please choose an upcoming time slot.", { type: "error" });
+        setStep(1);
+        setSelectedSlot(null);
+        return;
+      }
+      if (slot.status !== "available") {
+        showToast("That slot was just booked by another player. Please select another slot.", { type: "error" });
+        setStep(1);
+        setSelectedSlot(null);
+        return;
+      }
+
+      setSubmitting(true);
+      const intent = {
+        turfId: turf.id,
+        turfName: turf.name,
+        sport: turf.sports?.[0] || "Football",
+        bookingDate: selectedDate,
+        startTime: slot.raw_time,
+        players: turf.players || 1,
+        teamId: selectedTeamId || undefined,
+        step: 2,
+      };
+      saveBookingIntent(intent);
+      const encoded = encodeBookingIntent(intent);
+      showToast("Please sign in or create an account to confirm your booking. Your selected slot is saved.", { type: "info" });
+      router.push(encoded ? `/signup?bookingIntent=${encoded}` : "/signup");
+      return;
+    }
+
     const syntheticTurf = { ...turf, slots: modalSlots };
-    const validation = validateBookingRequest({ profile, turf: syntheticTurf, selectedSlot });
-    const policyValidation = canSubmitBooking({ profile, turf: syntheticTurf, selectedSlot });
+    const validation = validateBookingRequest({ profile: currentProfile, turf: syntheticTurf, selectedSlot });
+    const policyValidation = canSubmitBooking({ profile: currentProfile, turf: syntheticTurf, selectedSlot });
 
     if (!validation.ok || !policyValidation.ok) {
       const message = validation.error || policyValidation.error || "Booking unavailable.";
@@ -1243,6 +1298,9 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
                   disabled={submitting}
                   onClick={handlePay}
                   style={buttonStyle("primary", "lg", submitting)}
+                  aria-label="Book Confirmation"
+                  title="Book Confirmation"
+                  data-testid="book-confirmation-btn"
                 >
                   {submitting ? (
                     <>
@@ -1257,10 +1315,12 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
                           animation: "spin 0.7s linear infinite",
                         }}
                       />
-                      <span>Confirming slot…</span>
+                      <span>{!profile?.id ? "Redirecting to sign in…" : "Confirming slot…"}</span>
                     </>
                   ) : (
-                    selectedPackageId
+                    !profile?.id
+                      ? `Sign in & Confirm Book · ₹${finalPayable}`
+                      : selectedPackageId
                       ? "Confirm & Redeem Pass"
                       : isFullSlotFree
                       ? "Confirm 100% Free Slot"
@@ -4068,14 +4128,6 @@ export default function PlayerAppClient({ profile }) {
   };
 
   const handleBook = (turf) => {
-    if (!profile?.id) {
-      // Remember what the guest wanted so sign-up / sign-in can bring them back to it.
-      const intent = { turfId: turf.id, turfName: turf.name, sport: turf.sports?.[0] || "" };
-      saveBookingIntent(intent);
-      const encoded = encodeBookingIntent(intent);
-      router.push(encoded ? `/signup?bookingIntent=${encoded}` : "/signup");
-      return;
-    }
     setBookingTurf(turf);
   };
   const handleBookingClose = () => { setBookingTurf(null); setResumeIntent(null); };

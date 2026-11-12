@@ -14,6 +14,7 @@ import {
   linkStyle,
 } from "@/app/auth-styles";
 import { COLORS as V, FONT_BODY } from "@/lib/design-tokens";
+import { Check, CheckCircle, X, User, ArrowRight } from "@/components/ui/icons";
 
 function SetupPasswordForm() {
   const router = useRouter();
@@ -345,7 +346,9 @@ function SetupPasswordForm() {
             fontSize: 14,
           }}
         >
-          <div style={{ fontSize: 32, marginBottom: 8, color: "#22C55E" }}>✓</div>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+            <CheckCircle size={36} color="#22C55E" />
+          </div>
           <strong style={{ fontSize: 16 }}>Welcome to Velocity Turf!</strong>
           <p style={{ margin: "8px 0 0", opacity: 0.9, fontSize: 13 }}>
             Your password has been securely saved. Redirecting to your Owner Dashboard…
@@ -361,9 +364,14 @@ function SetupPasswordForm() {
             ...buttonStyle,
             width: "100%",
             background: "linear-gradient(135deg, #158051, #0EA5E9)",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
           }}
         >
-          Enter Owner Dashboard →
+          <span>Enter Owner Dashboard</span>
+          <ArrowRight size={16} />
         </button>
       </AuthShell>
     );
@@ -394,7 +402,7 @@ function SetupPasswordForm() {
             fontFamily: FONT_BODY,
           }}
         >
-          <span>👤</span>
+          <User size={15} color="#38BDF8" />
           <span>Owner account: <strong>{userEmail}</strong></span>
         </div>
       )}
@@ -521,7 +529,7 @@ function SetupPasswordForm() {
         </div>
 
         {/* Validation indicators */}
-        <div style={{ display: "grid", gap: 4, marginTop: 2 }}>
+        <div style={{ display: "grid", gap: 6, marginTop: 4 }}>
           {password.length > 0 && (
             <div
               style={{
@@ -533,7 +541,11 @@ function SetupPasswordForm() {
                 fontFamily: FONT_BODY,
               }}
             >
-              <span>{isStrongPassword(password) ? "✓" : "○"}</span>
+              {isStrongPassword(password) ? (
+                <Check size={13} color="#22C55E" strokeWidth={2.5} />
+              ) : (
+                <span style={{ width: 8, height: 8, borderRadius: "50%", border: "1.5px solid rgba(255,255,255,0.4)", display: "inline-block" }} />
+              )}
               <span>At least 8 characters</span>
             </div>
           )}
@@ -548,7 +560,11 @@ function SetupPasswordForm() {
                 fontFamily: FONT_BODY,
               }}
             >
-              <span>{password === confirmPassword ? "✓" : "✕"}</span>
+              {password === confirmPassword ? (
+                <Check size={13} color="#22C55E" strokeWidth={2.5} />
+              ) : (
+                <X size={13} color="#EF4444" strokeWidth={2.5} />
+              )}
               <span>{password === confirmPassword ? "Passwords match" : "Passwords do not match"}</span>
             </div>
           )}

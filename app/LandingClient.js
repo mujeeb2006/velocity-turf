@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FONT_BODY, FONT_DISPLAY } from "@/lib/design-tokens";
 import BrandLockup from "@/components/brand-lockup";
+import { SportIcon, StadiumIcon } from "@/components/ui/icons";
 
 const tabs = ["Venues (481)", "Coaching (8)", "Events (1)", "Memberships (0)"];
 
@@ -565,7 +566,7 @@ export default function LandingClient() {
 
             <div className="select-box" aria-label="Sport filter">
               <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 18 }}>⚽</span>
+                <SportIcon sport="Football" size={18} color="#172B4D" />
                 <span>Football</span>
               </span>
               <span className="caret" />
@@ -615,8 +616,8 @@ export default function LandingClient() {
                 </div>
 
                 <div className="meta-settings">
-                  <div className="meta-left">
-                    <span className="facility">◉</span>
+                  <div className="meta-left" style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <StadiumIcon size={14} color="#718096" />
                     <span>{venue.details}</span>
                   </div>
 

@@ -29,6 +29,7 @@ import { MaintenanceSection } from "@/components/dashboard/MaintenanceSection";
 import { StaffSection } from "@/components/dashboard/StaffSection";
 import { SmartNotificationCenter } from "@/components/dashboard/SmartNotificationCenter";
 import { extractErrorMessage } from "@/lib/api-response";
+import { X, Camera, Star, StadiumIcon } from "@/components/ui/icons";
 
 const TABS = ["overview", "turfs", "tournaments", "games", "bookings", "maintenance", "staff", "analytics", "payouts", "reviews"];
 const AMENITY_OPTIONS = ["Floodlights", "Parking", "Cafeteria", "Showers", "AC Hall", "Lockers", "WiFi", "Turf"];
@@ -447,13 +448,14 @@ function AddTurfModal({ profile, supabase, onClose, onCreated, showToast }) {
                               border: "none",
                               borderRadius: 4,
                               color: "#fff",
-                              padding: "2px 5px",
+                              padding: "3px 4px",
                               cursor: "pointer",
-                              fontSize: 9.5,
-                              fontWeight: 700,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
                             }}
                           >
-                            ✕
+                            <X size={10} color="#fff" strokeWidth={2.5} />
                           </button>
                         </div>
                         {!isCover && (
@@ -713,7 +715,7 @@ function OwnerRejectModal({ booking, busy, onClose, onConfirm }) {
                     gap: 8,
                   }}
                 >
-                  <span style={{ fontSize: 13 }}>{active ? "●" : "○"}</span>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: active ? V.flood : "transparent", border: `1.5px solid ${active ? V.flood : V.chalkDim}`, display: "inline-block" }} />
                   {p}
                 </button>
               );
@@ -1080,7 +1082,7 @@ export default function OwnerDashboardClient({ profile }) {
               <TopBar title={`Welcome back, ${profile?.full_name || "Owner"}`} sub="Here's how your turfs are doing today." action={<>{refreshButton}{addTurfButton}</>} />
               {loading ? skeletonStats : activeTurfs.length === 0 ? (
                 <div style={{ marginBottom: 28 }}>
-                  <EmptyBlock emoji="🏟️" title="No turfs yet" subtitle="List your first turf to start receiving bookings and managing schedules."
+                  <EmptyBlock icon="stadium" title="No turfs yet" subtitle="List your first turf to start receiving bookings and managing schedules."
                     action={<Btn variant="primary" onClick={() => setShowAddTurf(true)}>Add your first turf</Btn>} />
                 </div>
               ) : (
@@ -1143,7 +1145,7 @@ export default function OwnerDashboardClient({ profile }) {
 
                   <SectionTitle action={pendingCount > 3 ? <Btn variant="ghost" size="sm" onClick={() => selectTab("bookings")}>View all {pendingCount}</Btn> : null}>Requests to review</SectionTitle>
                   {loading ? <div style={{ display: "grid", gap: 12 }}>{[...Array(2)].map((_, i) => <SkeletonRow key={i} columns={3} />)}</div>
-                    : pendingCount === 0 ? <EmptyBlock emoji="✅" title="All caught up" subtitle="No pending booking requests right now." />
+                    : pendingCount === 0 ? <EmptyBlock icon="checkCircle" title="All caught up" subtitle="No pending booking requests right now." />
                       : (
                         <div style={{ display: "grid", gap: 12 }}>
                           {d.requests.slice(0, 3).map((r) => (
@@ -1164,7 +1166,7 @@ export default function OwnerDashboardClient({ profile }) {
             {loading ? (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 18 }}>{[...Array(2)].map((_, i) => <SkeletonCard key={i} lines={3} />)}</div>
             ) : activeTurfs.length === 0 ? (
-              <EmptyBlock emoji="🏟️" title="No turfs listed yet" subtitle="Add your first turf to start taking bookings. New listings need admin approval before they go live." />
+              <EmptyBlock icon="stadium" title="No turfs listed yet" subtitle="Add your first turf to start taking bookings. New listings need admin approval before they go live." />
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 18 }}>
                 {d.turfRows.filter((t) => !t.archived_at).map((t) => {
@@ -1175,8 +1177,8 @@ export default function OwnerDashboardClient({ profile }) {
                         <img src={imgData.cover} alt={t.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
                         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(16,24,20,0.7) 0%, transparent 60%)" }} />
                         {imgData.gallery.length > 1 && (
-                          <span style={{ position: "absolute", bottom: 8, right: 8, background: "rgba(0,0,0,0.65)", color: "#fff", padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700, backdropFilter: "blur(4px)" }}>
-                            📷 {imgData.gallery.length} photos
+                          <span style={{ position: "absolute", bottom: 8, right: 8, background: "rgba(0,0,0,0.65)", color: "#fff", padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700, backdropFilter: "blur(4px)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                            <Camera size={12} color="#fff" /> {imgData.gallery.length} photos
                           </span>
                         )}
                       </div>
@@ -1320,7 +1322,7 @@ export default function OwnerDashboardClient({ profile }) {
               {loading ? (
                 <div style={{ display: "grid", gap: 12 }}>{[...Array(3)].map((_, i) => <SkeletonRow key={i} columns={3} />)}</div>
               ) : bookingView === "requests" ? (
-                list.length === 0 ? <EmptyBlock emoji="📭" title={q ? "No requests match" : "No bookings awaiting review"} subtitle="New bookings are confirmed automatically." /> : (
+                list.length === 0 ? <EmptyBlock icon="inbox" title={q ? "No requests match" : "No bookings awaiting review"} subtitle="New bookings are confirmed automatically." /> : (
                   <div style={{ display: "grid", gap: 12 }}>
                     {list.map((r) => <RequestCard key={r.id} r={r} today={today} busy={respondingId === r.id} onAccept={() => respond(r, "accept")} onDecline={() => setDeclining(r)} />)}
                   </div>
@@ -1426,7 +1428,7 @@ export default function OwnerDashboardClient({ profile }) {
             <>
               <TopBar title="Reviews" sub="What players are saying about your turfs" action={refreshButton} />
               {loading ? <SkeletonCard lines={3} /> : d.reviewRows.length === 0 ? (
-                <EmptyBlock emoji="💬" title="No reviews yet" subtitle="Reviews from players will appear here after their first booking." />
+                <EmptyBlock icon="messageSquare" title="No reviews yet" subtitle="Reviews from players will appear here after their first booking." />
               ) : (
                 <>
                   <Card style={{ marginBottom: 18 }}>
@@ -1439,7 +1441,7 @@ export default function OwnerDashboardClient({ profile }) {
                       <div style={{ flex: 1, minWidth: 220, display: "grid", gap: 7 }}>
                         {d.rating.distribution.map((row) => (
                           <div key={row.stars} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12, color: V.chalkDim }}>
-                            <span style={{ width: 22, fontFamily: mono }}>{row.stars}★</span>
+                            <span style={{ width: 28, fontFamily: mono, display: "inline-flex", alignItems: "center" }}>{row.stars}<Star size={11} filled color={V.pending} style={{ marginLeft: 2 }} /></span>
                             <div style={{ flex: 1, height: 6, background: V.line, borderRadius: 3 }}><div style={{ width: `${row.pct}%`, height: "100%", background: V.pending, borderRadius: 3 }} /></div>
                             <span style={{ width: 28, textAlign: "right", fontFamily: mono }}>{row.count}</span>
                           </div>
@@ -1449,7 +1451,7 @@ export default function OwnerDashboardClient({ profile }) {
                   </Card>
                   <Toolbar>
                     <Segmented label="Filter by rating" value={reviewStars} onChange={setReviewStars} options={[
-                      { id: "all", label: "All" }, { id: "5", label: "5★" }, { id: "4", label: "4★" }, { id: "3", label: "3★" }, { id: "low", label: "1–2★" },
+                      { id: "all", label: "All" }, { id: "5", label: "5 Stars" }, { id: "4", label: "4 Stars" }, { id: "3", label: "3 Stars" }, { id: "low", label: "1–2 Stars" },
                     ]} />
                     {turfs.length > 1 && (
                       <select aria-label="Filter by turf" value={reviewTurf} onChange={(e) => setReviewTurf(e.target.value)} style={{ ...inputStyle, width: "auto", padding: "8px 12px" }}>
@@ -1458,7 +1460,7 @@ export default function OwnerDashboardClient({ profile }) {
                       </select>
                     )}
                   </Toolbar>
-                  {shown.length === 0 ? <EmptyBlock emoji="🔎" title="No reviews match" subtitle="Try a different rating or turf filter." /> : (
+                  {shown.length === 0 ? <EmptyBlock icon="search" title="No reviews match" subtitle="Try a different rating or turf filter." /> : (
                     <div style={{ display: "grid", gap: 12 }}>
                       {shown.map((r, i) => (
                         <Card key={r.id || i} pad={18}>

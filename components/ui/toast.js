@@ -1,14 +1,15 @@
 "use client";
 
 import { createContext, useCallback, useContext, useRef, useState } from "react";
+import { Check, AlertTriangle, AlertCircle, Info, X } from "@/components/ui/icons";
 
 const ToastContext = createContext(null);
 
 const TYPE_STYLES = {
-  success: { accent: "#1769E8", glyph: "✓" },
-  error: { accent: "#EF4444", glyph: "✕" },
-  info: { accent: "#18A8E0", glyph: "i" },
-  warning: { accent: "#F97316", glyph: "!" },
+  success: { accent: "#1769E8", icon: Check },
+  error: { accent: "#EF4444", icon: AlertCircle },
+  info: { accent: "#18A8E0", icon: Info },
+  warning: { accent: "#F97316", icon: AlertTriangle },
 };
 
 export function ToastProvider({ children }) {
@@ -26,10 +27,10 @@ export function ToastProvider({ children }) {
     const text = typeof message === "string"
       ? message
       : (typeof message?.message === "string"
-          ? message.message
-          : (typeof message?.error === "string"
-              ? message.error
-              : String(message || "")));
+        ? message.message
+        : (typeof message?.error === "string"
+          ? message.error
+          : String(message || "")));
     setToasts((prev) => [...prev.slice(-3), { id, message: text, type }]);
     if (duration > 0) {
       setTimeout(() => dismiss(id), duration);
@@ -50,7 +51,7 @@ export function useToast() {
   if (!ctx) {
     // Fail soft: components can still call showToast without crashing
     // the app if a page ever renders outside the provider.
-    return { showToast: () => {}, dismiss: () => {} };
+    return { showToast: () => { }, dismiss: () => { } };
   }
   return ctx;
 }
@@ -113,12 +114,10 @@ function ToastViewport({ toasts, onDismiss }) {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontWeight: 800,
-                fontSize: 12,
                 flexShrink: 0,
               }}
             >
-              {s.glyph}
+              {s.icon ? <s.icon size={13} color={s.accent} strokeWidth={2.5} /> : null}
             </span>
             <span style={{ flex: 1, color: "#172B4D", fontSize: 13.5, fontWeight: 700, lineHeight: 1.3 }}>
               {t.message}
@@ -131,8 +130,6 @@ function ToastViewport({ toasts, onDismiss }) {
                 border: "none",
                 color: "#718096",
                 cursor: "pointer",
-                fontSize: 16,
-                lineHeight: 1,
                 padding: "2px 4px",
                 borderRadius: 4,
                 display: "flex",
@@ -140,7 +137,7 @@ function ToastViewport({ toasts, onDismiss }) {
                 justifyContent: "center",
               }}
             >
-              ✕
+              <X size={14} color="#718096" strokeWidth={2} />
             </button>
           </div>
         );

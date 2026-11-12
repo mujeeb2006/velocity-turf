@@ -108,7 +108,7 @@ export function AdminPackagesSection({ showToast }) {
       {loading ? (
         <div style={{ color: V.chalkDim, fontSize: 13, padding: 24 }}>Loading packages…</div>
       ) : packages.length === 0 ? (
-        <EmptyBlock emoji="🎟️" title="No packages configured" subtitle="Create session passes for players to purchase and redeem." />
+        <EmptyBlock icon="ticket" title="No packages configured" subtitle="Create session passes for players to purchase and redeem." />
       ) : (
         <div style={{ display: "grid", gap: 14 }}>
           {packages.map((pkg) => (

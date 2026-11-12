@@ -1,10 +1,20 @@
+"use client";
+
 // Shared "nothing here yet" panel. Used instead of bare text so every
 // empty list (no requests, no disputes, no search results, etc.) looks
 // consistent across Player / Owner / Admin.
 
+import React from "react";
 import { COLORS as V } from "@/lib/design-tokens";
+import { Icon } from "@/components/ui/icons";
 
-export function EmptyState({ icon = "📭", title, subtitle, action, accent = "#0EA5E9" }) {
+export function EmptyState({ icon = "inbox", title, subtitle, action, accent = "#0EA5E9" }) {
+  const renderedIcon = React.isValidElement(icon) ? (
+    icon
+  ) : (
+    <Icon name={icon} emoji={typeof icon === "string" ? icon : undefined} size={26} color={accent} />
+  );
+
   return (
     <div
       style={{
@@ -29,11 +39,11 @@ export function EmptyState({ icon = "📭", title, subtitle, action, accent = "#
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: 24,
           marginBottom: 10,
+          color: accent,
         }}
       >
-        {icon}
+        {renderedIcon}
       </div>
       <div style={{ color: V.chalk, fontWeight: 800, fontSize: 16, fontFamily: "'Manrope', sans-serif" }}>
         {title}

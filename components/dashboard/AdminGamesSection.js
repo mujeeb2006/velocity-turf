@@ -7,6 +7,7 @@ import {
   StatCard, StatGrid, StatusPill, font, inputStyle, labelStyle, mono,
 } from "@/components/dashboard/kit";
 import { formatBookingDate, formatINR, formatTime12, relativeTime } from "@/lib/dashboard/format";
+import { StadiumIcon, User, Mail, Calendar, Clock, Users, Trophy } from "@/components/ui/icons";
 
 export function AdminRejectGameModal({ game, busy, onClose, onConfirm }) {
   const presets = [
@@ -75,7 +76,7 @@ export function AdminRejectGameModal({ game, busy, onClose, onConfirm }) {
                     gap: 8,
                   }}
                 >
-                  <span style={{ fontSize: 13 }}>{active ? "●" : "○"}</span>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: active ? V.flood : "transparent", border: `1.5px solid ${active ? V.flood : V.chalkDim}`, display: "inline-block" }} />
                   {p}
                 </button>
               );
@@ -237,7 +238,7 @@ export function AdminGamesTab({
         </div>
       ) : filtered.length === 0 ? (
         <EmptyBlock
-          emoji="🏆"
+          icon="trophy"
           title={filter === "pending" ? "No games awaiting approval" : "No games match filter"}
           subtitle={filter === "pending" ? "When owners schedule community games, they will appear here for review." : "Try clearing filters to see more games."}
         />
@@ -259,15 +260,29 @@ export function AdminGamesTab({
                     </div>
 
                     <div style={{ color: V.chalkDim, fontSize: 13, display: "flex", gap: 14, flexWrap: "wrap", marginTop: 4 }}>
-                      <span>🏟️ Turf: <strong style={{ color: V.chalk }}>{g.turf?.name || "Turf"}</strong> ({g.turf?.city || ""})</span>
-                      <span>👤 Owner: <strong style={{ color: V.chalk }}>{g.owner_name || "Owner"}</strong></span>
-                      {g.owner_email && <span>📧 {g.owner_email}</span>}
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                        <StadiumIcon size={14} color={V.chalkDim} /> Turf: <strong style={{ color: V.chalk }}>{g.turf?.name || "Turf"}</strong> ({g.turf?.city || ""})
+                      </span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                        <User size={14} color={V.chalkDim} /> Owner: <strong style={{ color: V.chalk }}>{g.owner_name || "Owner"}</strong>
+                      </span>
+                      {g.owner_email && (
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                          <Mail size={14} color={V.chalkDim} /> {g.owner_email}
+                        </span>
+                      )}
                     </div>
 
                     <div style={{ color: V.chalkDim, fontSize: 13, display: "flex", gap: 14, flexWrap: "wrap", marginTop: 4 }}>
-                      <span>📅 Date: <strong style={{ color: V.chalk }}>{formatBookingDate(g.match_date)}</strong></span>
-                      <span>⏰ Schedule: <strong style={{ color: V.chalk }}>{formatTime12(g.start_time)} – {formatTime12(g.end_time || g.start_time)}</strong></span>
-                      <span>👥 Capacity: <strong style={{ color: V.chalk, fontFamily: mono }}>{g.max_players} players</strong></span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                        <Calendar size={14} color={V.chalkDim} /> Date: <strong style={{ color: V.chalk }}>{formatBookingDate(g.match_date)}</strong>
+                      </span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                        <Clock size={14} color={V.chalkDim} /> Schedule: <strong style={{ color: V.chalk }}>{formatTime12(g.start_time)} – {formatTime12(g.end_time || g.start_time)}</strong>
+                      </span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                        <Users size={14} color={V.chalkDim} /> Capacity: <strong style={{ color: V.chalk, fontFamily: mono }}>{g.max_players} players</strong>
+                      </span>
                     </div>
 
                     {g.description && (

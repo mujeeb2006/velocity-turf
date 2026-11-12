@@ -79,7 +79,7 @@ export function OwnerTournamentsSection({ turfs, showToast }) {
       {loading ? (
         <div style={{ color: V.chalkDim, fontSize: 13, padding: 24 }}>Loading tournament requests…</div>
       ) : tournaments.length === 0 ? (
-        <EmptyBlock emoji="🏆" title="No tournament requests" subtitle="When organizers request to host a cup or league at your venue, they will show up here for your approval." />
+        <EmptyBlock icon="trophy" title="No tournament requests" subtitle="When organizers request to host a cup or league at your venue, they will show up here for your approval." />
       ) : (
         <div style={{ display: "grid", gap: 14 }}>
           {tournaments.map((t) => (

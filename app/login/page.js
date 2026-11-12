@@ -8,6 +8,7 @@ import { normalizeEmail, isValidEmail, isStrongPassword } from "@/lib/auth/valid
 import AuthShell from "../auth-shell";
 import { inputStyle, buttonStyle, errorStyle, linkStyle } from "../auth-styles";
 import { COLORS as V } from "@/lib/design-tokens";
+import { SportIcon, Calendar, ArrowRight } from "@/components/ui/icons";
 
 import { sanitizeRedirectPath } from "@/lib/auth/url";
 import {
@@ -137,10 +138,12 @@ function LoginForm() {
             marginBottom: 16,
             display: "flex",
             alignItems: "center",
-            gap: 10,
+            gap: 12,
           }}
         >
-          <span style={{ fontSize: 18 }}>🎮</span>
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(14, 165, 233, 0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <SportIcon sport={matchIntent.sport} size={18} color="#38BDF8" />
+          </div>
           <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
             <div style={{ color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "'Manrope', sans-serif" }}>
               Resuming game participation
@@ -163,10 +166,12 @@ function LoginForm() {
             marginBottom: 16,
             display: "flex",
             alignItems: "center",
-            gap: 10,
+            gap: 12,
           }}
         >
-          <span style={{ fontSize: 18 }}>⚡</span>
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(200, 245, 66, 0.18)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Calendar size={18} color={V.flood} />
+          </div>
           <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
             <div style={{ color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "'Manrope', sans-serif" }}>
               Resuming your booking
@@ -201,8 +206,30 @@ function LoginForm() {
           autoComplete="current-password"
           style={inputStyle}
         />
-        <button type="submit" disabled={loading} aria-busy={loading} style={{ ...buttonStyle, opacity: loading ? 0.7 : 1, cursor: loading ? "progress" : "pointer" }}>
-          {loading ? "Signing in…" : (bookingIntent ? "Sign in & Continue Booking →" : "Sign in")}
+        <button
+          type="submit"
+          disabled={loading}
+          aria-busy={loading}
+          style={{
+            ...buttonStyle,
+            opacity: loading ? 0.7 : 1,
+            cursor: loading ? "progress" : "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+          }}
+        >
+          {loading ? (
+            "Signing in…"
+          ) : bookingIntent ? (
+            <>
+              <span>Sign in & Continue Booking</span>
+              <ArrowRight size={16} />
+            </>
+          ) : (
+            "Sign in"
+          )}
         </button>
       </form>
 

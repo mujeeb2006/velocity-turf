@@ -7,6 +7,7 @@ import { formatBookingDate, formatTime12 } from "@/lib/dashboard/format";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { extractErrorMessage } from "@/lib/api-response";
+import { ArrowLeft, ExternalLink, Shield } from "@/components/ui/icons";
 
 export function TeamsSection({ profile, showToast, onSelectTeamForBooking }) {
   const [myTeams, setMyTeams] = useState([]);
@@ -235,9 +236,10 @@ export function TeamsSection({ profile, showToast, onSelectTeamForBooking }) {
             <div>
               <button
                 onClick={() => setSelectedTeam(null)}
-                style={{ background: "transparent", border: "none", color: V.flood, fontSize: 12.5, fontWeight: 700, cursor: "pointer", marginBottom: 8 }}
+                style={{ background: "transparent", border: "none", color: V.flood, fontSize: 12.5, fontWeight: 700, cursor: "pointer", marginBottom: 8, display: "inline-flex", alignItems: "center", gap: 6 }}
               >
-                ← Back to teams
+                <ArrowLeft size={14} />
+                <span>Back to teams</span>
               </button>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <div style={{
@@ -271,9 +273,11 @@ export function TeamsSection({ profile, showToast, onSelectTeamForBooking }) {
                   style={{
                     background: V.pitch, border: `1px solid ${V.line}`, borderRadius: 8,
                     padding: "8px 14px", color: V.chalk, fontSize: 12.5, fontWeight: 700, cursor: "pointer",
+                    display: "inline-flex", alignItems: "center", gap: 6,
                   }}
                 >
-                  🔗 Generate Private Invite Link
+                  <ExternalLink size={13} />
+                  <span>Generate Private Invite Link</span>
                 </button>
               )}
               {selectedTeam.isMember && !selectedTeam.isCaptain && (
@@ -318,8 +322,17 @@ export function TeamsSection({ profile, showToast, onSelectTeamForBooking }) {
                           background: m.role === "captain" ? V.flood : V.pitch,
                           color: m.role === "captain" ? "#fff" : V.chalkDim,
                           border: `1px solid ${m.role === "captain" ? V.flood : V.line}`,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
                         }}>
-                          {m.role === "captain" ? "⭐ Captain" : "Member"}
+                          {m.role === "captain" ? (
+                            <>
+                              <Shield size={11} strokeWidth={2.5} /> Captain
+                            </>
+                          ) : (
+                            "Member"
+                          )}
                         </span>
                       </td>
                       <td style={{ padding: "12px", color: V.chalkDim }}>
@@ -435,7 +448,7 @@ export function TeamsSection({ profile, showToast, onSelectTeamForBooking }) {
             </div>
           ) : (activeTab === "my" ? myTeams : otherTeams).length === 0 ? (
             <EmptyState
-              icon="👥"
+              icon="users"
               title={activeTab === "my" ? "You haven't joined any teams yet" : "No other teams found"}
               description={activeTab === "my" ? "Create a team to manage rosters, generate invite links, and book grounds together." : "Be the first to create a public team for your favorite sport!"}
               actionLabel={activeTab === "my" ? "Create Team" : undefined}
@@ -475,7 +488,9 @@ export function TeamsSection({ profile, showToast, onSelectTeamForBooking }) {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16, paddingTop: 12, borderTop: `1px solid ${V.line}`, fontSize: 12, color: V.chalkFaint }}>
                     <span>Roster: <strong>{team.memberCount} members</strong></span>
                     {team.isCaptain && (
-                      <span style={{ color: V.flood, fontWeight: 700 }}>⭐ Captain</span>
+                      <span style={{ color: V.flood, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                        <Shield size={12} strokeWidth={2.5} /> Captain
+                      </span>
                     )}
                   </div>
                 </div>

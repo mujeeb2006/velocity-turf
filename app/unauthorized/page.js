@@ -4,6 +4,7 @@ import { getProfile } from "@/lib/supabase/server";
 import { getPortalHome } from "@/lib/auth/guards";
 import AuthShell from "../auth-shell";
 import { COLORS as V } from "@/lib/design-tokens";
+import { ArrowRight } from "@/components/ui/icons";
 
 export default async function UnauthorizedPage() {
   const profile = await getProfile();
@@ -19,8 +20,12 @@ export default async function UnauthorizedPage() {
       <Link
         href={home}
         style={{
-          display: "block",
-          textAlign: "center",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+          width: "100%",
+          boxSizing: "border-box",
           padding: "13px",
           borderRadius: 14,
           background: V.flood,
@@ -30,7 +35,8 @@ export default async function UnauthorizedPage() {
           textDecoration: "none",
         }}
       >
-        Take me to my dashboard →
+        <span>Take me to my dashboard</span>
+        <ArrowRight size={16} />
       </Link>
     </AuthShell>
   );

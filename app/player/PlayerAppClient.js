@@ -44,19 +44,36 @@ import { TournamentsSection } from "@/components/dashboard/TournamentsSection";
 import { PackagesSection } from "@/components/dashboard/PackagesSection";
 import { DemoNameWithBadge } from "@/components/ui/demo-badge";
 import CinematicHome from "@/components/home/CinematicHome";
+import {
+  Icon,
+  SportIcon,
+  StadiumIcon,
+  Check,
+  CheckCircle,
+  X,
+  XCircle,
+  AlertTriangle,
+  Info,
+  Lock,
+  Camera,
+  Flame,
+  Gift,
+  ArrowRight,
+  ArrowLeft,
+  Calendar,
+  Clock,
+  MapPin,
+  Users,
+  Star,
+  RefreshCw,
+} from "@/components/ui/icons";
 
 function todayStr() {
   return dateKey();
 }
 
-function sportIcon(sport) {
-  return {
-    Football: "⚽",
-    Basketball: "🏀",
-    Cricket: "🏏",
-    Badminton: "🏸",
-    Swimming: "🏊",
-  }[sport] || "🏟️";
+function sportIcon(sport, size = 18) {
+  return <SportIcon sport={sport} size={size} />;
 }
 
 function formatTurfLocation(address, city) {
@@ -90,38 +107,6 @@ function calcPrice(turf, occupancy) {
   return occupancy > 70 ? Number(turf.peak_price) : Number(turf.base_price);
 }
 
-
-// ============================================================
-// ICONS
-// ============================================================
-const Icon = ({ name, size = 20, color = "currentColor", filled = false }) => {
-  const icons = {
-    home: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />,
-    search: <><circle cx="11" cy="11" r="8" stroke={color} strokeWidth={2} /><path strokeLinecap="round" strokeWidth={2} d="M21 21l-4.35-4.35" /></>,
-    calendar: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />,
-    users: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />,
-    trophy: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />,
-    star: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />,
-    lightning: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />,
-    map: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />,
-    clock: <><circle cx="12" cy="12" r="9" strokeWidth={2} /><path strokeLinecap="round" strokeWidth={2} d="M12 7v5l3 3" /></>,
-    check: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />,
-    x: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />,
-    trending: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />,
-    sun: <><circle cx="12" cy="12" r="5" strokeWidth={2} /><path strokeLinecap="round" strokeWidth={2} d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" /></>,
-    rain: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 19v2m4-2v2m4-2v2M3 15a7 7 0 0114 0H3z" />,
-    qr: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4H6a2 2 0 00-2 2v6m8-8h6a2 2 0 012 2v6m-8-8v8m0 0H6m6 0h6m-6 0v8m-6-8H4m2 0v6a2 2 0 002 2h4M16 12h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4a2 2 0 012-2z" />,
-    notification: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />,
-    menu: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />,
-    filter: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />,
-    logout: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 5v1a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h5a2 2 0 012 2v1" />,
-  };
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? color : "none"} stroke={color} xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
-      {icons[name]}
-    </svg>
-  );
-};
 
 // ============================================================
 // SLOT GRID COMPONENT
@@ -250,8 +235,8 @@ function SlotGrid({ slots = [], onSelect, selected, loading = false, price }) {
                 opacity: isSelected ? 0.95 : 0.85,
               }}
             >
-              {isSelected && <span aria-hidden="true">✓</span>}
-              {isLocked && <span aria-hidden="true">🔒</span>}
+              {isSelected && <Check size={11} strokeWidth={2.5} />}
+              {isLocked && <Lock size={11} />}
               {statusLabel}
             </span>
           </button>
@@ -302,8 +287,11 @@ function TurfCard({ turf, onBook, onMatch, index = 0 }) {
             fontSize: 10.5,
             fontWeight: 700,
             zIndex: 2,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
           }}>
-            📷 {gallery.length} photos
+            <Camera size={11} color="#fff" /> {gallery.length} photos
           </span>
         )}
         <span className={`vt-venue-status ${hasAvailability ? "" : "unavailable"}`}>
@@ -909,11 +897,19 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
                 <span style={{ color: "#172B4D", fontSize: 13, fontWeight: 800, fontFamily: FONT_BODY }}>
                   2. Select Time Slot
                 </span>
-                <div style={{ display: "flex", gap: 10, fontSize: 11, fontFamily: FONT_BODY }}>
-                  <span style={{ color: "#10B981", display: "inline-flex", alignItems: "center", gap: 3, fontWeight: 700 }}>● Open</span>
-                  <span style={{ color: "#F59E0B", display: "inline-flex", alignItems: "center", gap: 3, fontWeight: 700 }}>● Held</span>
-                  <span style={{ color: "#A0AEC0", display: "inline-flex", alignItems: "center", gap: 3, fontWeight: 700 }}>● Taken</span>
-                  <span style={{ color: "#CBD5E0", display: "inline-flex", alignItems: "center", gap: 3, fontWeight: 700 }}>● Closed</span>
+                <div style={{ display: "flex", gap: 12, fontSize: 11, fontFamily: FONT_BODY }}>
+                  <span style={{ color: "#10B981", display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 700 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10B981", display: "inline-block" }} /> Open
+                  </span>
+                  <span style={{ color: "#F59E0B", display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 700 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#F59E0B", display: "inline-block" }} /> Held
+                  </span>
+                  <span style={{ color: "#A0AEC0", display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 700 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#A0AEC0", display: "inline-block" }} /> Taken
+                  </span>
+                  <span style={{ color: "#CBD5E0", display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 700 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#CBD5E0", display: "inline-block" }} /> Closed
+                  </span>
                 </div>
               </div>
 
@@ -941,8 +937,8 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
                     Standard Rate
                   </span>
                   {isDynamic && (
-                    <span style={{ fontSize: 11, color: V.pending, fontWeight: 700, fontFamily: FONT_BODY }}>
-                      🔥 High demand: Peak price applied
+                    <span style={{ fontSize: 11, color: V.pending, fontWeight: 700, fontFamily: FONT_BODY, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      <Flame size={12} color={V.pending} /> Peak price applied (High demand)
                     </span>
                   )}
                 </div>
@@ -965,9 +961,13 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
                   ...buttonStyle("primary", "lg", selectedSlot === null),
                 }}
               >
-                {selectedSlot !== null
-                  ? `Review Slot (${modalSlots[selectedSlot]?.time}) →`
-                  : "Select a slot above"}
+                {selectedSlot !== null ? (
+                  <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                    Review Slot ({modalSlots[selectedSlot]?.time}) <ArrowRight size={15} />
+                  </span>
+                ) : (
+                  "Select a slot above"
+                )}
               </button>
             </>
           )}
@@ -985,8 +985,8 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
                 gap: 12,
                 alignItems: "flex-start",
               }}>
-                <div style={{ width: 28, height: 28, borderRadius: "50%", background: V.floodButton || V.flood, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontWeight: 800, fontSize: 14 }}>
-                  ✓
+                <div style={{ width: 28, height: 28, borderRadius: "50%", background: V.floodButton || V.flood, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <Check size={16} strokeWidth={2.5} />
                 </div>
                 <div>
                   <div style={{ color: V.confirmed, fontWeight: 800, fontSize: 14, fontFamily: FONT_BODY }}>
@@ -1064,7 +1064,7 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
                     >
                       <option value="">Standard Payment (₹{price})</option>
                       {userPasses.map((p) => (
-                        <option key={p.id} value={p.id}>🎟️ {p.packageName} ({p.remainingSessions} sessions left)</option>
+                        <option key={p.id} value={p.id}>Pass: {p.packageName} ({p.remainingSessions} sessions left)</option>
                       ))}
                     </select>
                   </div>
@@ -1078,8 +1078,8 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
                     {selectedPackageId ? "Free (1 Pass Credit)" : `₹${price}`}
                   </span>
                 </div>
-                <div style={{ marginTop: 8, fontSize: 12, color: V.confirmed, fontWeight: 700, fontFamily: FONT_BODY, display: "flex", alignItems: "center", gap: 4 }}>
-                  <span>🎁</span> {selectedPackageId ? "Redeeming 1 pass session credit from your subscription" : `+${points} loyalty reward points will be credited upon confirmation`}
+                <div style={{ marginTop: 8, fontSize: 12, color: V.confirmed, fontWeight: 700, fontFamily: FONT_BODY, display: "flex", alignItems: "center", gap: 6 }}>
+                  <Gift size={13} color={V.confirmed} /> {selectedPackageId ? "Redeeming 1 pass session credit from your subscription" : `+${points} loyalty reward points will be credited upon confirmation`}
                 </div>
               </div>
 
@@ -1091,7 +1091,9 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
                   onClick={() => setStep(1)}
                   style={buttonStyle("secondary", "lg", submitting)}
                 >
-                  ← Back
+                  <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                    <ArrowLeft size={14} /> Back
+                  </span>
                 </button>
                 <button
                   type="button"
@@ -1173,8 +1175,11 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
                     background: "rgba(21, 128, 81, 0.12)",
                     color: V.confirmed,
                     border: "1px solid rgba(21, 128, 81, 0.28)",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
                   }}>
-                    ✓ Confirmed
+                    <Check size={12} strokeWidth={2.5} /> Confirmed
                   </span>
                 </div>
 
@@ -1246,7 +1251,9 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
                   }}
                   style={buttonStyle("primary", "lg")}
                 >
-                  View in My Games →
+                  <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                    View in My Games <ArrowRight size={15} />
+                  </span>
                 </button>
                 <button
                   type="button"
@@ -1352,8 +1359,12 @@ function CancelBookingModal({ booking, onClose, onCancelled, showToast }) {
           fontSize: 12.5,
           color: V.chalkDim,
           lineHeight: 1.5,
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 10,
         }}>
-          ⚠️ Once cancelled, this time slot will be reopened immediately for other players and cannot be restored.
+          <AlertTriangle size={16} color={V.danger} style={{ flexShrink: 0, marginTop: 2 }} />
+          <span>Once cancelled, this time slot will be reopened immediately for other players and cannot be restored.</span>
         </div>
 
         <label style={{ display: "grid", gap: 6, color: V.chalkDim, fontSize: 13, fontWeight: 600 }}>
@@ -1434,14 +1445,14 @@ function HeroSection({ onExplore, venueCount, isLoading }) {
             />
           </div>
           <button onClick={submitSearch} className="vt-player-search-button">
-            Book now <span aria-hidden="true">→</span>
+            Book now <ArrowRight size={14} aria-hidden="true" style={{ marginLeft: 6, display: "inline-block", verticalAlign: "middle" }} />
           </button>
         </div>
 
         <div className="vt-player-hero-trust">
-          <span><i aria-hidden="true">✓</i> Real-time slots</span>
-          <span><i aria-hidden="true">✓</i> No hidden charges</span>
-          <span><i aria-hidden="true">✓</i> Quick online booking</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Check size={13} strokeWidth={2.5} color={V.flood} aria-hidden="true" /> Real-time slots</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Check size={13} strokeWidth={2.5} color={V.flood} aria-hidden="true" /> No hidden charges</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Check size={13} strokeWidth={2.5} color={V.flood} aria-hidden="true" /> Quick online booking</span>
         </div>
       </div>
 
@@ -1449,12 +1460,12 @@ function HeroSection({ onExplore, venueCount, isLoading }) {
         <div className="vt-player-scene-frame">
           <StadiumScene className="vt-player-scene" />
           <div className="vt-player-visual-caption">
-            <span className="vt-player-caption-icon" aria-hidden="true">🏟️</span>
+            <span className="vt-player-caption-icon" aria-hidden="true" style={{ display: "inline-flex", alignItems: "center" }}><StadiumIcon size={18} color={V.flood} /></span>
             <span><strong>Your next match is waiting.</strong><small>{isLoading ? "Finding turfs near you" : venueCount < 5 ? "Turfs near you" : `${venueCount} ${venueCount === 1 ? "turf" : "turfs"} ready to play`}</small></span>
           </div>
         </div>
         <div className="vt-player-hero-note">
-          <span className="vt-player-note-mark" aria-hidden="true">✓</span>
+          <span className="vt-player-note-mark" aria-hidden="true" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Check size={13} strokeWidth={2.5} /></span>
           <span><strong>Slots you see are slots you get</strong><small>Instant confirmation</small></span>
         </div>
       </div>
@@ -1591,7 +1602,7 @@ function DiscoverSection({ turfs, onBook, onMatch, isLoading, initialSearch = ""
           <SkeletonGrid count={3} minColWidth={320} cardHeight={160} />
         ) : filtered.length === 0 ? (
           <EmptyState
-            icon="🔍"
+            icon="search"
             title={q ? `No turfs match "${search}"` : "No turfs match that filter"}
             subtitle={q ? "Try a different name, area, or sport." : "Try a different sport, or check back later as new turfs come online."}
           />
@@ -1647,8 +1658,10 @@ function ResumeMatchModal({ match, onClose, onConfirm, isPending }) {
           boxShadow: "0 24px 60px rgba(0,0,0,0.6)",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-          <span style={{ fontSize: 28 }}>{match.sport === "Football" ? "⚽" : match.sport === "Basketball" ? "🏀" : "🏏"}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: V.pitch, border: `1px solid ${V.line}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <SportIcon sport={match.sport} size={22} color={V.flood} />
+          </div>
           <div>
             <span style={{ color: V.flood, fontSize: 11, fontWeight: 700, letterSpacing: 0.5, fontFamily: FONT_BODY }}>RESUME JOINING</span>
             <h3 id="resume-match-title" style={{ color: V.chalk, fontFamily: FONT_DISPLAY, fontSize: 24, margin: "2px 0 0" }}>
@@ -1692,8 +1705,12 @@ function ResumeMatchModal({ match, onClose, onConfirm, isPending }) {
             fontFamily: FONT_BODY,
             marginBottom: 20,
             lineHeight: 1.4,
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 10,
           }}>
-            ⚠️ This match reached maximum capacity ({match.max}/{match.max}) while you were signing in. You can explore other open games.
+            <AlertTriangle size={16} color={V.danger} style={{ flexShrink: 0, marginTop: 2 }} />
+            <span>This match reached maximum capacity ({match.max}/{match.max}) while you were signing in. You can explore other open games.</span>
           </div>
         ) : (
           <p style={{ color: V.chalkDim, fontSize: 13.5, fontFamily: FONT_BODY, lineHeight: 1.5, marginBottom: 24 }}>
@@ -1840,7 +1857,7 @@ function GameDetailsModal({
       });
       setStep(2);
       onConfirmed();
-      showToast(`Spot confirmed for "${game.title || game.sport + ' Match'}"! 🎉`, { type: "success" });
+      showToast(`Spot confirmed for "${game.title || game.sport + ' Match'}"!`, { type: "success" });
     } catch (err) {
       console.error("Game checkout/confirm exception:", err);
       setErrorMsg("Network error during payment verification. Please try again.");
@@ -1925,7 +1942,7 @@ function GameDetailsModal({
                   cursor: "pointer",
                 }}
               >
-                ✕
+                <X size={16} />
               </button>
             </div>
 
@@ -1952,7 +1969,7 @@ function GameDetailsModal({
               marginBottom: 16,
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, color: V.chalk, fontSize: 14, fontWeight: 700, marginBottom: 6 }}>
-                <span>🏟️</span>
+                <StadiumIcon size={16} color={V.flood} />
                 <span>{game.turf_name || game.turf}</span>
                 <span style={{ color: V.chalkFaint, fontWeight: 400 }}>· {game.turf_city || "Venue"}</span>
               </div>
@@ -2045,8 +2062,12 @@ function GameDetailsModal({
               fontSize: 11.5,
               lineHeight: 1.5,
               marginBottom: 20,
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 8,
             }}>
-              ℹ️ <strong>Demo Checkout:</strong> Velocity Turf operates in demonstration mode. No real credit or debit card is charged. Your participation is verified and recorded upon confirmation.
+              <Info size={14} color={V.chalkDim} style={{ flexShrink: 0, marginTop: 2 }} />
+              <span><strong>Demo Checkout:</strong> Velocity Turf operates in demonstration mode. No real credit or debit card is charged. Your participation is verified and recorded upon confirmation.</span>
             </div>
 
             {/* Actions */}
@@ -2106,9 +2127,8 @@ function GameDetailsModal({
               alignItems: "center",
               justifyContent: "center",
               margin: "0 auto 16px",
-              fontSize: 28,
             }}>
-              ✓
+              <Check size={28} strokeWidth={2.5} color={V.confirmed} />
             </div>
             <h3 style={{ color: V.chalk, fontFamily: FONT_DISPLAY, fontSize: 26, fontWeight: 600, margin: "0 0 6px" }}>
               Spot Confirmed!
@@ -2145,7 +2165,7 @@ function GameDetailsModal({
                     cursor: "pointer",
                   }}
                 >
-                  {copiedRef ? "Copied ✓" : "Copy"}
+                  {copiedRef ? "Copied!" : "Copy"}
                 </button>
               </div>
 
@@ -2207,7 +2227,9 @@ function GameDetailsModal({
                   cursor: "pointer",
                 }}
               >
-                View in Dashboard →
+                <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                  View in Dashboard <ArrowRight size={15} />
+                </span>
               </button>
             </div>
           </div>
@@ -2515,7 +2537,9 @@ function MatchmakingSection({
                   cursor: "pointer",
                 }}
               >
-                Clear all filters ✕
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  Clear all filters <X size={13} />
+                </span>
               </button>
             )}
           </div>
@@ -2536,7 +2560,7 @@ function MatchmakingSection({
             marginBottom: 20,
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 18 }}>🏟️</span>
+              <StadiumIcon size={18} color={V.flood} />
               <span style={{ color: V.chalk, fontSize: 14, fontFamily: FONT_BODY }}>
                 Filtered to matches at <strong style={{ color: V.flood }}>{turfName || "Selected Turf"}</strong>
               </span>
@@ -2556,7 +2580,9 @@ function MatchmakingSection({
                 fontFamily: FONT_BODY,
               }}
             >
-              View all venues ✕
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                View all venues <X size={13} />
+              </span>
             </button>
           </div>
         )}
@@ -2575,7 +2601,7 @@ function MatchmakingSection({
             border: `1px solid ${V.danger}44`,
             background: "rgba(239,68,68,0.04)",
           }}>
-            <span style={{ fontSize: 32 }}>⚠️</span>
+            <AlertTriangle size={36} color={V.danger} />
             <h3 style={{ color: V.danger, fontSize: 18, margin: "12px 0 6px", fontFamily: FONT_BODY }}>
               Could not load community games
             </h3>
@@ -2583,13 +2609,15 @@ function MatchmakingSection({
               {fetchError}
             </p>
             <button type="button" onClick={onRefresh} style={buttonStyle("secondary", "md")}>
-              Try refreshing ↻
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                Try refreshing <RefreshCw size={13} />
+              </span>
             </button>
           </div>
         ) : filteredMatches.length === 0 ? (
           hasActiveFilters ? (
             <EmptyState
-              icon="🔍"
+              icon="search"
               title="No approved games match your filters"
               subtitle="No community games meet your current criteria. Try adjusting sport, date, time, or venue to find open games."
               action={
@@ -2598,7 +2626,9 @@ function MatchmakingSection({
                     Reset all filters
                   </button>
                   <button type="button" onClick={onRefresh} style={buttonStyle("secondary", "md")}>
-                    Refresh games ↻
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      Refresh games <RefreshCw size={13} />
+                    </span>
                   </button>
                 </div>
               }
@@ -2606,16 +2636,20 @@ function MatchmakingSection({
             />
           ) : (
             <EmptyState
-              icon="🏆"
+              icon="trophy"
               title="No approved community games available"
               subtitle="Turf owners schedule community games here once reviewed and approved by administrators. None are open right now. Check back soon or book your own slot!"
               action={
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
                   <button type="button" onClick={onRefresh} style={buttonStyle("secondary", "md")}>
-                    Refresh games ↻
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      Refresh games <RefreshCw size={13} />
+                    </span>
                   </button>
                   <button type="button" onClick={onFindTurf} style={buttonStyle("primary", "md")}>
-                    Find a turf to book →
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      Find a turf to book <ArrowRight size={14} />
+                    </span>
                   </button>
                 </div>
               }
@@ -2666,8 +2700,8 @@ function MatchmakingSection({
                         <h3 style={{ color: V.chalk, margin: 0, fontSize: 20, fontFamily: FONT_DISPLAY, fontWeight: 600 }}>
                           {m.title || `${m.sport} Match`}
                         </h3>
-                        <span style={{ color: V.chalkFaint, fontSize: 13, fontFamily: FONT_BODY }}>
-                          🏟️ {m.turf_name || m.turf} {m.turf_city ? `(${m.turf_city})` : ""}
+                        <span style={{ color: V.chalkFaint, fontSize: 13, fontFamily: FONT_BODY, display: "inline-flex", alignItems: "center", gap: 5 }}>
+                          <StadiumIcon size={14} color={V.chalkFaint} /> {m.turf_name || m.turf} {m.turf_city ? `(${m.turf_city})` : ""}
                         </span>
                       </div>
                       <span style={{
@@ -2701,8 +2735,8 @@ function MatchmakingSection({
                     </div>
 
                     {m.turf_address && (
-                      <div style={{ color: V.chalkFaint, fontSize: 12, marginBottom: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        📍 {m.turf_address}
+                      <div style={{ color: V.chalkFaint, fontSize: 12, marginBottom: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 5 }}>
+                        <MapPin size={13} color={V.chalkFaint} /> {m.turf_address}
                       </div>
                     )}
 
@@ -2740,8 +2774,11 @@ function MatchmakingSection({
                           fontWeight: 800,
                           padding: "8px 14px",
                           borderRadius: 8,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
                         }}>
-                          Joined ✓
+                          <Check size={12} strokeWidth={2.5} /> Joined
                         </span>
                         <button
                           type="button"
@@ -2780,7 +2817,13 @@ function MatchmakingSection({
                           boxShadow: isFull ? "none" : `0 4px 14px ${V.flood}44`,
                         }}
                       >
-                        {isFull ? "Full Capacity" : `Join for ${formatINR(m.price_per_player || 0)} →`}
+                        {isFull ? (
+                          "Full Capacity"
+                        ) : (
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                            Join for {formatINR(m.price_per_player || 0)} <ArrowRight size={14} />
+                          </span>
+                        )}
                       </button>
                     )}
                   </div>
@@ -2854,7 +2897,7 @@ function LoyaltySection({ isLoading, leaderboard, myPoints, gamesPlayed }) {
           <div style={{ ...panel(), borderRadius: 16, padding: 28 }}>
             <div style={{ color: V.chalkFaint, fontSize: 13, marginBottom: 16, fontFamily: FONT_BODY }}>Top players</div>
             {leaderboard.length === 0 ? (
-              <EmptyState icon="🏆" title="The leaderboard is empty" subtitle="Book a game to earn your first points and start climbing the leaderboard." accent={V.flood} />
+              <EmptyState icon="trophy" title="The leaderboard is empty" subtitle="Book a game to earn your first points and start climbing the leaderboard." accent={V.flood} />
             ) : (
             <div style={{ display: "grid", gap: 10 }}>
               {leaderboard.map(p => (
@@ -3043,12 +3086,14 @@ function DashboardSection({ isLoading, bookings, matchesJoined, joinedGames = []
             joinedGames.length === 0 ? (
               <div style={{ marginTop: 12 }}>
                 <EmptyState
-                  icon="🏆"
+                  icon="trophy"
                   title="No joined community games yet"
                   subtitle="You haven't joined any community games yet. Browse scheduled games at nearby turfs to jump in and play with others!"
                   action={
                     <button type="button" onClick={onFindGames || onFindTurf} style={buttonStyle("primary", "md")}>
-                      Browse Community Games →
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        Browse Community Games <ArrowRight size={14} />
+                      </span>
                     </button>
                   }
                 />
@@ -3101,12 +3146,17 @@ function DashboardSection({ isLoading, bookings, matchesJoined, joinedGames = []
                               fontFamily: FONT_BODY,
                               background: "rgba(34, 197, 94, 0.15)",
                               color: V.confirmed,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
                             }}>
-                              Paid & Confirmed ✓
+                              <Check size={11} strokeWidth={2.5} /> Paid & Confirmed
                             </span>
                           </div>
-                          <div style={{ color: V.chalkDim, fontSize: 13, marginTop: 4, fontFamily: FONT_BODY }}>
-                            🏟️ {turf.name || "Turf"} ({turf.city || "Venue"}) · 📅 {formatBookingDate(game.match_date)} · ⏰ {formatTime12(game.start_time)} – {formatTime12(game.end_time || game.start_time)}
+                          <div style={{ color: V.chalkDim, fontSize: 13, marginTop: 4, fontFamily: FONT_BODY, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><StadiumIcon size={14} color={V.chalkFaint} /> {turf.name || "Turf"} ({turf.city || "Venue"})</span>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Calendar size={13} color={V.chalkFaint} /> {formatBookingDate(game.match_date)}</span>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Clock size={13} color={V.chalkFaint} /> {formatTime12(game.start_time)} – {formatTime12(game.end_time || game.start_time)}</span>
                           </div>
                           <div style={{ color: V.chalkFaint, fontSize: 11.5, marginTop: 4, fontFamily: FONT_DATA }}>
                             Ref: {jg.payment_id || "VT-PAY-CONFIRMED"} · Individual Spot Confirmed
@@ -3147,40 +3197,46 @@ function DashboardSection({ isLoading, bookings, matchesJoined, joinedGames = []
             <div style={{ marginTop: 12 }}>
               {filter === "upcoming" ? (
                 <EmptyState
-                  icon="📅"
+                  icon="calendar"
                   title="No upcoming bookings"
                   subtitle="You have no matches scheduled right now. Browse nearby pitches to find an open slot and lock in your game."
                   action={
                     <button type="button" onClick={onFindTurf} style={buttonStyle("primary", "md")}>
-                      Explore Available Turfs →
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        Explore Available Turfs <ArrowRight size={14} />
+                      </span>
                     </button>
                   }
                 />
               ) : filter === "past" ? (
                 <EmptyState
-                  icon="⚽"
+                  icon="football"
                   title="No completed games yet"
                   subtitle="Matches you play will be archived here. After your match, you can leave ratings and reviews for the facility."
                   action={
                     <button type="button" onClick={onFindTurf} style={buttonStyle("secondary", "md")}>
-                      Book Your First Match →
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        Book Your First Match <ArrowRight size={14} />
+                      </span>
                     </button>
                   }
                 />
               ) : filter === "cancelled" ? (
                 <EmptyState
-                  icon="✓"
+                  icon="check"
                   title="No cancelled or declined bookings"
                   subtitle="You don't have any rejected or cancelled reservations on your record."
                 />
               ) : (
                 <EmptyState
-                  icon="🏟️"
+                  icon="stadium"
                   title="No bookings found"
                   subtitle="You haven't made any turf reservations yet."
                   action={
                     <button type="button" onClick={onFindTurf} style={buttonStyle("primary", "md")}>
-                      Find a Turf →
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        Find a Turf <ArrowRight size={14} />
+                      </span>
                     </button>
                   }
                 />
@@ -3242,12 +3298,14 @@ function DashboardSection({ isLoading, bookings, matchesJoined, joinedGames = []
                             alignItems: "center",
                             gap: 4,
                           }}>
-                            <span aria-hidden="true">{badge.glyph}</span>
+                            {badge.icon && <Icon name={badge.icon} size={11} strokeWidth={2.5} />}
                             {badge.label}
                           </span>
                         </div>
-                        <div style={{ color: V.chalkDim, fontSize: 13, marginTop: 4, fontFamily: FONT_BODY }}>
-                          📅 {formatBookingDate(b.bookingDate)} · ⏰ {b.time} · 🏆 {b.sport}
+                        <div style={{ color: V.chalkDim, fontSize: 13, marginTop: 4, fontFamily: FONT_BODY, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Calendar size={13} color={V.chalkFaint} /> {formatBookingDate(b.bookingDate)}</span>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Clock size={13} color={V.chalkFaint} /> {b.time}</span>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><SportIcon sport={b.sport} size={13} color={V.chalkFaint} /> {b.sport}</span>
                         </div>
                         {isCancelled && (
                           <div style={{ color: V.chalkFaint, fontSize: 11.5, marginTop: 4, fontFamily: FONT_BODY }}>
@@ -3399,7 +3457,26 @@ function ReviewModal({ booking, profile, supabase, onClose, onReviewed, showToas
         <fieldset style={{ border: 0, padding: 0 }}>
           <legend style={{ color: V.chalkDim, fontSize: 13, marginBottom: 8 }}>Your rating</legend>
           <div style={{ display: "flex", gap: 8 }}>
-            {[1, 2, 3, 4, 5].map(value => <button key={value} type="button" aria-label={`${value} star${value === 1 ? "" : "s"}`} aria-pressed={rating === value} onClick={() => setRating(value)} style={{ border: 0, background: "transparent", color: value <= rating ? V.flood : V.chalkFaint, fontSize: 26, cursor: "pointer", padding: 2 }}>★</button>)}
+            {[1, 2, 3, 4, 5].map(value => (
+              <button
+                key={value}
+                type="button"
+                aria-label={`${value} star${value === 1 ? "" : "s"}`}
+                aria-pressed={rating === value}
+                onClick={() => setRating(value)}
+                style={{
+                  border: 0,
+                  background: "transparent",
+                  color: value <= rating ? "#F59E0B" : V.chalkFaint,
+                  cursor: "pointer",
+                  padding: 4,
+                  display: "inline-flex",
+                  alignItems: "center",
+                }}
+              >
+                <Star size={24} fill={value <= rating ? "#F59E0B" : "none"} color={value <= rating ? "#F59E0B" : V.chalkFaint} />
+              </button>
+            ))}
           </div>
         </fieldset>
         <label style={{ display: "grid", gap: 7, color: V.chalkDim, fontSize: 13 }}>
@@ -3493,7 +3570,9 @@ function GuestPrompt({ icon, title, body, router }) {
   return (
     <div style={{ padding: "60px 24px" }}>
       <div style={{ maxWidth: 480, margin: "0 auto", textAlign: "center", ...panel(), borderRadius: 18, padding: "48px 32px" }}>
-        <div style={{ fontSize: 40, marginBottom: 16 }}>{icon}</div>
+        <div style={{ width: 64, height: 64, borderRadius: 16, background: "rgba(23, 105, 232, 0.08)", border: `1px solid ${V.line}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+          {typeof icon === "string" ? <Icon name={icon} size={30} color={V.flood} /> : icon}
+        </div>
         <h2 style={{ color: V.chalk, fontFamily: FONT_DISPLAY, fontSize: 28, fontWeight: 400, margin: "0 0 10px" }}>{title}</h2>
         <p style={{ color: V.chalkDim, fontSize: 14.5, lineHeight: 1.6, margin: "0 0 28px" }}>{body}</p>
         <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
@@ -4204,7 +4283,7 @@ export default function PlayerAppClient({ profile }) {
           )}
           {activeTab === "teams" && (profile?.id
             ? <TeamsSection profile={profile} showToast={showToast} onSelectTeamForBooking={() => setActiveTab("discover")} />
-            : <GuestPrompt icon="👥" title="Team management lives here" body="Sign up to create teams, invite teammates, and book venues together." router={router} />
+            : <GuestPrompt icon="users" title="Team management lives here" body="Sign up to create teams, invite teammates, and book venues together." router={router} />
           )}
           {activeTab === "tournaments" && (
             <TournamentsSection profile={profile} showToast={showToast} />
@@ -4214,7 +4293,7 @@ export default function PlayerAppClient({ profile }) {
           )}
           {activeTab === "loyalty" && (profile?.id
             ? <LoyaltySection isLoading={isTabLoading("loyalty") || myBookingsLoading} leaderboard={leaderboard} myPoints={leaderboard.find(p => p.isYou)?.points ?? 0} gamesPlayed={myBookings.filter((booking) => isPlayedBooking(booking)).length} />
-            : <GuestPrompt icon="🏆" title="Track your rewards" body="Sign up to earn loyalty points on every booking and see where you rank." router={router} />
+            : <GuestPrompt icon="trophy" title="Track your rewards" body="Sign up to earn loyalty points on every booking and see where you rank." router={router} />
           )}
           {activeTab === "dashboard" && (profile?.id
             ? <DashboardSection
@@ -4230,7 +4309,7 @@ export default function PlayerAppClient({ profile }) {
                 onFindGames={() => setActiveTab("matches")}
                 onViewGame={(g) => setSelectedGameForCheckout(g)}
               />
-            : <GuestPrompt icon="📅" title="Your dashboard lives here" body="Sign up to see your bookings, track spend, and manage upcoming games." router={router} />
+            : <GuestPrompt icon="calendar" title="Your dashboard lives here" body="Sign up to see your bookings, track spend, and manage upcoming games." router={router} />
           )}
         </main>
 

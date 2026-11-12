@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { COLORS as V } from "@/lib/design-tokens";
 import { Btn, Modal, font, inputStyle, labelStyle } from "@/components/dashboard/kit";
 import { formatNotificationBody, formatNotificationTitle, relativeTime } from "@/lib/dashboard/format";
+import { Settings } from "@/components/ui/icons";
 
 export function SmartNotificationCenter({
   open,
@@ -137,9 +138,13 @@ export function SmartNotificationCenter({
                 padding: "6px 9px",
                 fontSize: 12,
                 cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
               }}
             >
-              ⚙️ Preferences
+              <Settings size={13} />
+              <span>Preferences</span>
             </button>
             {unreadCount > 0 && (
               <Btn size="sm" onClick={onMarkAll}>
@@ -244,8 +249,9 @@ export function SmartNotificationCenter({
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 5, fontSize: 10.5, color: V.chalkFaint }}>
                   <span>{relativeTime(n.created_at)}</span>
                   {n.delivery_status && (
-                    <span style={{ textTransform: "uppercase", fontSize: 9.5, opacity: 0.8 }}>
-                      ● {n.delivery_status}
+                    <span style={{ textTransform: "uppercase", fontSize: 9.5, opacity: 0.8, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      <span style={{ width: 4, height: 4, borderRadius: "50%", background: "currentColor", display: "inline-block" }} />
+                      {n.delivery_status}
                     </span>
                   )}
                 </div>

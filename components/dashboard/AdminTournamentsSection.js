@@ -77,7 +77,7 @@ export function AdminTournamentsSection({ showToast }) {
       {loading ? (
         <div style={{ color: V.chalkDim, fontSize: 13, padding: 24 }}>Loading tournaments…</div>
       ) : tournaments.length === 0 ? (
-        <EmptyBlock emoji="🏆" title="No tournaments created yet" subtitle="When organizers create tournaments, they will appear here for platform governance." />
+        <EmptyBlock icon="trophy" title="No tournaments created yet" subtitle="When organizers create tournaments, they will appear here for platform governance." />
       ) : (
         <div style={{ display: "grid", gap: 14 }}>
           {tournaments.map((t) => (

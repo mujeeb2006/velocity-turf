@@ -7,6 +7,7 @@ import {
   StatCard, StatGrid, StatusPill, font, inputStyle, labelStyle, mono,
 } from "@/components/dashboard/kit";
 import { formatBookingDate, formatINR, formatTime12, relativeTime } from "@/lib/dashboard/format";
+import { StadiumIcon, Calendar, Clock } from "@/components/ui/icons";
 
 export function CreateGameModal({ turfs, onClose, onCreated, showToast }) {
   const activeTurfs = (turfs || []).filter((t) => t.status === "live" && !t.archived_at);
@@ -95,7 +96,7 @@ export function CreateGameModal({ turfs, onClose, onCreated, showToast }) {
         return;
       }
 
-      showToast("Game submitted for admin approval! 🎉", { type: "success" });
+      showToast("Game submitted for admin approval!", { type: "success" });
       onCreated();
       onClose();
     } catch (err) {
@@ -523,7 +524,7 @@ export function OwnerGamesTab({
         </div>
       ) : filteredGames.length === 0 ? (
         <EmptyBlock
-          emoji="🏆"
+          icon="trophy"
           title="No community games found"
           subtitle={
             filterStatus !== "all"
@@ -553,9 +554,15 @@ export function OwnerGamesTab({
                     </div>
 
                     <div style={{ color: V.chalkDim, fontSize: 13, display: "flex", gap: 14, flexWrap: "wrap", marginTop: 4 }}>
-                      <span>🏟️ <strong style={{ color: V.chalk }}>{g.turf?.name || "Turf"}</strong> ({g.turf?.city || ""})</span>
-                      <span>📅 {formatBookingDate(g.match_date)}</span>
-                      <span>⏰ {formatTime12(g.start_time)} – {formatTime12(g.end_time || g.start_time)}</span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                        <StadiumIcon size={14} color={V.chalkDim} /> <strong style={{ color: V.chalk }}>{g.turf?.name || "Turf"}</strong> ({g.turf?.city || ""})
+                      </span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                        <Calendar size={14} color={V.chalkDim} /> {formatBookingDate(g.match_date)}
+                      </span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                        <Clock size={14} color={V.chalkDim} /> {formatTime12(g.start_time)} – {formatTime12(g.end_time || g.start_time)}
+                      </span>
                     </div>
 
                     {g.description && (

@@ -241,7 +241,7 @@ export function MaintenanceSection({ turfs = [], isStaff = false, staffPermissio
             <div style={{ padding: "32px 0", textAlign: "center", color: V.chalkDim }}>Loading maintenance tasks…</div>
           ) : filteredTasks.length === 0 ? (
             <EmptyBlock
-              emoji="🛠️"
+              icon="wrench"
               title={viewTab === "active" ? "No active maintenance tasks" : "No maintenance history"}
               subtitle={
                 viewTab === "active"

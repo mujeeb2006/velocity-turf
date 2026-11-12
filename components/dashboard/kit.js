@@ -8,70 +8,23 @@ import { useEffect, useRef, useState } from "react";
 import { COLORS as V, FONT_BODY, FONT_DATA, FONT_DISPLAY, panel } from "@/lib/design-tokens";
 import { formatDelta, formatNotificationBody, formatNotificationTitle, relativeTime, toCSV } from "@/lib/dashboard/format";
 import BrandLockup from "@/components/brand-lockup";
+import { Icon as BaseIcon, SportIcon, Check, Clock, X, Users, RefreshCw } from "@/components/ui/icons";
 
 export const font = FONT_BODY;
 export const mono = FONT_DATA;
 export const display = FONT_DISPLAY;
 
 // ---------------------------------------------------------------- icons
-const ICONS = {
-  grid: <path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" />,
-  building: <path d="M3 21h18M6 21V7a1 1 0 011-1h10a1 1 0 011 1v14M9 9h1m4 0h1m-6 4h1m4 0h1m-6 4h1m4 0h1" />,
-  users: <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />,
-  rupee: <path d="M7 4h10M7 8h10M7 4s1 5-3 5m3 4l7 7M7 12h6a3 3 0 000-6" />,
-  alert: <><path d="M12 9v4m0 4h.01" /><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></>,
-  check: <path d="M5 13l4 4L19 7" />,
-  x: <path d="M6 18L18 6M6 6l12 12" />,
-  clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></>,
-  star: <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />,
-  map: <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />,
-  logout: <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 5v1a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h5a2 2 0 012 2v1" />,
-  search: <><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /></>,
-  shield: <path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z" />,
-  notification: <path d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2a2 2 0 01-.6 1.4L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />,
-  wallet: <path d="M21 12V7H5a2 2 0 010-4h14v4M3 5v14a2 2 0 002 2h16v-5M18 12a1 1 0 100 2 1 1 0 000-2z" />,
-  plus: <path d="M12 4v16m-8-8h16" />,
-  trending: <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />,
-  calendar: <><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></>,
-  download: <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />,
-  chart: <path d="M18 20V10M12 20V4M6 20v-6" />,
-  refresh: <><path d="M23 4v6h-6M1 20v-6h6" /><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" /></>,
-  list: <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />,
-  arrowUp: <path d="M12 19V5M5 12l7-7 7 7" />,
-  arrowDown: <path d="M12 5v14M19 12l-7 7-7-7" />,
-  chevronRight: <path d="M9 6l6 6-6 6" />,
-  chevronLeft: <path d="M15 6l-6 6 6 6" />,
-  camera: <><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" /><circle cx="12" cy="13" r="4" /></>,
-  upload: <><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><path d="M17 8l-5-5-5 5" /><path d="M12 3v12" /></>,
-  image: <><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" /></>,
-  trophy: <path d="M8 21h8m-4-4v4m-6-17h12v5a6 6 0 01-12 0V4zm0 2H4a2 2 0 00-2 2v1a4 4 0 004 4h2M16 6h4a2 2 0 012 2v1a4 4 0 01-4 4h-2" />,
-};
-
-export function Icon({ name, size = 18, color = "currentColor", filled = false }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill={filled ? color : "none"}
-      stroke={color}
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      style={{ flexShrink: 0 }}
-    >
-      {ICONS[name]}
-    </svg>
-  );
-}
+export const Icon = BaseIcon;
+export { SportIcon };
 
 // ---------------------------------------------------------------- basics
 export function Pill({ children, color = V.chalkDim }) {
   return (
     <span
       style={{
-        display: "inline-block",
+        display: "inline-flex",
+        alignItems: "center",
         padding: "3px 10px",
         borderRadius: 20,
         fontSize: 11,
@@ -110,19 +63,39 @@ export const STATUS_COLORS = {
 
 export function StatusPill({ status }) {
   const norm = String(status || "").toLowerCase().replace(/\s+/g, "_");
-  const glyph = norm === "confirmed" || norm === "completed" || norm === "resolved" || norm === "paid" || norm === "approved"
-    ? "✓" : norm === "pending" || norm === "processing" || norm === "pending_approval"
-    ? "⏳" : norm === "rejected" || norm === "declined" || norm === "failed"
-    ? "✕" : norm === "cancelled"
-    ? "—" : norm === "full"
-    ? "👥" : norm === "open"
-    ? "●" : norm === "refunded"
-    ? "↩" : "•";
   const color = STATUS_COLORS[norm] || V.chalkDim;
   const label = status === "pending_approval" ? "Pending Approval" : status;
+
+  const renderIcon = () => {
+    if (["confirmed", "completed", "resolved", "paid", "approved"].includes(norm)) {
+      return <Check size={11} strokeWidth={2.5} />;
+    }
+    if (["pending", "processing", "pending_approval"].includes(norm)) {
+      return <Clock size={11} strokeWidth={2.5} />;
+    }
+    if (["rejected", "declined", "failed"].includes(norm)) {
+      return <X size={11} strokeWidth={2.5} />;
+    }
+    if (norm === "cancelled") {
+      return <span style={{ width: 6, height: 1.5, background: "currentColor", display: "inline-block" }} />;
+    }
+    if (norm === "full") {
+      return <Users size={11} strokeWidth={2} />;
+    }
+    if (norm === "open") {
+      return <span style={{ width: 6, height: 6, borderRadius: "50%", background: "currentColor", display: "inline-block" }} />;
+    }
+    if (norm === "refunded") {
+      return <RefreshCw size={10} strokeWidth={2.5} />;
+    }
+    return <span style={{ width: 5, height: 5, borderRadius: "50%", background: "currentColor", display: "inline-block" }} />;
+  };
+
   return (
     <Pill color={color}>
-      <span aria-hidden="true" style={{ marginRight: 4, fontWeight: 800 }}>{glyph}</span>
+      <span aria-hidden="true" style={{ display: "inline-flex", alignItems: "center", marginRight: 5, verticalAlign: "middle" }}>
+        {renderIcon()}
+      </span>
       {label || "—"}
     </Pill>
   );
@@ -234,10 +207,11 @@ export function Card({ children, style, pad = 20, className }) {
 }
 
 export function EmptyBlock({ icon = "inbox", emoji, title, subtitle, action }) {
+  const iconName = emoji && icon === "inbox" ? undefined : icon;
   return (
     <div style={{ ...panel(), borderRadius: 16, padding: "40px 24px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-      <div style={{ width: 52, height: 52, borderRadius: "50%", background: V.floodDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, marginBottom: 8 }}>
-        {emoji || <Icon name={icon === "inbox" ? "list" : icon} size={22} color={V.flood} />}
+      <div style={{ width: 52, height: 52, borderRadius: "50%", background: V.pitchCardRaised, border: `1px solid ${V.line}`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 8, color: V.chalk }}>
+        <Icon name={iconName} emoji={emoji} size={24} color={V.chalk} />
       </div>
       <div style={{ color: V.chalk, fontWeight: 800, fontSize: 15.5, fontFamily: font }}>{title}</div>
       {subtitle && <div style={{ color: V.chalkDim, fontSize: 13, maxWidth: 360, lineHeight: 1.5 }}>{subtitle}</div>}

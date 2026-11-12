@@ -19,6 +19,7 @@ import {
   ALL_STAFF_PERMISSIONS,
   ROLE_DEFAULT_PERMISSIONS,
 } from "@/lib/staff/policy";
+import { Lock, Check } from "@/components/ui/icons";
 
 const STATUS_TONES = {
   active: "live",
@@ -152,7 +153,9 @@ export function StaffSection({ turfs = [], showToast }) {
           color: V.chalk,
         }}
       >
-        <div style={{ fontSize: 20 }}>🔒</div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: 8, background: "rgba(245, 158, 11, 0.15)", flexShrink: 0 }}>
+          <Lock size={18} color="#F59E0B" />
+        </div>
         <div style={{ lineHeight: 1.5 }}>
           <strong>Controlled Security Architecture:</strong> Staff members never share owner credentials and log in with their own accounts. Supabase Row-Level Security policies and server guards prevent staff from accessing another owner's venue, payout records, banking info, or sensitive account settings.
         </div>
@@ -203,7 +206,7 @@ export function StaffSection({ turfs = [], showToast }) {
               <div style={{ padding: "32px 0", textAlign: "center", color: V.chalkDim }}>Loading staff members…</div>
             ) : staffList.length === 0 ? (
               <EmptyBlock
-                emoji="👥"
+                icon="users"
                 title="No staff members yet"
                 subtitle="Invite receptionists to check in arriving players, or venue managers to coordinate schedules."
                 action={
@@ -274,7 +277,10 @@ export function StaffSection({ turfs = [], showToast }) {
                                   border: `1px solid ${V.line}`,
                                 }}
                               >
-                                ✓ {pObj?.label || permId}
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                                  <Check size={11} color="#10B981" />
+                                  <span>{pObj?.label || permId}</span>
+                                </span>
                               </span>
                             );
                           })}
@@ -335,7 +341,7 @@ export function StaffSection({ turfs = [], showToast }) {
           ) : (
             /* Audit Log View */
             auditLogs.length === 0 ? (
-              <EmptyBlock emoji="📜" title="No staff actions recorded yet" subtitle="Player check-ins, maintenance updates, and permission changes will be audited here." />
+              <EmptyBlock icon="fileText" title="No staff actions recorded yet" subtitle="Player check-ins, maintenance updates, and permission changes will be audited here." />
             ) : (
               <div style={{ display: "grid", gap: 10 }}>
                 {auditLogs.map((log) => (

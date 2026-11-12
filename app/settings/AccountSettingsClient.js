@@ -7,6 +7,7 @@ import { normalizeUserRole } from "@/lib/auth/validation";
 import { useToast } from "@/components/ui/toast";
 import { COLORS as V, FONT_BODY, buttonStyle } from "@/lib/design-tokens";
 import BrandLockup from "@/components/brand-lockup";
+import { ArrowLeft } from "@/components/ui/icons";
 
 const inputStyle = {
   width: "100%", minHeight: 46, padding: "11px 13px", borderRadius: 9, background: V.pitchCardRaised,
@@ -112,8 +113,8 @@ export default function AccountSettingsClient({ profile }) {
         <a className="vt-settings-brand" href={homePath}>
           <BrandLockup markSize={36} compact />
         </a>
-        <button onClick={() => router.push(homePath)} className="vt-settings-back" style={buttonStyle("secondary", "sm")}>
-          <span aria-hidden="true">←</span> {normalizedRole === "player" ? "Back to my games" : "Back to dashboard"}
+        <button onClick={() => router.push(homePath)} className="vt-settings-back" style={{ ...buttonStyle("secondary", "sm"), display: "inline-flex", alignItems: "center" }}>
+          <ArrowLeft size={14} style={{ marginRight: 6 }} /> {normalizedRole === "player" ? "Back to my games" : "Back to dashboard"}
         </button>
       </header>
 

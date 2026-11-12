@@ -7,6 +7,7 @@ import { formatBookingDate, formatINR, formatTime12 } from "@/lib/dashboard/form
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { extractErrorMessage } from "@/lib/api-response";
+import { Settings } from "@/components/ui/icons";
 
 export function PackagesSection({ profile, showToast, onPassPurchased }) {
   const [packages, setPackages] = useState([]);
@@ -63,9 +64,11 @@ export function PackagesSection({ profile, showToast, onPassPurchased }) {
             style={{
               background: V.pitchCard, border: `1px solid ${V.line}`, color: V.chalk, borderRadius: 10,
               padding: "10px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer",
+              display: "inline-flex", alignItems: "center", gap: 6,
             }}
           >
-            ⚙️ Configure Packages
+            <Settings size={15} />
+            <span>Configure Packages</span>
           </button>
         )}
       </div>
@@ -106,7 +109,7 @@ export function PackagesSection({ profile, showToast, onPassPurchased }) {
             </div>
           ) : packages.length === 0 ? (
             <EmptyState
-              icon="🎟️"
+              icon="ticket"
               title="No sports packages available right now"
               description="Packages are being updated by administrators. Check back shortly."
             />
@@ -192,7 +195,7 @@ export function PackagesSection({ profile, showToast, onPassPurchased }) {
 
           {myPackages.length === 0 ? (
             <EmptyState
-              icon="🎟️"
+              icon="ticket"
               title="You don't own any active passes yet"
               description="Purchase a 5-session, 10-session, or monthly pass to save on regular bookings."
               actionLabel="Browse Passes"

@@ -7,6 +7,7 @@ import { formatBookingDate, formatINR, formatTime12 } from "@/lib/dashboard/form
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { extractErrorMessage } from "@/lib/api-response";
+import { ArrowLeft, Check, Zap, MapPin } from "@/components/ui/icons";
 
 export function TournamentsSection({ profile, showToast }) {
   const [tournaments, setTournaments] = useState([]);
@@ -123,9 +124,10 @@ export function TournamentsSection({ profile, showToast }) {
         <div style={{ background: V.pitchCard, border: `1px solid ${V.line}`, borderRadius: 16, padding: 24, marginBottom: 24 }}>
           <button
             onClick={() => setSelectedTour(null)}
-            style={{ background: "transparent", border: "none", color: V.flood, fontSize: 13, fontWeight: 700, cursor: "pointer", marginBottom: 12 }}
+            style={{ background: "transparent", border: "none", color: V.flood, fontSize: 13, fontWeight: 700, cursor: "pointer", marginBottom: 12, display: "inline-flex", alignItems: "center", gap: 6 }}
           >
-            ← Back to tournaments
+            <ArrowLeft size={14} />
+            <span>Back to tournaments</span>
           </button>
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16 }}>
@@ -162,16 +164,18 @@ export function TournamentsSection({ profile, showToast }) {
                 </button>
               )}
               {selectedTour.userRegistration && (
-                <span style={{ padding: "8px 14px", borderRadius: 8, background: V.floodDim, color: V.flood, fontWeight: 700, fontSize: 12.5 }}>
-                  ✓ Registered as {selectedTour.userRegistration.team_name}
+                <span style={{ padding: "8px 14px", borderRadius: 8, background: V.floodDim, color: V.flood, fontWeight: 700, fontSize: 12.5, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <Check size={13} color={V.flood} strokeWidth={2.5} />
+                  <span>Registered as {selectedTour.userRegistration.team_name}</span>
                 </span>
               )}
               {(selectedTour.isOrganizer || selectedTour.isAdmin) && (
                 <button
                   onClick={() => handleGenerateFixtures(selectedTour.id)}
-                  style={{ background: V.pitch, border: `1px solid ${V.line}`, color: V.chalk, borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 12.5, cursor: "pointer" }}
+                  style={{ background: V.pitch, border: `1px solid ${V.line}`, color: V.chalk, borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}
                 >
-                  ⚡ Generate Fixtures
+                  <Zap size={14} color="#1769E8" />
+                  <span>Generate Fixtures</span>
                 </button>
               )}
             </div>
@@ -316,7 +320,7 @@ export function TournamentsSection({ profile, showToast }) {
             </div>
           ) : tournaments.length === 0 ? (
             <EmptyState
-              icon="🏆"
+              icon="trophy"
               title="No tournaments currently scheduled"
               description="Be the first organizer to host a cup or tournament on Velocity Turf!"
               actionLabel="Host Tournament"
@@ -352,8 +356,9 @@ export function TournamentsSection({ profile, showToast }) {
                   <h3 style={{ fontSize: 18, fontWeight: 800, color: V.chalk, marginTop: 12, marginBottom: 4 }}>
                     {t.title}
                   </h3>
-                  <div style={{ fontSize: 12.5, color: V.chalkDim }}>
-                    📍 {t.turf?.name || "Turf"} • {t.turf?.city}
+                  <div style={{ fontSize: 12.5, color: V.chalkDim, display: "flex", alignItems: "center", gap: 4 }}>
+                    <MapPin size={13} color={V.chalkDim} />
+                    <span>{t.turf?.name || "Turf"} • {t.turf?.city}</span>
                   </div>
 
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 16, padding: "12px 0", borderTop: `1px solid ${V.line}`, borderBottom: `1px solid ${V.line}` }}>

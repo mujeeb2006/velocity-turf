@@ -30,6 +30,7 @@ import { AdminTournamentsSection } from "@/components/dashboard/AdminTournaments
 import { AdminPackagesSection } from "@/components/dashboard/AdminPackagesSection";
 import { AdminDemoDataSection } from "@/components/dashboard/AdminDemoDataSection";
 import { DemoNameWithBadge } from "@/components/ui/demo-badge";
+import { Check, AlertTriangle, Key, Lock, ArrowRight, CheckCircle } from "@/components/ui/icons";
 
 const TABS = ["overview", "approvals", "game-approvals", "tournaments", "packages", "turfs", "bookings", "users", "payouts", "disputes", "demo-data"];
 const ROLE_COLORS = { Admin: V.violet, "Turf Owner": V.sky, Player: V.flood };
@@ -141,7 +142,7 @@ function AdminRejectBookingModal({ booking, busy, onClose, onConfirm }) {
                     gap: 8,
                   }}
                 >
-                  <span style={{ fontSize: 13 }}>{active ? "●" : "○"}</span>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: active ? V.flood : "transparent", border: `1.5px solid ${active ? V.flood : V.chalkDim}`, display: "inline-block" }} />
                   {p}
                 </button>
               );
@@ -887,7 +888,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
             {loading ? (
               <div style={{ display: "grid", gap: 14 }}>{[...Array(2)].map((_, i) => <SkeletonCard key={i} lines={2} />)}</div>
             ) : pendingTurfs.length === 0 ? (
-              <EmptyBlock emoji="✅" title="You're all caught up" subtitle="When owners submit a new turf, it will show up here for your approval." />
+              <EmptyBlock icon="checkCircle" title="You're all caught up" subtitle="When owners submit a new turf, it will show up here for your approval." />
             ) : (
               <div style={{ display: "grid", gap: 14 }}>
                 {pendingTurfs.map((t) => {
@@ -1253,7 +1254,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
               {loading ? (
                 <div style={{ display: "grid", gap: 14 }}>{[...Array(2)].map((_, i) => <SkeletonCard key={i} lines={2} />)}</div>
               ) : shown.length === 0 ? (
-                <EmptyBlock emoji="✅" title={disputeFilter === "open" ? "No open disputes" : "No disputes here"} subtitle="Refund and dispute tickets raised by players will show up here." />
+                <EmptyBlock icon="checkCircle" title={disputeFilter === "open" ? "No open disputes" : "No disputes here"} subtitle="Refund and dispute tickets raised by players will show up here." />
               ) : (
                 <div style={{ display: "grid", gap: 12 }}>
                   {shown.map((d) => (
@@ -1409,7 +1410,15 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
                 }}>{inviteLink}</div>
                 <Btn variant="primary" size="sm" onClick={async () => {
                   try { await navigator.clipboard.writeText(inviteLink); setInviteLinkCopied(true); setTimeout(() => setInviteLinkCopied(false), 2500); } catch { /* ignore */ }
-                }}>{inviteLinkCopied ? "✓ Copied!" : "Copy link"}</Btn>
+                }}>
+                  {inviteLinkCopied ? (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      <Check size={13} /> Copied!
+                    </span>
+                  ) : (
+                    "Copy link"
+                  )}
+                </Btn>
               </div>
             )}
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }}>
@@ -1471,7 +1480,9 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
                 <div style={{ fontSize: 11, color: V.chalkFaint, textTransform: "uppercase", letterSpacing: 0.5 }}>Current</div>
                 <Pill color={ROLE_COLORS[roleChangeUser.role]}>{roleChangeUser.role}</Pill>
               </div>
-              <div style={{ color: V.chalkFaint, fontSize: 18, padding: "0 4px" }}>→</div>
+              <div style={{ color: V.chalkFaint, padding: "0 4px", display: "flex", alignItems: "center" }}>
+                <ArrowRight size={16} />
+              </div>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
                 <div style={{ fontSize: 11, color: V.chalkFaint, textTransform: "uppercase", letterSpacing: 0.5 }}>New role</div>
                 {roleChangeUser.role === "Player" ? (
@@ -1498,7 +1509,11 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
                 background: "rgba(239,68,68,0.08)", border: `1px solid ${V.danger}44`,
                 borderRadius: 10, padding: "12px 14px", fontSize: 13, color: V.danger, lineHeight: 1.6,
               }}>
-                <strong>⚠ Active turfs detected:</strong> {roleWarning.message}
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                  <AlertTriangle size={15} color={V.danger} />
+                  <strong>Active turfs detected:</strong>
+                </div>
+                <div>{roleWarning.message}</div>
                 <ul style={{ margin: "8px 0 0 16px", padding: 0, fontSize: 12.5 }}>
                   {roleWarning.turfs.map((t) => <li key={t.id}>{t.name} ({t.status})</li>)}
                 </ul>
@@ -1524,7 +1539,10 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
                       color: V.chalk, fontFamily: font,
                     }}
                   >
-                    <div style={{ fontWeight: 700, fontSize: 13 }}>{roleResolution === opt.id ? "● " : "○ "}{opt.label}</div>
+                    <div style={{ fontWeight: 700, fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: roleResolution === opt.id ? V.danger : "transparent", border: `1.5px solid ${roleResolution === opt.id ? V.danger : V.chalkDim}`, display: "inline-block" }} />
+                      {opt.label}
+                    </div>
                     <div style={{ fontSize: 12, color: V.chalkFaint, marginTop: 3, lineHeight: 1.5 }}>{opt.sub}</div>
                   </button>
                 ))}
@@ -1549,7 +1567,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
                 background: "rgba(234,179,8,0.12)", border: "1px solid rgba(234,179,8,0.3)",
                 borderRadius: 10, padding: "10px 14px", display: "flex", gap: 10, alignItems: "center",
               }}>
-                <span style={{ fontSize: 18 }}>⚠️</span>
+                <AlertTriangle size={18} color="#FDE047" style={{ flexShrink: 0 }} />
                 <div style={{ fontSize: 12.5, color: "#FDE047", lineHeight: 1.5 }}>
                   <strong>Password Setup Pending:</strong> This owner has not created a password yet. Generate an Account Setup Link below so they can set their password and activate their dashboard.
                 </div>
@@ -1564,10 +1582,13 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
               border: `1px solid ${(accessLinkUser.status === "Pending Invite" || !accessLinkUser.confirmedAt) ? "rgba(14,165,233,0.35)" : V.line}`,
               borderRadius: 12, padding: "14px 16px",
             }}>
-              <div style={{ fontWeight: 700, color: V.chalk, fontSize: 14, marginBottom: 4 }}>
-                {accessLinkUser.status === "Pending Invite" || !accessLinkUser.confirmedAt
-                  ? "🔑 Account Setup / Invitation Link"
-                  : "🔑 Password Setup / Reset Link"}
+              <div style={{ fontWeight: 700, color: V.chalk, fontSize: 14, marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
+                <Key size={15} color={V.chalk} />
+                <span>
+                  {accessLinkUser.status === "Pending Invite" || !accessLinkUser.confirmedAt
+                    ? "Account Setup / Invitation Link"
+                    : "Password Setup / Reset Link"}
+                </span>
                 <span style={{ color: V.chalkFaint, fontWeight: 500, fontSize: 12, marginLeft: 6 }}>(24h, one-time)</span>
               </div>
               <div style={{ fontSize: 12.5, color: V.chalkDim, lineHeight: 1.6, marginBottom: 12 }}>
@@ -1600,7 +1621,13 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
                     size="sm"
                     onClick={() => handleCopyLink(accessLinkData.link)}
                   >
-                    {accessLinkCopied ? "✓ Copied!" : "Copy setup link"}
+                    {accessLinkCopied ? (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                        <Check size={13} /> Copied!
+                      </span>
+                    ) : (
+                      "Copy setup link"
+                    )}
                   </Btn>
                 )}
               </div>
@@ -1638,7 +1665,13 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
                   }
                 }}
               >
-                {accessLinkCopied && accessLinkData?.linkType === "signin" ? "✓ Copied!" : "Copy sign-in link"}
+                {accessLinkCopied && accessLinkData?.linkType === "signin" ? (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    <Check size={13} /> Copied!
+                  </span>
+                ) : (
+                  "Copy sign-in link"
+                )}
               </Btn>
             </div>
 
@@ -1679,7 +1712,13 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
                       size="sm"
                       onClick={() => handleCopyLink(accessLinkData.link)}
                     >
-                      {accessLinkCopied ? "✓ Copied!" : "Copy link"}
+                      {accessLinkCopied ? (
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          <Check size={13} /> Copied!
+                        </span>
+                      ) : (
+                        "Copy link"
+                      )}
                     </Btn>
                   )}
                 </div>
@@ -1687,8 +1726,9 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
             )}
 
             {/* Info note */}
-            <div style={{ fontSize: 12, color: V.chalkFaint, lineHeight: 1.6 }}>
-              🔒 Links are cryptographically generated server-side. No passwords or service-role keys are exposed in URLs.
+            <div style={{ fontSize: 12, color: V.chalkFaint, lineHeight: 1.6, display: "flex", alignItems: "center", gap: 6 }}>
+              <Lock size={13} color={V.chalkFaint} />
+              <span>Links are cryptographically generated server-side. No passwords or service-role keys are exposed in URLs.</span>
             </div>
           </div>
         </Modal>
@@ -1728,7 +1768,8 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
               gap: 8,
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, color: V.danger, fontWeight: 800, fontSize: 14 }}>
-                <span style={{ fontSize: 18 }}>⚠️</span> This action cannot be undone
+                <AlertTriangle size={16} color={V.danger} />
+                <span>This action cannot be undone</span>
               </div>
               <div style={{ fontSize: 13, color: "#fca5a5", lineHeight: 1.6 }}>
                 Permanently deleting <strong style={{ color: V.danger }}>{deleteUser.name}</strong> will remove:
@@ -1832,7 +1873,8 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
               gap: 8,
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, color: V.danger, fontWeight: 800, fontSize: 14 }}>
-                <span style={{ fontSize: 18 }}>⚠️</span> This action cannot be undone
+                <AlertTriangle size={16} color={V.danger} />
+                <span>This action cannot be undone</span>
               </div>
               <div style={{ fontSize: 13, color: "#fca5a5", lineHeight: 1.6 }}>
                 Are you sure you want to permanently delete <strong style={{ color: V.danger }}>{deleteTurf.name}</strong> and its associated data?
@@ -1856,9 +1898,15 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
                 fontSize: 13,
                 color: "#fde68a",
                 lineHeight: 1.6,
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 8,
               }}>
-                <strong style={{ color: "#fbbf24" }}>⚡ Active bookings detected:</strong>{" "}
-                {deleteTurfWarning.message}
+                <AlertTriangle size={16} color="#fbbf24" style={{ flexShrink: 0, marginTop: 2 }} />
+                <div>
+                  <strong style={{ color: "#fbbf24" }}>Active bookings detected:</strong>{" "}
+                  {deleteTurfWarning.message}
+                </div>
               </div>
             )}
 

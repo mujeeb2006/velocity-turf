@@ -5,6 +5,21 @@ import Link from "next/link";
 import { VIBRANT_PALETTE, FONT_DISPLAY, FONT_BODY, FONT_DATA } from "@/lib/design-tokens";
 import { getTurfImages } from "@/lib/turf-images";
 import BrandLockup from "@/components/brand-lockup";
+import {
+  ArrowRight,
+  Star,
+  StadiumIcon,
+  Zap,
+  Users,
+  Trophy,
+  Mail,
+  Phone,
+  MapPin,
+  Clock,
+  SportIcon,
+  Check,
+  ShieldCheck,
+} from "@/components/ui/icons";
 
 const PARTNER_LOGOS = [
   { name: "FIFA QUALITY TURF", code: "FIFA PRO" },
@@ -308,7 +323,7 @@ export default function CinematicHome({
                 }}
               >
                 <span>EXPLORE TURFS</span>
-                <span style={{ fontSize: 18, lineHeight: 1 }}>→</span>
+                <ArrowRight size={18} />
               </button>
 
               <button
@@ -379,9 +394,13 @@ export default function CinematicHome({
                       fontWeight: 800,
                       padding: "3px 8px",
                       borderRadius: 6,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
                     }}
                   >
-                    ● 96% OPEN
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10B981", display: "inline-block" }} />
+                    96% OPEN
                   </span>
                 </div>
                 <div style={{ fontSize: 24, fontWeight: 900, color: "#172B4D", marginBottom: 4 }}>
@@ -440,8 +459,8 @@ export default function CinematicHome({
                     <div style={{ fontSize: 15, fontWeight: 900, color: "#172B4D" }}>
                       Arjun Sharma
                     </div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#18A8E0" }}>
-                      Verified Captain ★ 4.9
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#18A8E0", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      Verified Captain <Star size={12} filled color="#F59E0B" /> 4.9
                     </div>
                   </div>
                   <span
@@ -501,9 +520,12 @@ export default function CinematicHome({
                       fontWeight: 800,
                       padding: "3px 8px",
                       borderRadius: 6,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
                     }}
                   >
-                    ⚡ &lt; 15s LOCK
+                    <Zap size={13} color="#1769E8" /> &lt; 15s LOCK
                   </span>
                 </div>
                 <div style={{ fontSize: 24, fontWeight: 900, color: "#172B4D", marginBottom: 4 }}>
@@ -512,8 +534,10 @@ export default function CinematicHome({
                 <p style={{ fontSize: 13, color: "#718096", margin: "0 0 14px", lineHeight: 1.4 }}>
                   Atomic database slot reservation guarantees your game with instant digital QR entry.
                 </p>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: "#10B981" }}>✓ 100% Verified Slots</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: "#10B981", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    <Check size={14} color="#10B981" strokeWidth={2.5} /> 100% Verified Slots
+                  </span>
                   <span style={{ fontSize: 12, fontWeight: 800, color: "#18A8E0" }}>• Free Cancellation</span>
                 </div>
               </div>
@@ -587,11 +611,9 @@ export default function CinematicHome({
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: 11,
-                    fontWeight: 900,
                   }}
                 >
-                  ★
+                  <ShieldCheck size={14} color="#18A8E0" />
                 </span>
                 <span>{partner.name}</span>
               </div>
@@ -697,7 +719,7 @@ export default function CinematicHome({
               onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
             >
               <span>Explore Curated Venues</span>
-              <span>→</span>
+              <ArrowRight size={16} />
             </button>
           </div>
 
@@ -758,11 +780,9 @@ export default function CinematicHome({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: 18,
-                  fontWeight: 900,
                 }}
               >
-                🏟️
+                <StadiumIcon size={20} color="#1769E8" />
               </div>
               <div>
                 <div style={{ fontSize: 20, fontWeight: 900, color: "#172B4D", lineHeight: 1 }}>18+</div>
@@ -797,11 +817,9 @@ export default function CinematicHome({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: 18,
-                  fontWeight: 900,
                 }}
               >
-                ⚡
+                <Zap size={20} color="#10B981" />
               </div>
               <div>
                 <div style={{ fontSize: 18, fontWeight: 900, color: "#172B4D", lineHeight: 1 }}>50,000+</div>
@@ -876,6 +894,9 @@ export default function CinematicHome({
               cursor: "pointer",
               transition: "background 0.2s, transform 0.15s",
               fontFamily: FONT_BODY,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = "#1769E8";
@@ -886,7 +907,8 @@ export default function CinematicHome({
               e.currentTarget.style.color = "#1769E8";
             }}
           >
-            View All Venues →
+            <span>View All Venues</span>
+            <ArrowRight size={16} />
           </button>
         </div>
 
@@ -949,9 +971,12 @@ export default function CinematicHome({
                       borderRadius: 8,
                       fontSize: 12,
                       fontWeight: 800,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
                     }}
                   >
-                    ★ {turf.rating || "4.8"}
+                    <Star size={12} filled color="#C8F542" /> {turf.rating || "4.8"}
                   </span>
                   {/* Lime-Green Availability Badge */}
                   <span
@@ -966,9 +991,13 @@ export default function CinematicHome({
                       fontSize: 11,
                       fontWeight: 900,
                       boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
                     }}
                   >
-                    ● Open Today
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#172B4D", display: "inline-block" }} />
+                    Open Today
                   </span>
                 </div>
 
@@ -988,8 +1017,8 @@ export default function CinematicHome({
                     </h3>
                   </div>
 
-                  <p style={{ fontSize: 13, color: "#718096", margin: "0 0 12px" }}>
-                    📍 {turf.location || turf.city || "Bengaluru"}
+                  <p style={{ fontSize: 13, color: "#718096", margin: "0 0 12px", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                    <MapPin size={14} color="#718096" /> {turf.location || turf.city || "Bengaluru"}
                   </p>
 
                   {/* Sports tags */}
@@ -1004,8 +1033,12 @@ export default function CinematicHome({
                           fontWeight: 700,
                           padding: "3px 8px",
                           borderRadius: 6,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
                         }}
                       >
+                        <SportIcon sport={sport} size={12} color="#1769E8" />
                         {sport}
                       </span>
                     ))}
@@ -1045,6 +1078,9 @@ export default function CinematicHome({
                         boxShadow: "0 4px 14px rgba(23, 105, 232, 0.25)",
                         transition: "background 0.2s, transform 0.15s",
                         fontFamily: FONT_BODY,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.background = "#18A8E0";
@@ -1055,7 +1091,8 @@ export default function CinematicHome({
                         e.currentTarget.style.transform = "scale(1)";
                       }}
                     >
-                      Book Now →
+                      <span>Book Now</span>
+                      <ArrowRight size={14} />
                     </button>
                   </div>
                 </div>
@@ -1128,9 +1165,13 @@ export default function CinematicHome({
                 cursor: "pointer",
                 boxShadow: "0 4px 14px rgba(16, 185, 129, 0.12)",
                 fontFamily: FONT_BODY,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
               }}
             >
-              Browse All Matches →
+              <span>Browse All Matches</span>
+              <ArrowRight size={16} />
             </button>
           </div>
 
@@ -1173,9 +1214,13 @@ export default function CinematicHome({
                       fontWeight: 800,
                       padding: "4px 10px",
                       borderRadius: 6,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 5,
                     }}
                   >
-                    ⚽ {m.sport || "Football"}
+                    <SportIcon sport={m.sport || "Football"} size={13} color="currentColor" />
+                    {m.sport || "Football"}
                   </span>
                   <span
                     style={{
@@ -1195,11 +1240,11 @@ export default function CinematicHome({
                   {m.title || "Community 5v5 Friendly"}
                 </h3>
 
-                <p style={{ fontSize: 13, color: "#718096", margin: "0 0 4px" }}>
-                  🏟️ {m.venue || m.turf_name || "Indiranagar Arena"}
+                <p style={{ fontSize: 13, color: "#718096", margin: "0 0 4px", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <StadiumIcon size={14} color="#718096" /> {m.venue || m.turf_name || "Indiranagar Arena"}
                 </p>
-                <p style={{ fontSize: 13, color: "#718096", margin: "0 0 18px" }}>
-                  🕒 {m.time || m.scheduled_time || "Tonight, 8:00 PM"}
+                <p style={{ fontSize: 13, color: "#718096", margin: "0 0 18px", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <Clock size={14} color="#718096" /> {m.time || m.scheduled_time || "Tonight, 8:00 PM"}
                 </p>
 
                 <div
@@ -1236,9 +1281,13 @@ export default function CinematicHome({
                       cursor: "pointer",
                       boxShadow: "0 4px 12px rgba(200, 245, 66, 0.4)",
                       fontFamily: FONT_BODY,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
                     }}
                   >
-                    Join Match →
+                    <span>Join Match</span>
+                    <ArrowRight size={14} />
                   </button>
                 </div>
               </div>
@@ -1320,12 +1369,11 @@ export default function CinematicHome({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: 22,
                 marginBottom: 20,
                 boxShadow: "0 6px 16px rgba(24, 168, 224, 0.3)",
               }}
             >
-              🏟️
+              <StadiumIcon size={24} color="#FFFFFF" />
             </div>
             <h3 style={{ fontSize: 19, fontWeight: 900, color: "#172B4D", margin: "0 0 10px" }}>
               1. Discover Premium Venues
@@ -1360,12 +1408,11 @@ export default function CinematicHome({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: 22,
                 marginBottom: 20,
                 boxShadow: "0 6px 16px rgba(16, 185, 129, 0.3)",
               }}
             >
-              ⚡
+              <Zap size={24} color="#FFFFFF" />
             </div>
             <h3 style={{ fontSize: 19, fontWeight: 900, color: "#172B4D", margin: "0 0 10px" }}>
               2. Easy Online Booking
@@ -1400,12 +1447,11 @@ export default function CinematicHome({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: 22,
                 marginBottom: 20,
                 boxShadow: "0 6px 16px rgba(23, 105, 232, 0.3)",
               }}
             >
-              👥
+              <Users size={24} color="#FFFFFF" />
             </div>
             <h3 style={{ fontSize: 19, fontWeight: 900, color: "#172B4D", margin: "0 0 10px" }}>
               3. Find Players and Teams
@@ -1440,12 +1486,11 @@ export default function CinematicHome({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: 22,
                 marginBottom: 20,
                 boxShadow: "0 6px 16px rgba(200, 245, 66, 0.4)",
               }}
             >
-              🏆
+              <Trophy size={24} color="#172B4D" />
             </div>
             <h3 style={{ fontSize: 19, fontWeight: 900, color: "#172B4D", margin: "0 0 10px" }}>
               4. Compete in Tournaments
@@ -1575,8 +1620,21 @@ export default function CinematicHome({
         >
           {/* Col 1: Brand & Bio */}
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <span style={{ fontSize: 24 }}>⚡</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  background: "rgba(200, 245, 66, 0.15)",
+                  border: "1px solid rgba(200, 245, 66, 0.35)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Zap size={18} color="#C8F542" />
+              </div>
               <span style={{ fontWeight: 900, fontSize: 18, letterSpacing: "0.05em", color: "#FFFFFF" }}>
                 VELOCITY TURF
               </span>
@@ -1654,14 +1712,14 @@ export default function CinematicHome({
             <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 16, color: "#C8F542", textTransform: "uppercase" }}>
               Contact & Support
             </div>
-            <p style={{ color: "rgba(255, 255, 255, 0.85)", fontSize: 13.5, margin: "0 0 8px" }}>
-              📧 support@velocityturf.in
+            <p style={{ color: "rgba(255, 255, 255, 0.85)", fontSize: 13.5, margin: "0 0 8px", display: "flex", alignItems: "center", gap: 8 }}>
+              <Mail size={15} color="#C8F542" /> support@velocityturf.in
             </p>
-            <p style={{ color: "rgba(255, 255, 255, 0.85)", fontSize: 13.5, margin: "0 0 8px" }}>
-              📞 +91 98765 43210
+            <p style={{ color: "rgba(255, 255, 255, 0.85)", fontSize: 13.5, margin: "0 0 8px", display: "flex", alignItems: "center", gap: 8 }}>
+              <Phone size={15} color="#C8F542" /> +91 98765 43210
             </p>
-            <p style={{ color: "rgba(255, 255, 255, 0.75)", fontSize: 12.5, margin: 0 }}>
-              📍 Indiranagar, Bengaluru, Karnataka 560038
+            <p style={{ color: "rgba(255, 255, 255, 0.75)", fontSize: 12.5, margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+              <MapPin size={15} color="#C8F542" /> Indiranagar, Bengaluru, Karnataka 560038
             </p>
           </div>
         </div>

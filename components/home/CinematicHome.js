@@ -131,6 +131,19 @@ export default function CinematicHome({
   onJoinMatch,
 }) {
   const [hoveredTurfId, setHoveredTurfId] = useState(null);
+  const [heroSearch, setHeroSearch] = useState("");
+  const [heroSport, setHeroSport] = useState("All");
+
+  const handleHeroSearchSubmit = (e) => {
+    e?.preventDefault?.();
+    const query = heroSearch.trim();
+    const sport = heroSport !== "All" ? heroSport : "";
+    if (onExplore) {
+      onExplore(query, sport);
+    } else if (onSelectSport && sport) {
+      onSelectSport(sport);
+    }
+  };
 
   // Filter live turfs from database or use realistic defaults
   const liveTurfs = turfs && turfs.length > 0 ? turfs.filter((t) => t.status === "live") : [];
@@ -358,188 +371,173 @@ export default function CinematicHome({
               </button>
             </div>
 
-            {/* Floating Colourful Information Cards */}
+            {/* Interactive Real-Time Search Bar */}
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-                gap: 20,
-                maxWidth: 1040,
-                margin: "0 auto",
-                textAlign: "left",
+                maxWidth: 780,
+                margin: "0 auto 24px",
+                background: "rgba(255, 255, 255, 0.98)",
+                borderRadius: 20,
+                padding: "8px 10px 8px 18px",
+                boxShadow: "0 20px 45px rgba(23, 105, 232, 0.28)",
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                flexWrap: "wrap",
               }}
             >
-              {/* Card 1: Venue Availability */}
-              <div
-                className="vt-float-card-1"
-                style={{
-                  background: "rgba(255, 255, 255, 0.95)",
-                  backdropFilter: "blur(14px)",
-                  borderRadius: 20,
-                  padding: "20px 22px",
-                  color: "#172B4D",
-                  boxShadow: "0 18px 40px rgba(0, 0, 0, 0.15)",
-                  border: "1px solid rgba(255, 255, 255, 0.8)",
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: "#18A8E0", textTransform: "uppercase" }}>
-                    LIVE AVAILABILITY
-                  </span>
-                  <span
-                    style={{
-                      background: "#E9F9ED",
-                      color: "#10B981",
-                      fontSize: 11,
-                      fontWeight: 800,
-                      padding: "3px 8px",
-                      borderRadius: 6,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 4,
-                    }}
-                  >
-                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10B981", display: "inline-block" }} />
-                    96% OPEN
-                  </span>
-                </div>
-                <div style={{ fontSize: 24, fontWeight: 900, color: "#172B4D", marginBottom: 4 }}>
-                  Bengaluru Arenas
-                </div>
-                <p style={{ fontSize: 13, color: "#718096", margin: "0 0 14px", lineHeight: 1.4 }}>
-                  18+ premium venues with live slot updates across Indiranagar, HSR & Koramangala.
-                </p>
-                <div style={{ display: "flex", gap: 6, alignItems: "flex-end", height: 32 }}>
-                  {[40, 65, 80, 95, 70, 85, 100].map((h, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        flex: 1,
-                        background: i === 6 ? "#C8F542" : "#18A8E0",
-                        height: `${h}%`,
-                        borderRadius: 3,
-                      }}
-                    />
-                  ))}
-                </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flex: "1 1 220px" }}>
+                <MapPin size={18} color="#1769E8" />
+                <input
+                  type="text"
+                  value={heroSearch}
+                  onChange={(e) => setHeroSearch(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleHeroSearchSubmit(e)}
+                  placeholder="Area, venue name, or city..."
+                  style={{
+                    border: "none",
+                    outline: "none",
+                    fontSize: 14.5,
+                    color: "#172B4D",
+                    width: "100%",
+                    fontFamily: FONT_BODY,
+                    background: "transparent",
+                  }}
+                />
               </div>
 
-              {/* Card 2: Centerpiece Captain Profile & Booking Pass */}
-              <div
-                className="vt-float-card-2"
-                style={{
-                  background: "#FFFFFF",
-                  borderRadius: 20,
-                  padding: "20px 22px",
-                  color: "#172B4D",
-                  boxShadow: "0 22px 50px rgba(23, 105, 232, 0.22)",
-                  border: "2px solid #C8F542",
-                  position: "relative",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-                  <div
-                    style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: "50%",
-                      background: "linear-gradient(135deg, #18A8E0 0%, #1769E8 100%)",
-                      color: "#FFFFFF",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontWeight: 900,
-                      fontSize: 16,
-                      boxShadow: "0 4px 12px rgba(23, 105, 232, 0.3)",
-                    }}
-                  >
-                    AS
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 15, fontWeight: 900, color: "#172B4D" }}>
-                      Arjun Sharma
-                    </div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#18A8E0", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                      Verified Captain <Star size={12} filled color="#F59E0B" /> 4.9
-                    </div>
-                  </div>
-                  <span
-                    style={{
-                      marginLeft: "auto",
-                      background: "#EAF7FF",
-                      color: "#1769E8",
-                      fontSize: 11,
-                      fontWeight: 800,
-                      padding: "4px 8px",
-                      borderRadius: 6,
-                    }}
-                  >
-                    CONFIRMED
-                  </span>
-                </div>
-                <div
+              <div style={{ height: 28, width: 1, background: "#E5EDF5" }} className="vt-search-divider" />
+
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flex: "0 1 160px" }}>
+                <SportIcon sport={heroSport !== "All" ? heroSport : "Football"} size={17} color="#1769E8" />
+                <select
+                  value={heroSport}
+                  onChange={(e) => setHeroSport(e.target.value)}
                   style={{
-                    background: "#F4F7FA",
-                    borderRadius: 12,
-                    padding: "10px 14px",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
+                    border: "none",
+                    outline: "none",
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: "#172B4D",
+                    background: "transparent",
+                    cursor: "pointer",
+                    width: "100%",
                   }}
                 >
-                  <div>
-                    <div style={{ fontSize: 11, color: "#718096", fontWeight: 700 }}>Next Game Pass</div>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: "#172B4D" }}>Indiranagar 5v5 Turf</div>
-                  </div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: "#1769E8" }}>Today, 8 PM</div>
-                </div>
+                  <option value="All">All Sports</option>
+                  <option value="Football">Football</option>
+                  <option value="Cricket">Cricket</option>
+                  <option value="Badminton">Badminton</option>
+                  <option value="Tennis">Tennis</option>
+                  <option value="Basketball">Basketball</option>
+                </select>
               </div>
 
-              {/* Card 3: Instant Booking & Atomic Slot Lock */}
-              <div
-                className="vt-float-card-3"
+              <button
+                type="button"
+                onClick={handleHeroSearchSubmit}
                 style={{
-                  background: "rgba(255, 255, 255, 0.95)",
-                  backdropFilter: "blur(14px)",
-                  borderRadius: 20,
-                  padding: "20px 22px",
+                  background: "#C8F542",
                   color: "#172B4D",
-                  boxShadow: "0 18px 40px rgba(0, 0, 0, 0.15)",
-                  border: "1px solid rgba(255, 255, 255, 0.8)",
+                  border: 0,
+                  borderRadius: 14,
+                  padding: "13px 26px",
+                  fontSize: 14,
+                  fontWeight: 900,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  boxShadow: "0 6px 18px rgba(200, 245, 66, 0.45)",
+                  fontFamily: FONT_BODY,
+                  marginLeft: "auto",
                 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: "#1769E8", textTransform: "uppercase" }}>
-                    SPEED & RELIABILITY
-                  </span>
-                  <span
-                    style={{
-                      background: "#EAF7FF",
-                      color: "#1769E8",
-                      fontSize: 11,
-                      fontWeight: 800,
-                      padding: "3px 8px",
-                      borderRadius: 6,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 4,
-                    }}
-                  >
-                    <Zap size={13} color="#1769E8" /> &lt; 15s LOCK
-                  </span>
-                </div>
-                <div style={{ fontSize: 24, fontWeight: 900, color: "#172B4D", marginBottom: 4 }}>
-                  Zero Double-Bookings
-                </div>
-                <p style={{ fontSize: 13, color: "#718096", margin: "0 0 14px", lineHeight: 1.4 }}>
-                  Atomic database slot reservation guarantees your game with instant digital QR entry.
-                </p>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: "#10B981", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                    <Check size={14} color="#10B981" strokeWidth={2.5} /> 100% Verified Slots
-                  </span>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: "#18A8E0" }}>• Free Cancellation</span>
-                </div>
+                <span>Find Turfs</span>
+                <ArrowRight size={16} />
+              </button>
+            </div>
+
+            {/* Quick Sport Pills */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: 8,
+                flexWrap: "wrap",
+                marginBottom: 32,
+              }}
+            >
+              <span style={{ fontSize: 12, fontWeight: 700, color: "rgba(255, 255, 255, 0.8)", marginRight: 4 }}>
+                Popular Sports:
+              </span>
+              {[
+                { name: "Football", icon: "Football" },
+                { name: "Cricket", icon: "Cricket" },
+                { name: "Badminton", icon: "Badminton" },
+                { name: "Tennis", icon: "Tennis" },
+                { name: "Basketball", icon: "Basketball" },
+              ].map((s) => (
+                <button
+                  key={s.name}
+                  type="button"
+                  onClick={() => {
+                    setHeroSport(s.name);
+                    if (onSelectSport) onSelectSport(s.name);
+                    else onExplore?.("", s.name);
+                  }}
+                  style={{
+                    background: "rgba(255, 255, 255, 0.16)",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    backdropFilter: "blur(8px)",
+                    borderRadius: 999,
+                    padding: "6px 14px",
+                    color: "#FFFFFF",
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    transition: "all 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "#FFFFFF";
+                    e.currentTarget.style.color = "#1769E8";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.16)";
+                    e.currentTarget.style.color = "#FFFFFF";
+                  }}
+                >
+                  <SportIcon sport={s.icon} size={13} color="currentColor" />
+                  {s.name}
+                </button>
+              ))}
+            </div>
+
+            {/* Streamlined Trust Badges */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: 28,
+                flexWrap: "wrap",
+                fontSize: 13,
+                fontWeight: 700,
+                color: "rgba(255, 255, 255, 0.92)",
+              }}
+            >
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <Check size={16} color="#C8F542" strokeWidth={3} /> Instant Digital Pass & QR
+              </div>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <ShieldCheck size={16} color="#C8F542" /> 10-Minute Protected Slot Hold
+              </div>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <Star size={15} filled color="#C8F542" /> 100% Verified Playing Grounds
               </div>
             </div>
           </div>
@@ -623,215 +621,7 @@ export default function CinematicHome({
       </section>
 
       {/* ──────────────────────────────────────────────────────────
-          5. ABOUT VELOCITY TURF (Two-Column with Photo & Stats)
-      ────────────────────────────────────────────────────────── */}
-      <section
-        style={{
-          background: VIBRANT_PALETTE.lightBlue,
-          padding: "88px 24px",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: 1240,
-            margin: "0 auto",
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-            gap: 48,
-            alignItems: "center",
-          }}
-        >
-          {/* Left Column: Story & Vision */}
-          <div>
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "6px 14px",
-                borderRadius: 999,
-                background: "#FFFFFF",
-                border: "1px solid rgba(24, 168, 224, 0.25)",
-                fontSize: 12,
-                fontWeight: 800,
-                color: "#1769E8",
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                marginBottom: 18,
-              }}
-            >
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#48D6E8" }} />
-              ABOUT VELOCITY TURF
-            </div>
-            <h2
-              style={{
-                fontSize: "clamp(2rem, 3.8vw, 2.9rem)",
-                fontWeight: 900,
-                color: "#172B4D",
-                lineHeight: 1.18,
-                margin: "0 0 20px",
-                letterSpacing: "-0.02em",
-              }}
-            >
-              More Than Just A Place To Play.
-            </h2>
-            <p
-              style={{
-                fontSize: 16,
-                lineHeight: 1.65,
-                color: "#718096",
-                marginBottom: 20,
-              }}
-            >
-              Velocity Turf is Bengaluru&apos;s premier sports-tech infrastructure network. We bridge passionate athletes, elite sports venues, and community leagues into a seamless, real-time ecosystem.
-            </p>
-            <p
-              style={{
-                fontSize: 15,
-                lineHeight: 1.65,
-                color: "#718096",
-                marginBottom: 32,
-              }}
-            >
-              Whether you need a late-night floodlit football arena, a competitive cricket pitch, or players to complete your weekend squad, our platform makes every match effortless to book and unforgettable to play.
-            </p>
-
-            <button
-              type="button"
-              onClick={() => onExplore?.()}
-              style={{
-                background: "#C8F542",
-                color: "#172B4D",
-                border: 0,
-                borderRadius: 12,
-                padding: "14px 28px",
-                fontSize: 15,
-                fontWeight: 800,
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                boxShadow: "0 8px 22px rgba(200, 245, 66, 0.4)",
-                transition: "transform 0.15s ease",
-                fontFamily: FONT_BODY,
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-2px)")}
-              onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
-            >
-              <span>Explore Curated Venues</span>
-              <ArrowRight size={16} />
-            </button>
-          </div>
-
-          {/* Right Column: Photography + Floating Stat Badges */}
-          <div style={{ position: "relative" }}>
-            <div
-              style={{
-                position: "relative",
-                borderRadius: 24,
-                overflow: "hidden",
-                boxShadow: "0 20px 48px rgba(23, 105, 232, 0.16)",
-                border: "4px solid #FFFFFF",
-              }}
-            >
-              <img
-                src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=85"
-                alt="Athletes playing football on turf"
-                style={{
-                  width: "100%",
-                  height: "420px",
-                  objectFit: "cover",
-                  display: "block",
-                }}
-              />
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  background: "linear-gradient(to top, rgba(23, 105, 232, 0.4) 0%, transparent 60%)",
-                }}
-              />
-            </div>
-
-            {/* Floating Stat Card A (Top Left) */}
-            <div
-              className="vt-float-card-1"
-              style={{
-                position: "absolute",
-                top: 20,
-                left: -20,
-                background: "#FFFFFF",
-                borderRadius: 16,
-                padding: "14px 18px",
-                boxShadow: "0 12px 30px rgba(0, 0, 0, 0.12)",
-                border: "1px solid #EAF7FF",
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-              }}
-            >
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 10,
-                  background: "#EAF7FF",
-                  color: "#1769E8",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <StadiumIcon size={20} color="#1769E8" />
-              </div>
-              <div>
-                <div style={{ fontSize: 20, fontWeight: 900, color: "#172B4D", lineHeight: 1 }}>18+</div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#718096" }}>Premier Venues</div>
-              </div>
-            </div>
-
-            {/* Floating Stat Card B (Bottom Right) */}
-            <div
-              className="vt-float-card-2"
-              style={{
-                position: "absolute",
-                bottom: 24,
-                right: -16,
-                background: "#FFFFFF",
-                borderRadius: 16,
-                padding: "14px 20px",
-                boxShadow: "0 14px 34px rgba(23, 105, 232, 0.2)",
-                border: "2px solid #C8F542",
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-              }}
-            >
-              <div
-                style={{
-                  width: 42,
-                  height: 42,
-                  borderRadius: 10,
-                  background: "#E9F9ED",
-                  color: "#10B981",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Zap size={20} color="#10B981" />
-              </div>
-              <div>
-                <div style={{ fontSize: 18, fontWeight: 900, color: "#172B4D", lineHeight: 1 }}>50,000+</div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#718096" }}>Athletic Hours Played</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ──────────────────────────────────────────────────────────
-          6. DISCOVER TOP TURFS (Colourful Venue Cards with Real Data)
+          5. DISCOVER TOP TURFS (Colourful Venue Cards with Real Data)
       ────────────────────────────────────────────────────────── */}
       <section
         style={{
@@ -1103,7 +893,7 @@ export default function CinematicHome({
       </section>
 
       {/* ──────────────────────────────────────────────────────────
-          7. MATCHES AND COMMUNITY (Soft Mint Background + Match Cards)
+          6. MATCHES AND COMMUNITY (Soft Mint Background + Match Cards)
       ────────────────────────────────────────────────────────── */}
       <section
         style={{
@@ -1292,6 +1082,210 @@ export default function CinematicHome({
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ──────────────────────────────────────────────────────────
+          7. ABOUT VELOCITY TURF (Two-Column with Photo & Stats)
+      ────────────────────────────────────────────────────────── */}
+      <section
+        style={{
+          background: VIBRANT_PALETTE.lightBlue,
+          padding: "80px 24px",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 1240,
+            margin: "0 auto",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+            gap: 48,
+            alignItems: "center",
+          }}
+        >
+          {/* Left Column: Story & Vision */}
+          <div>
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "6px 14px",
+                borderRadius: 999,
+                background: "#FFFFFF",
+                border: "1px solid rgba(24, 168, 224, 0.25)",
+                fontSize: 12,
+                fontWeight: 800,
+                color: "#1769E8",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                marginBottom: 18,
+              }}
+            >
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#48D6E8" }} />
+              ABOUT VELOCITY TURF
+            </div>
+            <h2
+              style={{
+                fontSize: "clamp(2rem, 3.8vw, 2.8rem)",
+                fontWeight: 900,
+                color: "#172B4D",
+                lineHeight: 1.18,
+                margin: "0 0 20px",
+                letterSpacing: "-0.02em",
+              }}
+            >
+              More Than Just A Place To Play.
+            </h2>
+            <p
+              style={{
+                fontSize: 16,
+                lineHeight: 1.65,
+                color: "#718096",
+                marginBottom: 20,
+              }}
+            >
+              Velocity Turf is Bengaluru&apos;s premier sports-tech infrastructure network. We bridge passionate athletes, elite sports venues, and community leagues into a seamless, real-time ecosystem.
+            </p>
+            <p
+              style={{
+                fontSize: 15,
+                lineHeight: 1.65,
+                color: "#718096",
+                marginBottom: 32,
+              }}
+            >
+              Whether you need a late-night floodlit football arena, a competitive cricket pitch, or players to complete your weekend squad, our platform makes every match effortless to book and unforgettable to play.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => onExplore?.()}
+              style={{
+                background: "#C8F542",
+                color: "#172B4D",
+                border: 0,
+                borderRadius: 12,
+                padding: "14px 28px",
+                fontSize: 15,
+                fontWeight: 800,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                boxShadow: "0 8px 22px rgba(200, 245, 66, 0.4)",
+                transition: "transform 0.15s ease",
+                fontFamily: FONT_BODY,
+              }}
+            >
+              <span>Explore Curated Venues</span>
+              <ArrowRight size={16} />
+            </button>
+          </div>
+
+          {/* Right Column: Photography + Floating Stat Badges */}
+          <div style={{ position: "relative" }}>
+            <div
+              style={{
+                position: "relative",
+                borderRadius: 24,
+                overflow: "hidden",
+                boxShadow: "0 20px 48px rgba(23, 105, 232, 0.16)",
+                border: "4px solid #FFFFFF",
+              }}
+            >
+              <img
+                src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=85"
+                alt="Athletes playing football on turf"
+                style={{
+                  width: "100%",
+                  height: "400px",
+                  objectFit: "cover",
+                  display: "block",
+                }}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  background: "linear-gradient(to top, rgba(23, 105, 232, 0.4) 0%, transparent 60%)",
+                }}
+              />
+            </div>
+
+            {/* Floating Stat Card A */}
+            <div
+              style={{
+                position: "absolute",
+                top: 20,
+                left: -16,
+                background: "#FFFFFF",
+                borderRadius: 16,
+                padding: "12px 18px",
+                boxShadow: "0 12px 30px rgba(0, 0, 0, 0.12)",
+                border: "1px solid #EAF7FF",
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+              }}
+            >
+              <div
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 10,
+                  background: "#EAF7FF",
+                  color: "#1769E8",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <StadiumIcon size={18} color="#1769E8" />
+              </div>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 900, color: "#172B4D", lineHeight: 1 }}>18+</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#718096" }}>Premier Venues</div>
+              </div>
+            </div>
+
+            {/* Floating Stat Card B */}
+            <div
+              style={{
+                position: "absolute",
+                bottom: 20,
+                right: -12,
+                background: "#FFFFFF",
+                borderRadius: 16,
+                padding: "12px 18px",
+                boxShadow: "0 14px 34px rgba(23, 105, 232, 0.2)",
+                border: "2px solid #C8F542",
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+              }}
+            >
+              <div
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 10,
+                  background: "#E9F9ED",
+                  color: "#10B981",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Zap size={18} color="#10B981" />
+              </div>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 900, color: "#172B4D", lineHeight: 1 }}>50,000+</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#718096" }}>Athletic Hours Played</div>
+              </div>
+            </div>
           </div>
         </div>
       </section>

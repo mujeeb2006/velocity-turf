@@ -101,6 +101,30 @@ export function User(props) {
   );
 }
 
+export function UserPlus(props) {
+  return (
+    <Svg {...props}>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="8.5" cy="7" r="4" />
+      <line x1="20" y1="8" x2="20" y2="14" />
+      <line x1="23" y1="11" x2="17" y2="11" />
+    </Svg>
+  );
+}
+
+export function Trash2(props) {
+  return (
+    <Svg {...props}>
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <line x1="10" y1="11" x2="10" y2="17" />
+      <line x1="14" y1="11" x2="14" y2="17" />
+    </Svg>
+  );
+}
+
+export const Trash = Trash2;
+
 export function Trophy(props) {
   return (
     <Svg {...props}>
@@ -817,6 +841,9 @@ const REGISTRY = {
   location: MapPin,
   users: Users,
   user: User,
+  userPlus: UserPlus,
+  trash: Trash2,
+  trash2: Trash2,
   trophy: Trophy,
   shield: Shield,
   shieldCheck: ShieldCheck,

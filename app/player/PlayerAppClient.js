@@ -4185,11 +4185,28 @@ export default function PlayerAppClient({ profile }) {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get("tab");
-      if (tabParam && ["home", "discover", "matches", "loyalty", "dashboard"].includes(tabParam)) {
+      if (tabParam && ["home", "discover", "matches", "teams", "tournaments", "packages", "groups", "loyalty", "dashboard"].includes(tabParam)) {
         setActiveTab(tabParam);
       }
     }
   }, []);
+
+  const [featuresMenuOpen, setFeaturesMenuOpen] = useState(false);
+  const featuresMenuRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (featuresMenuRef.current && !featuresMenuRef.current.contains(event.target)) {
+        setFeaturesMenuOpen(false);
+      }
+    }
+    if (featuresMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [featuresMenuOpen]);
 
   const [bookingTurf, setBookingTurf] = useState(null);
   const [bookingQr, setBookingQr] = useState(null);
@@ -4602,16 +4619,26 @@ export default function PlayerAppClient({ profile }) {
 
   const initial = (profile?.full_name || profile?.email || "P").trim().charAt(0).toUpperCase();
 
-  const TABS = [
+  const PRIMARY_NAV = [
     { id: "home", label: "Home", icon: "home" },
     { id: "discover", label: "Discover", icon: "search" },
     { id: "matches", label: "Matches", icon: "lightning" },
-    { id: "teams", label: "Teams", icon: "users" },
     { id: "tournaments", label: "Tournaments", icon: "trophy" },
-    { id: "packages", label: "Passes", icon: "star" },
-    { id: "groups", label: "Groups", icon: "users" },
-    { id: "loyalty", label: "Rewards", icon: "gift" },
-    { id: "dashboard", label: "Dashboard", icon: "calendar" },
+  ];
+
+  const COMMUNITY_FEATURES = [
+    { id: "groups", label: "Group Bookings & Split", icon: "users", badge: "Smart Split", desc: "10m slot hold & instant bill splitting" },
+    { id: "teams", label: "Teams & Squads", icon: "users", badge: null, desc: "Roster management & team challenges" },
+    { id: "packages", label: "Sports Passes", icon: "star", badge: null, desc: "Multi-session packs & discounts" },
+    { id: "loyalty", label: "Rewards & Wallet", icon: "gift", badge: "Earn ₹", desc: "Loyalty points & referral credits" },
+  ];
+
+  const MOBILE_NAV = [
+    { id: "home", label: "Home", icon: "home" },
+    { id: "discover", label: "Discover", icon: "search" },
+    { id: "matches", label: "Matches", icon: "lightning" },
+    { id: "tournaments", label: "Tournaments", icon: "trophy" },
+    { id: "dashboard", label: "My Hub", icon: "calendar", activeIf: ["dashboard", "groups", "teams", "packages", "loyalty"] },
   ];
 
   return (
@@ -4715,7 +4742,7 @@ export default function PlayerAppClient({ profile }) {
 
           {/* Desktop Nav */}
           <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-            {TABS.map((tab) => {
+            {PRIMARY_NAV.map((tab) => {
               const isActive = activeTab === tab.id;
               return (
                 <button
@@ -4755,6 +4782,179 @@ export default function PlayerAppClient({ profile }) {
                 </button>
               );
             })}
+
+            {/* Features Dropdown Menu */}
+            <div ref={featuresMenuRef} style={{ position: "relative" }}>
+              {(() => {
+                const isCommunityActive = ["groups", "teams", "packages", "loyalty"].includes(activeTab);
+                const activeFeature = COMMUNITY_FEATURES.find((f) => f.id === activeTab);
+                return (
+                  <>
+                    <button
+                      onClick={() => setFeaturesMenuOpen((prev) => !prev)}
+                      aria-expanded={featuresMenuOpen}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "8px 14px",
+                        borderRadius: 10,
+                        background: isCommunityActive ? "#EAF7FF" : "transparent",
+                        border: isCommunityActive ? "1px solid rgba(24, 168, 224, 0.3)" : "1px solid transparent",
+                        color: isCommunityActive ? "#1769E8" : "#718096",
+                        cursor: "pointer",
+                        fontSize: 14,
+                        fontWeight: isCommunityActive ? 800 : 600,
+                        transition: "all 0.2s ease",
+                        fontFamily: FONT_BODY,
+                        position: "relative",
+                      }}
+                    >
+                      <span>{activeFeature ? activeFeature.label.split(" ")[0] : "Features"}</span>
+                      <Icon name="chevron-down" size={14} color={isCommunityActive ? "#1769E8" : "#718096"} />
+                      {isCommunityActive && (
+                        <span
+                          style={{
+                            position: "absolute",
+                            bottom: -4,
+                            left: "20%",
+                            right: "20%",
+                            height: 3,
+                            borderRadius: 3,
+                            background: "#1769E8",
+                          }}
+                        />
+                      )}
+                    </button>
+
+                    {featuresMenuOpen && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: "calc(100% + 10px)",
+                          left: "50%",
+                          transform: "translateX(-50%)",
+                          width: 310,
+                          background: "#FFFFFF",
+                          border: "1px solid rgba(24, 168, 224, 0.2)",
+                          borderRadius: 14,
+                          boxShadow: "0 14px 40px rgba(23, 105, 232, 0.16), 0 4px 16px rgba(0, 0, 0, 0.06)",
+                          padding: 8,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 4,
+                          zIndex: 1000,
+                        }}
+                      >
+                        <div style={{ padding: "6px 10px 4px", fontSize: 11, fontWeight: 800, color: "#718096", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                          Community & Programs
+                        </div>
+                        {COMMUNITY_FEATURES.map((item) => {
+                          const isItemActive = activeTab === item.id;
+                          return (
+                            <button
+                              key={item.id}
+                              onClick={() => {
+                                setActiveTab(item.id);
+                                setFeaturesMenuOpen(false);
+                              }}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 10,
+                                padding: "10px 12px",
+                                borderRadius: 10,
+                                border: "none",
+                                background: isItemActive ? "#EAF7FF" : "transparent",
+                                cursor: "pointer",
+                                textAlign: "left",
+                                transition: "background 0.15s ease",
+                                width: "100%",
+                              }}
+                              onMouseEnter={(e) => {
+                                if (!isItemActive) e.currentTarget.style.background = "#F7FAFC";
+                              }}
+                              onMouseLeave={(e) => {
+                                if (!isItemActive) e.currentTarget.style.background = "transparent";
+                              }}
+                            >
+                              <div style={{
+                                width: 34,
+                                height: 34,
+                                borderRadius: 8,
+                                background: isItemActive ? "#1769E8" : "#F0F4F8",
+                                color: isItemActive ? "#FFFFFF" : "#172B4D",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexShrink: 0,
+                              }}>
+                                <Icon name={item.icon} size={16} color={isItemActive ? "#FFFFFF" : "#172B4D"} />
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                  <span style={{ fontSize: 13.5, fontWeight: isItemActive ? 800 : 700, color: isItemActive ? "#1769E8" : "#172B4D" }}>
+                                    {item.label}
+                                  </span>
+                                  {item.badge && (
+                                    <span style={{
+                                      fontSize: 10,
+                                      fontWeight: 800,
+                                      padding: "1px 6px",
+                                      borderRadius: 6,
+                                      background: "rgba(200, 245, 66, 0.4)",
+                                      color: "#172B4D",
+                                    }}>
+                                      {item.badge}
+                                    </span>
+                                  )}
+                                </div>
+                                <div style={{ fontSize: 11, color: "#718096", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                  {item.desc}
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+
+            {/* Dashboard */}
+            <button
+              onClick={() => setActiveTab("dashboard")}
+              style={{
+                padding: "8px 16px",
+                borderRadius: 10,
+                background: activeTab === "dashboard" ? "#EAF7FF" : "transparent",
+                border: "none",
+                color: activeTab === "dashboard" ? "#1769E8" : "#718096",
+                cursor: "pointer",
+                fontSize: 14,
+                fontWeight: activeTab === "dashboard" ? 800 : 600,
+                transition: "all 0.2s ease",
+                fontFamily: FONT_BODY,
+                position: "relative",
+              }}
+            >
+              Dashboard
+              {activeTab === "dashboard" && (
+                <span
+                  style={{
+                    position: "absolute",
+                    bottom: -4,
+                    left: "20%",
+                    right: "20%",
+                    height: 3,
+                    borderRadius: 3,
+                    background: "#1769E8",
+                  }}
+                />
+              )}
+            </button>
           </div>
 
           {/* Right side */}
@@ -4803,6 +5003,64 @@ export default function PlayerAppClient({ profile }) {
 
         {/* MAIN CONTENT */}
         <main className="vt-main-content" style={{ paddingTop: 88, paddingBottom: 80 }}>
+          {/* Player Hub unified Sub-Navbar when viewing personal player sections */}
+          {["dashboard", "groups", "teams", "packages", "loyalty"].includes(activeTab) && (
+            <div style={{ maxWidth: 1200, margin: "0 auto 20px", padding: "0 16px" }}>
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                overflowX: "auto",
+                scrollbarWidth: "none",
+                msOverflowStyle: "none",
+                background: "#FFFFFF",
+                padding: "8px 12px",
+                borderRadius: 14,
+                border: "1px solid rgba(24, 168, 224, 0.2)",
+                boxShadow: "0 4px 14px rgba(23, 105, 232, 0.05)",
+              }}>
+                <span style={{ fontSize: 11, fontWeight: 900, color: "#718096", textTransform: "uppercase", letterSpacing: "0.6px", paddingRight: 6, flexShrink: 0 }}>
+                  Player Hub
+                </span>
+                {[
+                  { id: "dashboard", label: "My Bookings", icon: "calendar" },
+                  { id: "groups", label: "Group Bookings & Split", icon: "users" },
+                  { id: "teams", label: "My Teams", icon: "users" },
+                  { id: "packages", label: "Passes", icon: "star" },
+                  { id: "loyalty", label: "Rewards & Wallet", icon: "gift" },
+                ].map((sub) => {
+                  const isCurrent = activeTab === sub.id;
+                  return (
+                    <button
+                      key={sub.id}
+                      onClick={() => setActiveTab(sub.id)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "7px 14px",
+                        borderRadius: 10,
+                        border: "none",
+                        background: isCurrent ? "linear-gradient(135deg, #18A8E0 0%, #1769E8 100%)" : "transparent",
+                        color: isCurrent ? "#FFFFFF" : "#4A5568",
+                        fontWeight: isCurrent ? 800 : 600,
+                        fontSize: 13,
+                        cursor: "pointer",
+                        transition: "all 0.18s ease",
+                        whiteSpace: "nowrap",
+                        fontFamily: FONT_BODY,
+                        flexShrink: 0,
+                        boxShadow: isCurrent ? "0 4px 12px rgba(23, 105, 232, 0.28)" : "none",
+                      }}
+                    >
+                      <Icon name={sub.icon} size={14} color={isCurrent ? "#FFFFFF" : "#718096"} />
+                      {sub.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           {activeTab === "home" && (
             <CinematicHome
               turfs={turfs}
@@ -4894,29 +5152,46 @@ export default function PlayerAppClient({ profile }) {
           background: "rgba(255, 255, 255, 0.96)",
           backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
           borderTop: "1px solid rgba(24, 168, 224, 0.18)",
-          overflowX: "auto",
-          whiteSpace: "nowrap",
-          scrollbarWidth: "none",
-          msOverflowStyle: "none",
-          padding: "6px 8px 10px",
-          gap: 4,
+          display: "flex",
+          justifyContent: "space-around",
+          alignItems: "center",
+          padding: "6px 4px 10px",
           boxShadow: "0 -4px 18px rgba(23, 105, 232, 0.08)",
         }}>
-          {TABS.map((tab) => {
-            const isActive = activeTab === tab.id;
+          {MOBILE_NAV.map((tab) => {
+            const isActive = tab.activeIf ? tab.activeIf.includes(activeTab) : activeTab === tab.id;
             return (
-              <button key={tab.id} onClick={() => { if (tab.id === "matches") setMatchTurfFilter(null); setActiveTab(tab.id); }} aria-current={isActive ? "page" : undefined} style={{
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
-                background: "none", border: "none", cursor: "pointer",
-                padding: "6px 10px", borderRadius: 10, flexShrink: 0,
-                minWidth: 54,
-                color: isActive ? "#1769E8" : "#718096",
-                transition: "color 0.2s",
-              }}>
+              <button
+                key={tab.id}
+                onClick={() => {
+                  if (tab.id === "matches") setMatchTurfFilter(null);
+                  if (tab.activeIf && tab.activeIf.includes(activeTab)) {
+                    // Already in hub
+                  } else {
+                    setActiveTab(tab.id);
+                  }
+                }}
+                aria-current={isActive ? "page" : undefined}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 3,
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "6px 8px",
+                  borderRadius: 10,
+                  flex: 1,
+                  color: isActive ? "#1769E8" : "#718096",
+                  transition: "color 0.2s",
+                }}
+              >
                 <Icon name={tab.icon} size={20} color={isActive ? "#1769E8" : "#718096"} />
-                <span style={{ fontSize: 10, fontWeight: isActive ? 800 : 600, fontFamily: FONT_BODY }}>{tab.label}</span>
+                <span style={{ fontSize: 10.5, fontWeight: isActive ? 800 : 600, fontFamily: FONT_BODY }}>{tab.label}</span>
                 {isActive && (
-                  <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#1769E8" }} />
+                  <div style={{ width: 4, height: 4, borderRadius: "50%", background: "#1769E8" }} />
                 )}
               </button>
             );

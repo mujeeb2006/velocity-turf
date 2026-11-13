@@ -19,6 +19,9 @@ export function TournamentsSection({ profile, showToast }) {
   const [showScoreModal, setShowScoreModal] = useState(null); // fixture object
   const [sportFilter, setSportFilter] = useState("all");
 
+  const userRole = (profile?.role || "player").toLowerCase();
+  const canHostTournament = userRole === "admin" || userRole === "owner" || userRole === "turf_owner" || userRole === "turf owner";
+
   const fetchTournaments = async () => {
     setLoading(true);
     try {
@@ -87,6 +90,7 @@ export function TournamentsSection({ profile, showToast }) {
           </p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
+          {canHostTournament && (
           <button
             onClick={() => setShowCreateModal(true)}
             style={{
@@ -97,6 +101,7 @@ export function TournamentsSection({ profile, showToast }) {
           >
             <span>+</span> Host Tournament
           </button>
+          )}
         </div>
       </div>
 
@@ -322,9 +327,11 @@ export function TournamentsSection({ profile, showToast }) {
             <EmptyState
               icon="trophy"
               title="No tournaments currently scheduled"
-              description="Be the first organizer to host a cup or tournament on Velocity Turf!"
-              actionLabel="Host Tournament"
-              onAction={() => setShowCreateModal(true)}
+              description={canHostTournament
+                ? "Be the first organizer to host a cup or tournament on Velocity Turf!"
+                : "Check back later for upcoming tournaments and leagues."}
+              actionLabel={canHostTournament ? "Host Tournament" : undefined}
+              onAction={canHostTournament ? () => setShowCreateModal(true) : undefined}
             />
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(330px, 1fr))", gap: 16 }}>
@@ -544,15 +551,20 @@ function CreateTournamentModal({ onClose, onCreated, showToast }) {
           </div>
 
           <div>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: V.chalkDim, marginBottom: 6 }}>Venue (Turf) ID *</label>
-            <input
-              type="text"
+            <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: V.chalkDim, marginBottom: 6 }}>Select Venue *</label>
+            <select
               required
-              placeholder="Enter Turf Venue UUID"
               value={form.turfId}
               onChange={(e) => setForm({ ...form, turfId: e.target.value })}
               style={{ width: "100%", padding: "10px 12px", background: V.pitch, border: `1px solid ${V.line}`, borderRadius: 8, color: V.chalk, fontSize: 13.5 }}
-            />
+            >
+              <option value="">— Choose a venue —</option>
+              {turfs.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name} — {t.city || "Unknown city"}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>

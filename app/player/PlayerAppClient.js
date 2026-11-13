@@ -152,50 +152,50 @@ function SlotGrid({ slots = [], onSelect, selected, loading = false, price }) {
         const bg = isSelected
           ? "#1769E8"
           : isAvailable
-          ? "#E9F9ED"
-          : isLocked
-          ? "#FFF2E5"
-          : isClosed
-          ? "#F4F7FA"
-          : "#F4F7FA";
+            ? "#E9F9ED"
+            : isLocked
+              ? "#FFF2E5"
+              : isClosed
+                ? "#F4F7FA"
+                : "#F4F7FA";
 
         const borderColor = isSelected
           ? "#1769E8"
           : isAvailable
-          ? "rgba(16, 185, 129, 0.45)"
-          : isLocked
-          ? "rgba(245, 158, 11, 0.45)"
-          : isClosed
-          ? "#E5EDF5"
-          : "#E5EDF5";
+            ? "rgba(16, 185, 129, 0.45)"
+            : isLocked
+              ? "rgba(245, 158, 11, 0.45)"
+              : isClosed
+                ? "#E5EDF5"
+                : "#E5EDF5";
 
         const textColor = isSelected
           ? "#FFFFFF"
           : isAvailable
-          ? "#172B4D"
-          : isLocked
-          ? "#D97706"
-          : "#A0AEC0";
+            ? "#172B4D"
+            : isLocked
+              ? "#D97706"
+              : "#A0AEC0";
 
         const statusLabel = isSelected
           ? "Selected"
           : isClosed
-          ? "Closed"
-          : isAvailable
-          ? "Open"
-          : isLocked
-          ? "Held"
-          : "Taken";
+            ? "Closed"
+            : isAvailable
+              ? "Open"
+              : isLocked
+                ? "Held"
+                : "Taken";
 
         const ariaStatus = isSelected
           ? "selected slot"
           : isClosed
-          ? "This session has ended, unavailable"
-          : isAvailable
-          ? `available slot, ₹${price} per hour`
-          : isLocked
-          ? "temporarily locked slot"
-          : "booked slot, unavailable";
+            ? "This session has ended, unavailable"
+            : isAvailable
+              ? `available slot, ₹${price} per hour`
+              : isLocked
+                ? "temporarily locked slot"
+                : "booked slot, unavailable";
 
         return (
           <button
@@ -302,15 +302,15 @@ function TurfCard({ turf, onBook, onMatch, index = 0 }) {
           {hasAvailability ? "Open slots today" : "No slots today"}
         </span>
         {isDynamic && (
-            <span className="vt-venue-demand">Filling fast</span>
-          )}
-          {turf.occupancy > 0 && (
-            <div className="vt-venue-occupancy" aria-label={`${turf.occupancy}% of today's slots are booked`}>
-              <span>Slots booked today</span>
-              <span>{turf.occupancy}%</span>
-              <div><i style={{ width: `${turf.occupancy}%` }} /></div>
-            </div>
-          )}
+          <span className="vt-venue-demand">Filling fast</span>
+        )}
+        {turf.occupancy > 0 && (
+          <div className="vt-venue-occupancy" aria-label={`${turf.occupancy}% of today's slots are booked`}>
+            <span>Slots booked today</span>
+            <span>{turf.occupancy}%</span>
+            <div><i style={{ width: `${turf.occupancy}%` }} /></div>
+          </div>
+        )}
       </div>
 
       <div className="vt-venue-content">
@@ -419,7 +419,7 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
       .then((d) => {
         if (d?.myTeams) setUserTeams(d.myTeams);
       })
-      .catch(() => {});
+      .catch(() => { });
 
     fetch("/api/player/packages")
       .then((r) => r.json())
@@ -429,7 +429,7 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
           setUserPasses(active);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
 
     fetch("/api/player/rewards")
       .then((r) => r.json())
@@ -439,7 +439,7 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
           setRewardSettings(d.settings);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [profile?.id]);
 
   // Client-side idempotency key for this booking session
@@ -1355,10 +1355,10 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
                               {groupPaymentMode === "leader_immediate"
                                 ? `₹${finalPayable} (Friends reimburse ₹${Math.round(finalPayable / groupParticipantCount)} each)`
                                 : groupSplitMode === "equal"
-                                ? `≈ ₹${Math.round(finalPayable / groupParticipantCount)}`
-                                : groupSplitMode === "leader_pays"
-                                ? `₹${finalPayable} (You pay all)`
-                                : "Custom amounts per player"}
+                                  ? `≈ ₹${Math.round(finalPayable / groupParticipantCount)}`
+                                  : groupSplitMode === "leader_pays"
+                                    ? `₹${finalPayable} (You pay all)`
+                                    : "Custom amounts per player"}
                             </span>
                           </div>
                           <div style={{ fontSize: 10.5, color: V.chalkFaint, marginTop: 4 }}>
@@ -1529,12 +1529,12 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
                     !profile?.id
                       ? `Sign in & Confirm Book · ₹${finalPayable}`
                       : selectedPackageId
-                      ? "Confirm & Redeem Pass"
-                      : isGroupBooking
-                      ? `Create Group Booking · ${groupSplitMode === 'equal' ? `₹${Math.round(finalPayable / groupParticipantCount)} share` : `₹${finalPayable}`}`
-                      : isFullSlotFree
-                      ? "Confirm 100% Free Slot"
-                      : `Confirm & Book · ₹${finalPayable}`
+                        ? "Confirm & Redeem Pass"
+                        : isGroupBooking
+                          ? `Create Group Booking · ${groupSplitMode === 'equal' ? `₹${Math.round(finalPayable / groupParticipantCount)} share` : `₹${finalPayable}`}`
+                          : isFullSlotFree
+                            ? "Confirm 100% Free Slot"
+                            : `Confirm & Book · ₹${finalPayable}`
                   )}
                 </button>
               </div>
@@ -3439,69 +3439,69 @@ function LoyaltySection({ isLoading, leaderboard, myPoints, gamesPlayed }) {
             <SkeletonCard lines={4} />
           </div>
         ) : (
-        <div className="vt-loyalty-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-          {/* My Points Card */}
-          <div style={{ ...panel(true), borderRadius: 16, padding: 28 }}>
-            <div style={{ color: V.chalkFaint, fontSize: 13, marginBottom: 8, fontFamily: FONT_BODY }}>Your points</div>
-            <div style={{ color: V.chalk, fontFamily: FONT_DATA, fontSize: 44, fontWeight: 700, lineHeight: 1 }}>
-              {myPoints.toLocaleString()}
-              <span style={{ fontSize: 16, color: V.flood, marginLeft: 8 }}>pts</span>
-            </div>
-            <div style={{ margin: "20px 0 8px", display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: V.chalkFaint, fontSize: 12, fontFamily: FONT_BODY }}>Progress to Gold</span>
-              <span style={{ color: V.flood, fontSize: 12, fontWeight: 700, fontFamily: FONT_BODY }}>{Math.round(progress * 100)}%</span>
-            </div>
-            <div style={{ height: 6, background: V.line, borderRadius: 4 }}>
-              <div style={{ height: "100%", width: `${progress * 100}%`, background: V.flood, borderRadius: 4 }} />
-            </div>
-            <div style={{ color: V.chalkFaint, fontSize: 11, marginTop: 6, fontFamily: FONT_BODY }}>
-              {myPoints >= nextMilestone ? "You've reached Gold" : `${(nextMilestone - myPoints).toLocaleString()} pts to reach Gold`}
+          <div className="vt-loyalty-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+            {/* My Points Card */}
+            <div style={{ ...panel(true), borderRadius: 16, padding: 28 }}>
+              <div style={{ color: V.chalkFaint, fontSize: 13, marginBottom: 8, fontFamily: FONT_BODY }}>Your points</div>
+              <div style={{ color: V.chalk, fontFamily: FONT_DATA, fontSize: 44, fontWeight: 700, lineHeight: 1 }}>
+                {myPoints.toLocaleString()}
+                <span style={{ fontSize: 16, color: V.flood, marginLeft: 8 }}>pts</span>
+              </div>
+              <div style={{ margin: "20px 0 8px", display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: V.chalkFaint, fontSize: 12, fontFamily: FONT_BODY }}>Progress to Gold</span>
+                <span style={{ color: V.flood, fontSize: 12, fontWeight: 700, fontFamily: FONT_BODY }}>{Math.round(progress * 100)}%</span>
+              </div>
+              <div style={{ height: 6, background: V.line, borderRadius: 4 }}>
+                <div style={{ height: "100%", width: `${progress * 100}%`, background: V.flood, borderRadius: 4 }} />
+              </div>
+              <div style={{ color: V.chalkFaint, fontSize: 11, marginTop: 6, fontFamily: FONT_BODY }}>
+                {myPoints >= nextMilestone ? "You've reached Gold" : `${(nextMilestone - myPoints).toLocaleString()} pts to reach Gold`}
+              </div>
+
+              <div style={{ marginTop: 24, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                {[
+                  { label: "Leaderboard rank", value: myRank ? `#${myRank}` : "Not ranked yet" },
+                  { label: "Games played", value: gamesPlayed.toLocaleString() },
+                ].map(s => (
+                  <div key={s.label} style={{ background: V.pitchCardRaised, borderRadius: 10, padding: 12, border: `1px solid ${V.line}` }}>
+                    <div style={{ color: V.chalkFaint, fontSize: 11, fontFamily: FONT_BODY }}>{s.label}</div>
+                    <div style={{ color: V.chalk, fontWeight: 700, fontSize: 15, marginTop: 4, fontFamily: FONT_DATA }}>{s.value}</div>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            <div style={{ marginTop: 24, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              {[
-                { label: "Leaderboard rank", value: myRank ? `#${myRank}` : "Not ranked yet" },
-                { label: "Games played", value: gamesPlayed.toLocaleString() },
-              ].map(s => (
-                <div key={s.label} style={{ background: V.pitchCardRaised, borderRadius: 10, padding: 12, border: `1px solid ${V.line}` }}>
-                  <div style={{ color: V.chalkFaint, fontSize: 11, fontFamily: FONT_BODY }}>{s.label}</div>
-                  <div style={{ color: V.chalk, fontWeight: 700, fontSize: 15, marginTop: 4, fontFamily: FONT_DATA }}>{s.value}</div>
+            {/* Leaderboard */}
+            <div style={{ ...panel(), borderRadius: 16, padding: 28 }}>
+              <div style={{ color: V.chalkFaint, fontSize: 13, marginBottom: 16, fontFamily: FONT_BODY }}>Top players</div>
+              {leaderboard.length === 0 ? (
+                <EmptyState icon="trophy" title="The leaderboard is empty" subtitle="Book a game to earn your first points and start climbing the leaderboard." accent={V.flood} />
+              ) : (
+                <div style={{ display: "grid", gap: 10 }}>
+                  {leaderboard.map(p => (
+                    <div key={p.rank} style={{
+                      display: "flex", alignItems: "center", gap: 12, padding: "10px 14px",
+                      background: p.isYou ? V.floodDim : "transparent",
+                      border: `1px solid ${p.isYou ? V.flood + "40" : V.line}`,
+                      borderRadius: 10,
+                      transition: "border-color 0.2s",
+                    }}
+                      onMouseEnter={e => { if (!p.isYou) e.currentTarget.style.borderColor = V.lineStrong; }}
+                      onMouseLeave={e => { if (!p.isYou) e.currentTarget.style.borderColor = V.line; }}
+                    >
+                      <RankBadge rank={p.rank} size={28} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ color: p.isYou ? V.flood : V.chalk, fontWeight: 600, fontSize: 14, fontFamily: FONT_BODY }}>{p.name}</div>
+                      </div>
+                      <div style={{ color: V.chalk, fontWeight: 800, fontFamily: FONT_DATA, fontSize: 14 }}>
+                        {p.points.toLocaleString()}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
           </div>
-
-          {/* Leaderboard */}
-          <div style={{ ...panel(), borderRadius: 16, padding: 28 }}>
-            <div style={{ color: V.chalkFaint, fontSize: 13, marginBottom: 16, fontFamily: FONT_BODY }}>Top players</div>
-            {leaderboard.length === 0 ? (
-              <EmptyState icon="trophy" title="The leaderboard is empty" subtitle="Book a game to earn your first points and start climbing the leaderboard." accent={V.flood} />
-            ) : (
-            <div style={{ display: "grid", gap: 10 }}>
-              {leaderboard.map(p => (
-                <div key={p.rank} style={{
-                  display: "flex", alignItems: "center", gap: 12, padding: "10px 14px",
-                  background: p.isYou ? V.floodDim : "transparent",
-                  border: `1px solid ${p.isYou ? V.flood + "40" : V.line}`,
-                  borderRadius: 10,
-                  transition: "border-color 0.2s",
-                }}
-                  onMouseEnter={e => { if (!p.isYou) e.currentTarget.style.borderColor = V.lineStrong; }}
-                  onMouseLeave={e => { if (!p.isYou) e.currentTarget.style.borderColor = V.line; }}
-                >
-                  <RankBadge rank={p.rank} size={28} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ color: p.isYou ? V.flood : V.chalk, fontWeight: 600, fontSize: 14, fontFamily: FONT_BODY }}>{p.name}</div>
-                  </div>
-                  <div style={{ color: V.chalk, fontWeight: 800, fontFamily: FONT_DATA, fontSize: 14 }}>
-                    {p.points.toLocaleString()}
-                  </div>
-                </div>
-              ))}
-            </div>
-            )}
-          </div>
-        </div>
         )}
       </div>
     </div>
@@ -3511,9 +3511,60 @@ function LoyaltySection({ isLoading, leaderboard, myPoints, gamesPlayed }) {
 // ============================================================
 // DASHBOARD
 // ============================================================
-function DashboardSection({ isLoading, bookings, matchesJoined, joinedGames = [], onCancel, onReview, onDispute, onViewQr, onFindTurf, onFindGames, onViewGame }) {
+function DashboardSection({ isLoading, bookings, matchesJoined, joinedGames = [], onCancel, onReview, onDispute, onViewQr, onFindTurf, onFindGames, onViewGame, profile, showToast }) {
   const [filter, setFilter] = useState("upcoming");
+  const [referralData, setReferralData] = useState(null);
+  const [referralLoading, setReferralLoading] = useState(true);
+  const [copiedReferral, setCopiedReferral] = useState(false);
   const now = new Date();
+
+  // Fetch referral data for dashboard card
+  useEffect(() => {
+    if (!profile?.id) return;
+    setReferralLoading(true);
+    fetch("/api/player/rewards")
+      .then(r => r.ok ? r.json() : null)
+      .then(json => { if (json) setReferralData(json); })
+      .catch(() => { })
+      .finally(() => setReferralLoading(false));
+  }, [profile?.id]);
+
+  const refCode = referralData?.referral?.referralCode || profile?.referral_code || "";
+  const refSettings = referralData?.settings || {};
+  const refCompleted = referralData?.referral?.totalCompleted || 0;
+  const refMaxAllowed = referralData?.referral?.maxAllowed || 3;
+  const refRemaining = Math.max(0, refMaxAllowed - refCompleted);
+  const refLimitReached = refCompleted >= refMaxAllowed;
+  const refSlots = referralData?.referral?.slots || [];
+
+  const handleCopyReferral = () => {
+    if (!refCode) return;
+    navigator.clipboard?.writeText(refCode);
+    setCopiedReferral(true);
+    if (showToast) showToast("Referral code copied!", { type: "success" });
+    setTimeout(() => setCopiedReferral(false), 2200);
+  };
+
+  const handleShareReferral = async () => {
+    const link = referralData?.referral?.referralLink || `${typeof window !== "undefined" ? window.location.origin : ""}/signup?ref=${refCode}`;
+    const shareData = {
+      title: "Play sports on Velocity Turf",
+      text: `Join me on Velocity Turf! Use my referral code ${refCode} to get bonus reward points on your first booking.`,
+      url: link,
+    };
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try { await navigator.share(shareData); } catch (err) {
+        if (err.name !== "AbortError") {
+          navigator.clipboard?.writeText(link);
+          if (showToast) showToast("Invite link copied!", { type: "success" });
+        }
+      }
+    } else {
+      navigator.clipboard?.writeText(link);
+      if (showToast) showToast("Invite link copied!", { type: "success" });
+    }
+  };
+
   const upcoming = bookings.filter(b => ["pending", "confirmed"].includes(b.status) && isUpcomingBooking(b, now));
   const pastBookings = bookings.filter(booking => isPlayedBooking(booking, now));
   const cancelledOrDeclined = bookings.filter(b => ["cancelled", "declined"].includes(b.status));
@@ -3524,10 +3575,10 @@ function DashboardSection({ isLoading, bookings, matchesJoined, joinedGames = []
     filter === "upcoming"
       ? upcoming
       : filter === "past"
-      ? pastBookings
-      : filter === "cancelled"
-      ? cancelledOrDeclined
-      : bookings;
+        ? pastBookings
+        : filter === "cancelled"
+          ? cancelledOrDeclined
+          : bookings;
 
   return (
     <div className="vt-dashboard-section" style={{ padding: "40px 20px 80px" }}>
@@ -3561,129 +3612,276 @@ function DashboardSection({ isLoading, bookings, matchesJoined, joinedGames = []
             </div>
           </>
         ) : (
-        <>
-          {/* Stat Cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14, marginBottom: 32 }}>
-            {[
-              { label: "Total spent", value: `₹${totalSpent.toLocaleString()}`, icon: "trending", bg: "#EAF7FF", color: "#1769E8" },
-              { label: "Games played", value: gamesPlayed, icon: "clock", bg: "#E9F9ED", color: "#10B981" },
-              { label: "Squad matches joined", value: matchesJoined, icon: "trophy", bg: "#F1EEFF", color: "#7C3AED" },
-              { label: "Upcoming bookings", value: upcoming.length, icon: "calendar", bg: "#FFF2E5", color: "#F59E0B" },
-            ].map(s => (
-              <div
-                key={s.label}
-                style={{
-                  ...panel(),
-                  borderRadius: 16,
-                  padding: "18px 20px",
-                  background: "#FFFFFF",
-                  border: "1px solid #E5EDF5",
-                  boxShadow: "0 6px 18px rgba(23, 105, 232, 0.05)",
-                  transition: "transform 0.2s, box-shadow 0.2s",
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-                  <div style={{ background: s.bg, borderRadius: 10, padding: 8, display: "inline-flex" }}>
-                    <Icon name={s.icon} size={18} color={s.color} />
-                  </div>
-                </div>
-                <div style={{ color: "#172B4D", fontWeight: 900, fontSize: 24, fontFamily: typeof s.value === "string" && s.value.startsWith("₹") ? FONT_BODY : FONT_DATA }}>
-                  {s.value}
-                </div>
-                <div style={{ color: "#718096", fontSize: 13, marginTop: 4, fontFamily: FONT_BODY, fontWeight: 700 }}>
-                  {s.label}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Filter Navigation Tabs */}
-          <div
-            role="tablist"
-            aria-label="Filter bookings"
-            style={{
-              display: "flex",
-              gap: 8,
-              borderBottom: `1px solid ${V.line}`,
-              paddingBottom: 12,
-              marginBottom: 20,
-              overflowX: "auto",
-              scrollbarWidth: "none",
-            }}
-          >
-            {[
-              { id: "upcoming", label: "Upcoming", count: upcoming.length },
-              { id: "community", label: "Community Games", count: (joinedGames || []).length },
-              { id: "past", label: "Completed", count: pastBookings.length },
-              { id: "cancelled", label: "Cancelled / Declined", count: cancelledOrDeclined.length },
-              { id: "all", label: "All Bookings", count: bookings.length },
-            ].map(tab => {
-              const active = filter === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => setFilter(tab.id)}
+          <>
+            {/* Stat Cards */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14, marginBottom: 32 }}>
+              {[
+                { label: "Total spent", value: `₹${totalSpent.toLocaleString()}`, icon: "trending", bg: "#EAF7FF", color: "#1769E8" },
+                { label: "Games played", value: gamesPlayed, icon: "clock", bg: "#E9F9ED", color: "#10B981" },
+                { label: "Squad matches joined", value: matchesJoined, icon: "trophy", bg: "#F1EEFF", color: "#7C3AED" },
+                { label: "Upcoming bookings", value: upcoming.length, icon: "calendar", bg: "#FFF2E5", color: "#F59E0B" },
+              ].map(s => (
+                <div
+                  key={s.label}
                   style={{
-                    padding: "8px 16px",
-                    borderRadius: 10,
-                    background: active ? V.pitchCard : "transparent",
-                    border: `1.5px solid ${active ? V.lineStrong : "transparent"}`,
-                    color: active ? V.chalk : V.chalkDim,
-                    fontWeight: 700,
-                    fontSize: 13,
-                    fontFamily: FONT_BODY,
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    whiteSpace: "nowrap",
-                    boxShadow: active ? "0 2px 8px rgba(0,0,0,0.05)" : "none",
+                    ...panel(),
+                    borderRadius: 16,
+                    padding: "18px 20px",
+                    background: "#FFFFFF",
+                    border: "1px solid #E5EDF5",
+                    boxShadow: "0 6px 18px rgba(23, 105, 232, 0.05)",
+                    transition: "transform 0.2s, box-shadow 0.2s",
                   }}
                 >
-                  <span>{tab.label}</span>
-                  <span style={{
-                    padding: "1px 7px",
-                    borderRadius: 999,
-                    fontSize: 11,
-                    background: active ? "rgba(21, 128, 81, 0.12)" : "rgba(17, 24, 39, 0.06)",
-                    color: active ? V.floodButton || V.flood : V.chalkFaint,
-                    fontWeight: 800,
-                  }}>
-                    {tab.count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                    <div style={{ background: s.bg, borderRadius: 10, padding: 8, display: "inline-flex" }}>
+                      <Icon name={s.icon} size={18} color={s.color} />
+                    </div>
+                  </div>
+                  <div style={{ color: "#172B4D", fontWeight: 900, fontSize: 24, fontFamily: typeof s.value === "string" && s.value.startsWith("₹") ? FONT_BODY : FONT_DATA }}>
+                    {s.value}
+                  </div>
+                  <div style={{ color: "#718096", fontSize: 13, marginTop: 4, fontFamily: FONT_BODY, fontWeight: 700 }}>
+                    {s.label}
+                  </div>
+                </div>
+              ))}
+            </div>
 
-          {/* Bookings / Community Games List */}
-          {filter === "community" ? (
-            joinedGames.length === 0 ? (
+            {/* Filter Navigation Tabs */}
+            <div
+              role="tablist"
+              aria-label="Filter bookings"
+              style={{
+                display: "flex",
+                gap: 8,
+                borderBottom: `1px solid ${V.line}`,
+                paddingBottom: 12,
+                marginBottom: 20,
+                overflowX: "auto",
+                scrollbarWidth: "none",
+              }}
+            >
+              {[
+                { id: "upcoming", label: "Upcoming", count: upcoming.length },
+                { id: "community", label: "Community Games", count: (joinedGames || []).length },
+                { id: "past", label: "Completed", count: pastBookings.length },
+                { id: "cancelled", label: "Cancelled / Declined", count: cancelledOrDeclined.length },
+                { id: "all", label: "All Bookings", count: bookings.length },
+              ].map(tab => {
+                const active = filter === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setFilter(tab.id)}
+                    style={{
+                      padding: "8px 16px",
+                      borderRadius: 10,
+                      background: active ? V.pitchCard : "transparent",
+                      border: `1.5px solid ${active ? V.lineStrong : "transparent"}`,
+                      color: active ? V.chalk : V.chalkDim,
+                      fontWeight: 700,
+                      fontSize: 13,
+                      fontFamily: FONT_BODY,
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      whiteSpace: "nowrap",
+                      boxShadow: active ? "0 2px 8px rgba(0,0,0,0.05)" : "none",
+                    }}
+                  >
+                    <span>{tab.label}</span>
+                    <span style={{
+                      padding: "1px 7px",
+                      borderRadius: 999,
+                      fontSize: 11,
+                      background: active ? "rgba(21, 128, 81, 0.12)" : "rgba(17, 24, 39, 0.06)",
+                      color: active ? V.floodButton || V.flood : V.chalkFaint,
+                      fontWeight: 800,
+                    }}>
+                      {tab.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Bookings / Community Games List */}
+            {filter === "community" ? (
+              joinedGames.length === 0 ? (
+                <div style={{ marginTop: 12 }}>
+                  <EmptyState
+                    icon="trophy"
+                    title="No joined community games yet"
+                    subtitle="You haven't joined any community games yet. Browse scheduled games at nearby turfs to jump in and play with others!"
+                    action={
+                      <button type="button" onClick={onFindGames || onFindTurf} style={buttonStyle("primary", "md")}>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                          Browse Community Games <ArrowRight size={14} />
+                        </span>
+                      </button>
+                    }
+                  />
+                </div>
+              ) : (
+                <div style={{ display: "grid", gap: 14 }}>
+                  {joinedGames.map(jg => {
+                    const game = jg.match || {};
+                    const turf = game.turf || {};
+                    return (
+                      <article
+                        key={jg.id}
+                        style={{
+                          ...panel(),
+                          borderRadius: 16,
+                          padding: "20px 22px",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          flexWrap: "wrap",
+                          gap: 16,
+                          boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
+                        }}
+                      >
+                        <div style={{ display: "flex", gap: 16, alignItems: "center", minWidth: 260 }}>
+                          <div style={{
+                            width: 50,
+                            height: 50,
+                            borderRadius: 14,
+                            background: V.pitchCardRaised,
+                            border: `1px solid ${V.line}`,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: 22,
+                            flexShrink: 0,
+                          }}>
+                            {sportIcon(game.sport)}
+                          </div>
+                          <div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                              <h3 style={{ color: V.chalk, fontWeight: 800, fontSize: 17, margin: 0, fontFamily: FONT_BODY }}>
+                                {game.title || `${game.sport} Community Match`}
+                              </h3>
+                              <span style={{
+                                padding: "3px 9px",
+                                borderRadius: 6,
+                                fontSize: 11,
+                                fontWeight: 800,
+                                fontFamily: FONT_BODY,
+                                background: "rgba(34, 197, 94, 0.15)",
+                                color: V.confirmed,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                              }}>
+                                <Check size={11} strokeWidth={2.5} /> Paid & Confirmed
+                              </span>
+                            </div>
+                            <div style={{ color: V.chalkDim, fontSize: 13, marginTop: 4, fontFamily: FONT_BODY, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><StadiumIcon size={14} color={V.chalkFaint} /> {turf.name || "Turf"} ({turf.city || "Venue"})</span>
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Calendar size={13} color={V.chalkFaint} /> {formatBookingDate(game.match_date)}</span>
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Clock size={13} color={V.chalkFaint} /> {formatTime12(game.start_time)} – {formatTime12(game.end_time || game.start_time)}</span>
+                            </div>
+                            <div style={{ color: V.chalkFaint, fontSize: 11.5, marginTop: 4, fontFamily: FONT_DATA }}>
+                              Ref: {jg.payment_id || "VT-PAY-CONFIRMED"} · Individual Spot Confirmed
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+                          <div style={{ textAlign: "right" }}>
+                            <span style={{ color: V.chalkFaint, fontSize: 11, display: "block" }}>Fee Paid</span>
+                            <span style={{ color: V.flood, fontWeight: 800, fontSize: 18, fontFamily: FONT_BODY }}>
+                              {formatINR(jg.amount_paid || 0)}
+                            </span>
+                          </div>
+                          {onViewGame && (
+                            <button
+                              type="button"
+                              onClick={() => onViewGame({
+                                ...game,
+                                ...jg,
+                                turf_name: turf.name,
+                                turf_city: turf.city,
+                                turf_address: turf.address,
+                                price_per_player: jg.amount_paid,
+                              })}
+                              style={buttonStyle("secondary", "sm")}
+                            >
+                              Game Details
+                            </button>
+                          )}
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              )
+            ) : currentList.length === 0 ? (
               <div style={{ marginTop: 12 }}>
-                <EmptyState
-                  icon="trophy"
-                  title="No joined community games yet"
-                  subtitle="You haven't joined any community games yet. Browse scheduled games at nearby turfs to jump in and play with others!"
-                  action={
-                    <button type="button" onClick={onFindGames || onFindTurf} style={buttonStyle("primary", "md")}>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                        Browse Community Games <ArrowRight size={14} />
-                      </span>
-                    </button>
-                  }
-                />
+                {filter === "upcoming" ? (
+                  <EmptyState
+                    icon="calendar"
+                    title="No upcoming bookings"
+                    subtitle="You have no matches scheduled right now. Browse nearby pitches to find an open slot and lock in your game."
+                    action={
+                      <button type="button" onClick={onFindTurf} style={buttonStyle("primary", "md")}>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                          Explore Available Turfs <ArrowRight size={14} />
+                        </span>
+                      </button>
+                    }
+                  />
+                ) : filter === "past" ? (
+                  <EmptyState
+                    icon="football"
+                    title="No completed games yet"
+                    subtitle="Matches you play will be archived here. After your match, you can leave ratings and reviews for the facility."
+                    action={
+                      <button type="button" onClick={onFindTurf} style={buttonStyle("secondary", "md")}>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                          Book Your First Match <ArrowRight size={14} />
+                        </span>
+                      </button>
+                    }
+                  />
+                ) : filter === "cancelled" ? (
+                  <EmptyState
+                    icon="check"
+                    title="No cancelled or declined bookings"
+                    subtitle="You don't have any rejected or cancelled reservations on your record."
+                  />
+                ) : (
+                  <EmptyState
+                    icon="stadium"
+                    title="No bookings found"
+                    subtitle="You haven't made any turf reservations yet."
+                    action={
+                      <button type="button" onClick={onFindTurf} style={buttonStyle("primary", "md")}>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                          Find a Turf <ArrowRight size={14} />
+                        </span>
+                      </button>
+                    }
+                  />
+                )}
               </div>
             ) : (
               <div style={{ display: "grid", gap: 14 }}>
-                {joinedGames.map(jg => {
-                  const game = jg.match || {};
-                  const turf = game.turf || {};
+                {currentList.map(b => {
+                  const badge = statusBadge(b.status);
+                  const isUpcoming = ["pending", "confirmed"].includes(b.status) && isUpcomingBooking(b, now);
+                  const isPast = isPlayedBooking(b, now);
+                  const isCancelled = ["cancelled", "declined"].includes(b.status);
+
                   return (
                     <article
-                      key={jg.id}
+                      key={b.id}
                       style={{
                         ...panel(),
                         borderRadius: 16,
@@ -3696,6 +3894,7 @@ function DashboardSection({ isLoading, bookings, matchesJoined, joinedGames = []
                         boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
                       }}
                     >
+                      {/* Left: Venue & Timing Info */}
                       <div style={{ display: "flex", gap: 16, alignItems: "center", minWidth: 260 }}>
                         <div style={{
                           width: 50,
@@ -3709,12 +3908,12 @@ function DashboardSection({ isLoading, bookings, matchesJoined, joinedGames = []
                           fontSize: 22,
                           flexShrink: 0,
                         }}>
-                          {sportIcon(game.sport)}
+                          {sportIcon(b.sport)}
                         </div>
                         <div>
                           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                             <h3 style={{ color: V.chalk, fontWeight: 800, fontSize: 17, margin: 0, fontFamily: FONT_BODY }}>
-                              {game.title || `${game.sport} Community Match`}
+                              {b.turf}
                             </h3>
                             <span style={{
                               padding: "3px 9px",
@@ -3722,230 +3921,247 @@ function DashboardSection({ isLoading, bookings, matchesJoined, joinedGames = []
                               fontSize: 11,
                               fontWeight: 800,
                               fontFamily: FONT_BODY,
-                              background: "rgba(34, 197, 94, 0.15)",
-                              color: V.confirmed,
+                              background: badge.bg,
+                              color: badge.color,
                               display: "inline-flex",
                               alignItems: "center",
                               gap: 4,
                             }}>
-                              <Check size={11} strokeWidth={2.5} /> Paid & Confirmed
+                              {badge.icon && <Icon name={badge.icon} size={11} strokeWidth={2.5} />}
+                              {badge.label}
                             </span>
                           </div>
                           <div style={{ color: V.chalkDim, fontSize: 13, marginTop: 4, fontFamily: FONT_BODY, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><StadiumIcon size={14} color={V.chalkFaint} /> {turf.name || "Turf"} ({turf.city || "Venue"})</span>
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Calendar size={13} color={V.chalkFaint} /> {formatBookingDate(game.match_date)}</span>
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Clock size={13} color={V.chalkFaint} /> {formatTime12(game.start_time)} – {formatTime12(game.end_time || game.start_time)}</span>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Calendar size={13} color={V.chalkFaint} /> {formatBookingDate(b.bookingDate)}</span>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Clock size={13} color={V.chalkFaint} /> {b.time}</span>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><SportIcon sport={b.sport} size={13} color={V.chalkFaint} /> {b.sport}</span>
                           </div>
-                          <div style={{ color: V.chalkFaint, fontSize: 11.5, marginTop: 4, fontFamily: FONT_DATA }}>
-                            Ref: {jg.payment_id || "VT-PAY-CONFIRMED"} · Individual Spot Confirmed
-                          </div>
+                          {isCancelled && (
+                            <div style={{ color: V.chalkFaint, fontSize: 11.5, marginTop: 4, fontFamily: FONT_BODY }}>
+                              Slot has been released back to public availability.
+                            </div>
+                          )}
                         </div>
                       </div>
 
-                      <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-                        <div style={{ textAlign: "right" }}>
-                          <span style={{ color: V.chalkFaint, fontSize: 11, display: "block" }}>Fee Paid</span>
-                          <span style={{ color: V.flood, fontWeight: 800, fontSize: 18, fontFamily: FONT_BODY }}>
-                            {formatINR(jg.amount_paid || 0)}
+                      {/* Right: Pricing & Actions */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                        <div style={{ textAlign: "right", marginRight: 6 }}>
+                          <span style={{ color: V.chalkFaint, fontSize: 11, display: "block" }}>Paid Amount</span>
+                          <span style={{ color: V.chalk, fontWeight: 800, fontSize: 17, fontFamily: FONT_BODY }}>
+                            ₹{b.price}
                           </span>
                         </div>
-                        {onViewGame && (
+
+                        {isUpcoming && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => onViewQr(b)}
+                              style={buttonStyle("secondary", "sm")}
+                            >
+                              QR Ticket
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onCancel(b)}
+                              style={buttonStyle("danger", "sm")}
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        )}
+
+                        {isPast && !b.hasReview && (
                           <button
                             type="button"
-                            onClick={() => onViewGame({
-                              ...game,
-                              ...jg,
-                              turf_name: turf.name,
-                              turf_city: turf.city,
-                              turf_address: turf.address,
-                              price_per_player: jg.amount_paid,
-                            })}
-                            style={buttonStyle("secondary", "sm")}
+                            onClick={() => onReview(b)}
+                            style={buttonStyle("primary", "sm")}
                           >
-                            Game Details
+                            Rate Turf
                           </button>
                         )}
+
+                        <button
+                          type="button"
+                          onClick={() => onDispute(b)}
+                          style={buttonStyle("ghost", "sm")}
+                        >
+                          Help & Support
+                        </button>
                       </div>
                     </article>
                   );
                 })}
               </div>
-            )
-          ) : currentList.length === 0 ? (
-            <div style={{ marginTop: 12 }}>
-              {filter === "upcoming" ? (
-                <EmptyState
-                  icon="calendar"
-                  title="No upcoming bookings"
-                  subtitle="You have no matches scheduled right now. Browse nearby pitches to find an open slot and lock in your game."
-                  action={
-                    <button type="button" onClick={onFindTurf} style={buttonStyle("primary", "md")}>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                        Explore Available Turfs <ArrowRight size={14} />
-                      </span>
-                    </button>
-                  }
-                />
-              ) : filter === "past" ? (
-                <EmptyState
-                  icon="football"
-                  title="No completed games yet"
-                  subtitle="Matches you play will be archived here. After your match, you can leave ratings and reviews for the facility."
-                  action={
-                    <button type="button" onClick={onFindTurf} style={buttonStyle("secondary", "md")}>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                        Book Your First Match <ArrowRight size={14} />
-                      </span>
-                    </button>
-                  }
-                />
-              ) : filter === "cancelled" ? (
-                <EmptyState
-                  icon="check"
-                  title="No cancelled or declined bookings"
-                  subtitle="You don't have any rejected or cancelled reservations on your record."
-                />
-              ) : (
-                <EmptyState
-                  icon="stadium"
-                  title="No bookings found"
-                  subtitle="You haven't made any turf reservations yet."
-                  action={
-                    <button type="button" onClick={onFindTurf} style={buttonStyle("primary", "md")}>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                        Find a Turf <ArrowRight size={14} />
-                      </span>
-                    </button>
-                  }
-                />
-              )}
-            </div>
-          ) : (
-            <div style={{ display: "grid", gap: 14 }}>
-              {currentList.map(b => {
-                const badge = statusBadge(b.status);
-                const isUpcoming = ["pending", "confirmed"].includes(b.status) && isUpcomingBooking(b, now);
-                const isPast = isPlayedBooking(b, now);
-                const isCancelled = ["cancelled", "declined"].includes(b.status);
+            )}
+          </>
+        )}
 
-                return (
-                  <article
-                    key={b.id}
+        {/* ========================================================== */}
+        {/* REFERRAL CARD — below booking activity                      */}
+        {/* ========================================================== */}
+        {!isLoading && profile?.id && (
+          <div style={{ marginTop: 36 }}>
+            <div style={{
+              background: "#FFFFFF",
+              border: "1px solid #E5EDF5",
+              borderRadius: 18,
+              padding: "24px 24px 22px",
+              boxShadow: "0 4px 16px rgba(23, 105, 232, 0.05)",
+            }}>
+              {/* Header */}
+              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: "#EAF7FF", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Gift size={18} color="#1769E8" />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: 17, fontWeight: 800, color: "#172B4D", margin: 0, fontFamily: FONT_BODY }}>
+                      Invite Friends & Earn Rewards
+                    </h3>
+                    <p style={{ fontSize: 12.5, color: "#718096", margin: "2px 0 0", fontFamily: FONT_BODY }}>
+                      Invite up to {refMaxAllowed} friends and earn rewards when they complete their first eligible booking.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Progress Pill */}
+                <div style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  background: refLimitReached ? "rgba(21, 128, 81, 0.1)" : "#EAF7FF",
+                  border: `1px solid ${refLimitReached ? "rgba(21, 128, 81, 0.3)" : "rgba(23, 105, 232, 0.2)"}`,
+                  borderRadius: 20, padding: "5px 14px",
+                }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: refLimitReached ? "#158051" : "#1769E8" }}>
+                    {refCompleted}/{refMaxAllowed}
+                  </span>
+                  <span style={{ fontSize: 11.5, fontWeight: 600, color: refLimitReached ? "#158051" : "#718096" }}>
+                    {refLimitReached ? "Completed" : "Referrals"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Referral Code + Actions Row */}
+              <div style={{
+                display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10,
+                background: "#F7FAFC", border: "1px solid #E5EDF5", borderRadius: 12,
+                padding: "14px 16px", marginBottom: 16,
+              }}>
+                <div style={{ flex: "1 1 180px", minWidth: 0 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#718096", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 3 }}>
+                    Your Referral Code
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: "#1769E8", letterSpacing: 3, fontFamily: "monospace" }}>
+                    {referralLoading ? "..." : (refCode || "—")}
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                  <button
+                    type="button"
+                    onClick={handleCopyReferral}
+                    disabled={!refCode || refLimitReached}
                     style={{
-                      ...panel(),
-                      borderRadius: 16,
-                      padding: "20px 22px",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      flexWrap: "wrap",
-                      gap: 16,
-                      boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      padding: "8px 16px", borderRadius: 10,
+                      background: copiedReferral ? "rgba(21, 128, 81, 0.1)" : "#FFFFFF",
+                      border: `1px solid ${copiedReferral ? "#158051" : "#E5EDF5"}`,
+                      color: copiedReferral ? "#158051" : "#172B4D",
+                      fontWeight: 700, fontSize: 13, cursor: refCode && !refLimitReached ? "pointer" : "default",
+                      fontFamily: FONT_BODY,
+                      opacity: refLimitReached ? 0.5 : 1,
                     }}
                   >
-                    {/* Left: Venue & Timing Info */}
-                    <div style={{ display: "flex", gap: 16, alignItems: "center", minWidth: 260 }}>
+                    {copiedReferral ? <Check size={14} color="#158051" strokeWidth={2.5} /> : <Copy size={14} />}
+                    {copiedReferral ? "Copied!" : "Copy"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleShareReferral}
+                    disabled={!refCode || refLimitReached}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      padding: "8px 16px", borderRadius: 10,
+                      background: refLimitReached ? "#F0F4F8" : "linear-gradient(135deg, #18A8E0 0%, #1769E8 100%)",
+                      border: "none",
+                      color: refLimitReached ? "#718096" : "#FFFFFF",
+                      fontWeight: 700, fontSize: 13,
+                      cursor: refCode && !refLimitReached ? "pointer" : "default",
+                      fontFamily: FONT_BODY,
+                      boxShadow: refLimitReached ? "none" : "0 4px 12px rgba(23, 105, 232, 0.25)",
+                      opacity: refLimitReached ? 0.5 : 1,
+                    }}
+                  >
+                    <Share2 size={14} /> Share
+                  </button>
+                </div>
+              </div>
+
+              {/* Referral Progress Slots */}
+              <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+                {Array.from({ length: refMaxAllowed }, (_, i) => {
+                  const slot = refSlots[i];
+                  const isCompleted = slot?.status === "completed";
+                  const isRegistered = slot?.status === "registered";
+                  const isOpen = !isCompleted && !isRegistered;
+
+                  return (
+                    <div key={i} style={{
+                      flex: 1, padding: "10px 12px", borderRadius: 10, textAlign: "center",
+                      background: isCompleted ? "rgba(21, 128, 81, 0.08)" : isRegistered ? "rgba(23, 105, 232, 0.06)" : "#F7FAFC",
+                      border: `1px solid ${isCompleted ? "rgba(21, 128, 81, 0.25)" : isRegistered ? "rgba(23, 105, 232, 0.15)" : "#E5EDF5"}`,
+                    }}>
                       <div style={{
-                        width: 50,
-                        height: 50,
-                        borderRadius: 14,
-                        background: V.pitchCardRaised,
-                        border: `1px solid ${V.line}`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 22,
-                        flexShrink: 0,
+                        width: 24, height: 24, borderRadius: "50%", margin: "0 auto 6px",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        background: isCompleted ? "#158051" : isRegistered ? "#1769E8" : "#E5EDF5",
                       }}>
-                        {sportIcon(b.sport)}
+                        {isCompleted ? <Check size={13} color="#FFFFFF" strokeWidth={3} /> :
+                          isRegistered ? <Clock size={12} color="#FFFFFF" /> :
+                            <span style={{ fontSize: 11, fontWeight: 800, color: "#718096" }}>{i + 1}</span>}
                       </div>
-                      <div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                          <h3 style={{ color: V.chalk, fontWeight: 800, fontSize: 17, margin: 0, fontFamily: FONT_BODY }}>
-                            {b.turf}
-                          </h3>
-                          <span style={{
-                            padding: "3px 9px",
-                            borderRadius: 6,
-                            fontSize: 11,
-                            fontWeight: 800,
-                            fontFamily: FONT_BODY,
-                            background: badge.bg,
-                            color: badge.color,
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 4,
-                          }}>
-                            {badge.icon && <Icon name={badge.icon} size={11} strokeWidth={2.5} />}
-                            {badge.label}
-                          </span>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: isCompleted ? "#158051" : isRegistered ? "#1769E8" : "#718096" }}>
+                        {isCompleted ? "Completed" : isRegistered ? "Pending" : "Available"}
+                      </div>
+                      {isCompleted && slot.refereeName && (
+                        <div style={{ fontSize: 10, color: "#718096", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {slot.refereeName}
                         </div>
-                        <div style={{ color: V.chalkDim, fontSize: 13, marginTop: 4, fontFamily: FONT_BODY, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Calendar size={13} color={V.chalkFaint} /> {formatBookingDate(b.bookingDate)}</span>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Clock size={13} color={V.chalkFaint} /> {b.time}</span>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><SportIcon sport={b.sport} size={13} color={V.chalkFaint} /> {b.sport}</span>
-                        </div>
-                        {isCancelled && (
-                          <div style={{ color: V.chalkFaint, fontSize: 11.5, marginTop: 4, fontFamily: FONT_BODY }}>
-                            Slot has been released back to public availability.
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Right: Pricing & Actions */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                      <div style={{ textAlign: "right", marginRight: 6 }}>
-                        <span style={{ color: V.chalkFaint, fontSize: 11, display: "block" }}>Paid Amount</span>
-                        <span style={{ color: V.chalk, fontWeight: 800, fontSize: 17, fontFamily: FONT_BODY }}>
-                          ₹{b.price}
-                        </span>
-                      </div>
-
-                      {isUpcoming && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => onViewQr(b)}
-                            style={buttonStyle("secondary", "sm")}
-                          >
-                            QR Ticket
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => onCancel(b)}
-                            style={buttonStyle("danger", "sm")}
-                          >
-                            Cancel
-                          </button>
-                        </>
                       )}
-
-                      {isPast && !b.hasReview && (
-                        <button
-                          type="button"
-                          onClick={() => onReview(b)}
-                          style={buttonStyle("primary", "sm")}
-                        >
-                          Rate Turf
-                        </button>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={() => onDispute(b)}
-                        style={buttonStyle("ghost", "sm")}
-                      >
-                        Help & Support
-                      </button>
                     </div>
-                  </article>
-                );
-              })}
+                  );
+                })}
+              </div>
+
+              {/* Status Line + Info Note */}
+              {refLimitReached ? (
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  background: "rgba(21, 128, 81, 0.06)", borderRadius: 10, padding: "10px 14px",
+                  border: "1px solid rgba(21, 128, 81, 0.15)",
+                }}>
+                  <CheckCircle size={16} color="#158051" />
+                  <span style={{ fontSize: 12.5, color: "#158051", fontWeight: 700 }}>
+                    You've reached your referral limit. Thank you for inviting your friends!
+                  </span>
+                </div>
+              ) : (
+                <div style={{
+                  display: "flex", alignItems: "flex-start", gap: 8,
+                  background: "#F7FAFC", borderRadius: 10, padding: "10px 14px",
+                  border: "1px solid #E5EDF5",
+                }}>
+                  <Info size={14} color="#718096" style={{ flexShrink: 0, marginTop: 1 }} />
+                  <span style={{ fontSize: 12, color: "#718096", lineHeight: 1.5 }}>
+                    {refRemaining} {refRemaining === 1 ? "invitation" : "invitations"} remaining.
+                    {" "}You earn <strong>+{refSettings.referrer_reward_points || 100} points</strong> and your friend gets <strong>+{refSettings.referred_welcome_points || 50} welcome points</strong> after their first eligible booking.
+                  </span>
+                </div>
+              )}
             </div>
-          )}
-        </>
+          </div>
         )}
+
       </div>
     </div>
   );
@@ -5130,18 +5346,20 @@ export default function PlayerAppClient({ profile }) {
           )}
           {activeTab === "dashboard" && (profile?.id
             ? <DashboardSection
-                isLoading={isTabLoading("dashboard")}
-                bookings={myBookings}
-                matchesJoined={matchesJoinedCount}
-                joinedGames={joinedGamesList}
-                onCancel={setCancellingBooking}
-                onReview={setReviewBooking}
-                onDispute={setDisputeBooking}
-                onViewQr={setBookingQr}
-                onFindTurf={() => setActiveTab("discover")}
-                onFindGames={() => setActiveTab("matches")}
-                onViewGame={(g) => setSelectedGameForCheckout(g)}
-              />
+              isLoading={isTabLoading("dashboard")}
+              bookings={myBookings}
+              matchesJoined={matchesJoinedCount}
+              joinedGames={joinedGamesList}
+              onCancel={setCancellingBooking}
+              onReview={setReviewBooking}
+              onDispute={setDisputeBooking}
+              onViewQr={setBookingQr}
+              onFindTurf={() => setActiveTab("discover")}
+              onFindGames={() => setActiveTab("matches")}
+              onViewGame={(g) => setSelectedGameForCheckout(g)}
+              profile={profile}
+              showToast={showToast}
+            />
             : <GuestPrompt icon="calendar" title="Your dashboard lives here" body="Sign up to see your bookings, track spend, and manage upcoming games." router={router} />
           )}
         </main>

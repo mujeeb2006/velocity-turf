@@ -82,6 +82,12 @@ export async function POST(request) {
   }
 
   const role = normalizeUserRole(profile.role);
+
+  // Only owners and admins can create tournaments — players are blocked
+  if (role === "player") {
+    return Errors.forbidden("Only turf owners and admins can host tournaments.");
+  }
+
   const body = await readJson(request);
   const turfId = typeof body?.turfId === "string" ? body.turfId : "";
 

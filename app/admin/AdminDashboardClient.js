@@ -30,10 +30,11 @@ import { AdminTournamentsSection } from "@/components/dashboard/AdminTournaments
 import { AdminPackagesSection } from "@/components/dashboard/AdminPackagesSection";
 import { AdminDemoDataSection } from "@/components/dashboard/AdminDemoDataSection";
 import { AdminRewardsSection } from "@/components/dashboard/AdminRewardsSection";
+import { AdminGroupBookingsSection } from "@/components/dashboard/AdminGroupBookingsSection";
 import { DemoNameWithBadge } from "@/components/ui/demo-badge";
 import { Check, AlertTriangle, Key, Lock, ArrowRight, CheckCircle } from "@/components/ui/icons";
 
-const TABS = ["overview", "approvals", "game-approvals", "tournaments", "packages", "turfs", "bookings", "users", "payouts", "disputes", "rewards", "demo-data"];
+const TABS = ["overview", "approvals", "game-approvals", "tournaments", "packages", "turfs", "bookings", "groups", "users", "payouts", "disputes", "rewards", "demo-data"];
 const ROLE_COLORS = { Admin: V.violet, "Turf Owner": V.sky, Player: V.flood };
 const PAGE_SIZE = 50;
 
@@ -852,6 +853,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
     { id: "packages", label: "Sports Passes", icon: "tag" },
     { id: "turfs", label: "All Turfs", icon: "map" },
     { id: "bookings", label: "Bookings", icon: "list" },
+    { id: "groups", label: "Group Bookings", icon: "users" },
     { id: "users", label: "Users", icon: "users" },
     { id: "rewards", label: "Referrals & Rewards", icon: "gift" },
     { id: "payouts", label: "Payouts & Banks", icon: "wallet", badge: processingPayoutsCount || undefined },
@@ -966,6 +968,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
 
         {tab === "tournaments" && <AdminTournamentsSection showToast={showToast} />}
         {tab === "packages" && <AdminPackagesSection showToast={showToast} />}
+        {tab === "groups" && <AdminGroupBookingsSection showToast={showToast} />}
         {tab === "rewards" && <AdminRewardsSection showToast={showToast} />}
         {tab === "demo-data" && <AdminDemoDataSection showToast={showToast} onDataChanged={fetchAll} />}
 

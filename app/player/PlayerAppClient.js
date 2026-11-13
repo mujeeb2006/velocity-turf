@@ -43,6 +43,8 @@ import { TeamsSection } from "@/components/dashboard/TeamsSection";
 import { TournamentsSection } from "@/components/dashboard/TournamentsSection";
 import { PackagesSection } from "@/components/dashboard/PackagesSection";
 import { RewardsSection } from "@/components/dashboard/RewardsSection";
+import { GroupBookingsSection } from "@/components/dashboard/GroupBookingsSection";
+import { GroupBookingDetailsModal } from "@/components/dashboard/GroupBookingDetailsModal";
 import { DemoNameWithBadge } from "@/components/ui/demo-badge";
 import CinematicHome from "@/components/home/CinematicHome";
 import {
@@ -67,6 +69,7 @@ import {
   Users,
   Star,
   RefreshCw,
+  Copy,
 } from "@/components/ui/icons";
 
 function todayStr() {
@@ -403,6 +406,11 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
   const [useRewardPoints, setUseRewardPoints] = useState(false);
   const [pointsToRedeem, setPointsToRedeem] = useState(0);
   const [bookingConfirmationData, setBookingConfirmationData] = useState(null);
+  const [isGroupBooking, setIsGroupBooking] = useState(false);
+  const [groupParticipantCount, setGroupParticipantCount] = useState(4);
+  const [groupSplitMode, setGroupSplitMode] = useState("equal");
+  const [groupPaymentMode, setGroupPaymentMode] = useState("all_or_nothing");
+  const [createdGroupBooking, setCreatedGroupBooking] = useState(null);
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -656,6 +664,68 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
         "x-idempotency-key": idempotencyKey,
       };
       if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      if (isGroupBooking) {
+        const response = await fetch("/api/group-bookings", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            turfId: turf.id,
+            startTime: slot.raw_time,
+            sport: turf.sports?.[0] || "Football",
+            bookingDate: selectedDate,
+            totalParticipants: groupParticipantCount,
+            splitMode: groupSplitMode,
+            paymentMode: groupPaymentMode,
+            deadlineMinutes: 10,
+            idempotencyKey,
+            pointsToRedeem: (useRewardPoints && !selectedPackageId) ? Number(activePointsRedeemed) : 0,
+          }),
+        });
+
+        const result = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          const message = extractErrorMessage(result, "Couldn't create group booking. Try again.");
+          showToast(message, { type: "error" });
+          if (response.status === 409 || result?.code === "SLOT_CONFLICT" || message.includes("just taken") || message.includes("no longer available")) {
+            setSlotConflictMsg("That slot was just booked by another player. We've refreshed the schedule below.");
+            setStep(1);
+            setSelectedSlot(null);
+            const { data: freshSlots } = await supabase.rpc("turf_slots", {
+              p_turf_id: turf.id,
+              p_date: selectedDate,
+            });
+            if (freshSlots) {
+              setModalSlots(freshSlots.map(s => ({
+                time: fmtTime(s.slot_time),
+                raw_time: s.slot_time,
+                status: s.status,
+              })));
+            }
+          }
+          setSubmitting(false);
+          return;
+        }
+
+        if (!result?.groupBooking?.id) {
+          showToast("The group booking was initialized, but confirmation details could not be loaded.", { type: "error" });
+          setSubmitting(false);
+          return;
+        }
+
+        setCreatedGroupBooking(result.groupBooking);
+        setBookingId(result.booking?.id || result.groupBooking.id);
+        setBookingPrice(Number(result.groupBooking.total_price || finalPayable));
+        setBookingConfirmationData({
+          ...result.booking,
+          groupBooking: result.groupBooking,
+          invitationCode: result.invitationCode,
+        });
+        setStep(3);
+        setSubmitting(false);
+        return;
+      }
 
       const response = await fetch("/api/bookings", {
         method: "POST",
@@ -1164,6 +1234,144 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
                   </div>
                 )}
 
+                {/* Group Booking & Split Payment Option */}
+                {!selectedPackageId && (
+                  <div
+                    style={{
+                      marginBottom: 16,
+                      background: isGroupBooking ? "rgba(24, 168, 224, 0.08)" : V.pitch,
+                      border: `1px solid ${isGroupBooking ? V.flood : V.line}`,
+                      borderRadius: 12,
+                      padding: "14px 16px",
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", userSelect: "none" }}>
+                        <input
+                          type="checkbox"
+                          checked={isGroupBooking}
+                          onChange={(e) => setIsGroupBooking(e.target.checked)}
+                          style={{ width: 18, height: 18, accentColor: V.flood, cursor: "pointer" }}
+                        />
+                        <div>
+                          <div style={{ fontSize: 13.5, fontWeight: 800, color: V.chalk, display: "flex", alignItems: "center", gap: 6 }}>
+                            <Users size={15} color={V.flood} /> Group Booking & Bill Split
+                          </div>
+                          <div style={{ fontSize: 11.5, color: V.chalkFaint, marginTop: 2 }}>
+                            Invite friends and split the cost or pay for your group
+                          </div>
+                        </div>
+                      </label>
+                      {isGroupBooking && (
+                        <span style={{ fontSize: 11, fontWeight: 800, background: "rgba(24, 168, 224, 0.15)", color: V.flood, padding: "3px 8px", borderRadius: 6 }}>
+                          Group Mode
+                        </span>
+                      )}
+                    </div>
+
+                    {isGroupBooking && (
+                      <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${V.lineStrong}` }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+                          <div>
+                            <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: V.chalkDim, marginBottom: 6 }}>
+                              Total Participants
+                            </label>
+                            <select
+                              value={groupParticipantCount}
+                              onChange={(e) => setGroupParticipantCount(Number(e.target.value))}
+                              style={{ width: "100%", padding: "7px 10px", background: V.pitchCard, border: `1px solid ${V.line}`, borderRadius: 8, color: V.chalk, fontSize: 13 }}
+                            >
+                              {[2, 3, 4, 5, 6, 8, 10, 12, 14, 16].map((num) => (
+                                <option key={num} value={num}>{num} Players</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: V.chalkDim, marginBottom: 6 }}>
+                              Split Mode
+                            </label>
+                            <select
+                              value={groupSplitMode}
+                              onChange={(e) => setGroupSplitMode(e.target.value)}
+                              style={{ width: "100%", padding: "7px 10px", background: V.pitchCard, border: `1px solid ${V.line}`, borderRadius: 8, color: V.chalk, fontSize: 13 }}
+                            >
+                              <option value="equal">Equal Split</option>
+                              <option value="leader_pays">Leader Pays Full</option>
+                              <option value="custom">Custom Split</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Payment Strategy: 10m Hold vs Instant Booking */}
+                        <div style={{ marginBottom: 12 }}>
+                          <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: V.chalkDim, marginBottom: 6 }}>
+                            Booking Confirmation Strategy
+                          </label>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                            <button
+                              type="button"
+                              onClick={() => setGroupPaymentMode("all_or_nothing")}
+                              style={{
+                                padding: "8px 10px",
+                                borderRadius: 8,
+                                border: `1px solid ${groupPaymentMode === "all_or_nothing" ? V.flood : V.line}`,
+                                background: groupPaymentMode === "all_or_nothing" ? "rgba(24, 168, 224, 0.12)" : V.pitchCard,
+                                color: groupPaymentMode === "all_or_nothing" ? V.flood : V.chalk,
+                                fontSize: 11.5,
+                                fontWeight: 700,
+                                cursor: "pointer",
+                                textAlign: "left",
+                              }}
+                            >
+                              <div>10-Min Slot Hold</div>
+                              <div style={{ fontSize: 10, color: V.chalkFaint, marginTop: 2 }}>All pay before confirm</div>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setGroupPaymentMode("leader_immediate")}
+                              style={{
+                                padding: "8px 10px",
+                                borderRadius: 8,
+                                border: `1px solid ${groupPaymentMode === "leader_immediate" ? V.confirmed : V.line}`,
+                                background: groupPaymentMode === "leader_immediate" ? "rgba(21, 128, 81, 0.15)" : V.pitchCard,
+                                color: groupPaymentMode === "leader_immediate" ? V.confirmed : V.chalk,
+                                fontSize: 11.5,
+                                fontWeight: 700,
+                                cursor: "pointer",
+                                textAlign: "left",
+                              }}
+                            >
+                              <div>Instant Booking</div>
+                              <div style={{ fontSize: 10, color: V.chalkFaint, marginTop: 2 }}>You pay, friends reimburse</div>
+                            </button>
+                          </div>
+                        </div>
+
+                        <div style={{ background: "rgba(23, 43, 77, 0.4)", borderRadius: 8, padding: "10px 12px", border: `1px solid ${V.lineStrong}`, fontSize: 12 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", color: V.chalk }}>
+                            <span>{groupPaymentMode === "leader_immediate" ? "You pay upfront:" : "Estimated Share per player:"}</span>
+                            <span style={{ fontWeight: 800, color: groupPaymentMode === "leader_immediate" ? V.confirmed : V.flood }}>
+                              {groupPaymentMode === "leader_immediate"
+                                ? `₹${finalPayable} (Friends reimburse ₹${Math.round(finalPayable / groupParticipantCount)} each)`
+                                : groupSplitMode === "equal"
+                                ? `≈ ₹${Math.round(finalPayable / groupParticipantCount)}`
+                                : groupSplitMode === "leader_pays"
+                                ? `₹${finalPayable} (You pay all)`
+                                : "Custom amounts per player"}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: 10.5, color: V.chalkFaint, marginTop: 4 }}>
+                            {groupPaymentMode === "leader_immediate"
+                              ? "Instant confirmation: Slot is confirmed immediately. Other participants reimburse you via the platform."
+                              : "Temporary 10-minute slot hold: Slot will be held while members pay. Unpaid holds release automatically."}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Reward Points Redemption Option */}
                 {!selectedPackageId && availablePoints >= minRedemptionPoints && (
                   <div
@@ -1315,13 +1523,15 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
                           animation: "spin 0.7s linear infinite",
                         }}
                       />
-                      <span>{!profile?.id ? "Redirecting to sign in…" : "Confirming slot…"}</span>
+                      <span>{!profile?.id ? "Redirecting to sign in…" : isGroupBooking ? "Locking slot & creating group…" : "Confirming slot…"}</span>
                     </>
                   ) : (
                     !profile?.id
                       ? `Sign in & Confirm Book · ₹${finalPayable}`
                       : selectedPackageId
                       ? "Confirm & Redeem Pass"
+                      : isGroupBooking
+                      ? `Create Group Booking · ${groupSplitMode === 'equal' ? `₹${Math.round(finalPayable / groupParticipantCount)} share` : `₹${finalPayable}`}`
                       : isFullSlotFree
                       ? "Confirm 100% Free Slot"
                       : `Confirm & Book · ₹${finalPayable}`
@@ -1331,7 +1541,161 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
             </>
           )}
 
-          {step === 3 && (
+          {step === 3 && createdGroupBooking && (
+            <div style={{ textAlign: "center", padding: "12px 0" }}>
+              <div style={{
+                width: 68,
+                height: 68,
+                borderRadius: "50%",
+                background: "rgba(24, 168, 224, 0.12)",
+                border: "2px solid rgba(24, 168, 224, 0.35)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 16px",
+                color: V.flood,
+              }}>
+                <Users size={32} color={V.flood} />
+              </div>
+
+              <h3 style={{ color: V.chalk, fontFamily: FONT_DISPLAY, fontSize: 26, fontWeight: 700, marginBottom: 6 }}>
+                {createdGroupBooking?.payment_mode === "leader_immediate" ? "Instant Group Booking Confirmed!" : "Group Slot Hold Active!"}
+              </h3>
+              <p style={{ color: V.chalkDim, marginBottom: 20, fontFamily: FONT_BODY, fontSize: 14, lineHeight: 1.5 }}>
+                {createdGroupBooking?.payment_mode === "leader_immediate"
+                  ? "Your slot is officially confirmed. Share your invitation code so friends can join and reimburse their shares."
+                  : "Your slot is held for 10 minutes. Share your invitation code with friends to split payments and confirm the booking."}
+              </p>
+
+              <div style={{
+                background: V.pitchCard,
+                borderRadius: 16,
+                padding: 20,
+                border: `1px solid ${V.lineStrong}`,
+                textAlign: "left",
+                marginBottom: 20,
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                  <div>
+                    <span style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", color: V.chalkFaint, letterSpacing: 0.8 }}>
+                      Group Booking Pass
+                    </span>
+                    <h4 style={{ margin: "2px 0 0", color: V.chalk, fontSize: 17, fontWeight: 800 }}>
+                      {turf.name}
+                    </h4>
+                    <span style={{ fontSize: 12.5, color: V.chalkFaint }}>{turf.location}</span>
+                  </div>
+                  <span style={{
+                    padding: "4px 10px",
+                    borderRadius: 8,
+                    fontSize: 11,
+                    fontWeight: 800,
+                    background: createdGroupBooking?.payment_mode === "leader_immediate" ? "rgba(21, 128, 81, 0.15)" : "rgba(24, 168, 224, 0.12)",
+                    color: createdGroupBooking?.payment_mode === "leader_immediate" ? V.confirmed : V.flood,
+                    border: `1px solid ${createdGroupBooking?.payment_mode === "leader_immediate" ? "rgba(21, 128, 81, 0.3)" : "rgba(24, 168, 224, 0.28)"}`,
+                  }}>
+                    {createdGroupBooking?.payment_mode === "leader_immediate" ? "Confirmed (Instant)" : "Slot Hold (10m)"}
+                  </span>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16, fontSize: 13 }}>
+                  <div>
+                    <span style={{ color: V.chalkFaint, fontSize: 11 }}>Date & Time</span>
+                    <div style={{ fontWeight: 700, color: V.chalk, marginTop: 2 }}>
+                      {formatBookingDate(selectedDate)} · {selectedSlotData?.time}
+                    </div>
+                  </div>
+                  <div>
+                    <span style={{ color: V.chalkFaint, fontSize: 11 }}>Participants</span>
+                    <div style={{ fontWeight: 700, color: V.chalk, marginTop: 2 }}>
+                      1 of {createdGroupBooking.total_participants} Joined
+                    </div>
+                  </div>
+                  <div>
+                    <span style={{ color: V.chalkFaint, fontSize: 11 }}>Split Mode</span>
+                    <div style={{ fontWeight: 700, color: V.chalk, marginTop: 2, textTransform: "capitalize" }}>
+                      {createdGroupBooking.split_mode?.replace("_", " ")}
+                    </div>
+                  </div>
+                  <div>
+                    <span style={{ color: V.chalkFaint, fontSize: 11 }}>Total Price</span>
+                    <div style={{ fontWeight: 800, color: V.flood, marginTop: 2 }}>
+                      ₹{createdGroupBooking.total_price}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Invite Code Box */}
+                <div style={{
+                  background: "rgba(24, 168, 224, 0.08)",
+                  border: `1px dashed ${V.flood}`,
+                  borderRadius: 12,
+                  padding: "12px 14px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}>
+                  <div>
+                    <div style={{ fontSize: 10.5, color: V.chalkFaint, textTransform: "uppercase", fontWeight: 700 }}>
+                      Invitation Code
+                    </div>
+                    <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: 2, color: V.chalk, fontFamily: FONT_DATA }}>
+                      {createdGroupBooking.invitation_code}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (navigator?.clipboard?.writeText) {
+                        navigator.clipboard.writeText(createdGroupBooking.invitation_code);
+                        showToast("Invitation code copied to clipboard!", { type: "success" });
+                      }
+                    }}
+                    style={{
+                      background: V.pitchCard,
+                      border: `1px solid ${V.lineStrong}`,
+                      borderRadius: 8,
+                      padding: "6px 12px",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: V.flood,
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <Copy size={13} /> Copy Code
+                  </button>
+                </div>
+              </div>
+
+              {/* Next Actions */}
+              <div style={{ display: "grid", gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onConfirm();
+                    onGoToDashboard?.("groups");
+                  }}
+                  style={buttonStyle("primary", "lg")}
+                >
+                  <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                    <Users size={16} /> Manage Group & Shares <ArrowRight size={15} />
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={onConfirm}
+                  style={buttonStyle("secondary", "md")}
+                >
+                  Close & Done
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 3 && !createdGroupBooking && (
             <div style={{ textAlign: "center", padding: "12px 0" }}>
               <div style={{
                 width: 68,
@@ -4245,6 +4609,7 @@ export default function PlayerAppClient({ profile }) {
     { id: "teams", label: "Teams", icon: "users" },
     { id: "tournaments", label: "Tournaments", icon: "trophy" },
     { id: "packages", label: "Passes", icon: "star" },
+    { id: "groups", label: "Groups", icon: "users" },
     { id: "loyalty", label: "Rewards", icon: "gift" },
     { id: "dashboard", label: "Dashboard", icon: "calendar" },
   ];
@@ -4497,6 +4862,10 @@ export default function PlayerAppClient({ profile }) {
           {activeTab === "packages" && (
             <PackagesSection profile={profile} showToast={showToast} />
           )}
+          {activeTab === "groups" && (profile?.id
+            ? <GroupBookingsSection profile={profile} showToast={showToast} onFindTurf={() => setActiveTab("discover")} />
+            : <GuestPrompt icon="users" title="Group Bookings & Bill Split" body="Sign up to create group bookings, invite friends, and split the bill easily." router={router} />
+          )}
           {activeTab === "loyalty" && (profile?.id
             ? <RewardsSection profile={profile} showToast={showToast} onFindTurf={() => setActiveTab("discover")} />
             : <GuestPrompt icon="gift" title="Reward Wallet & Friend Invites" body="Sign up to earn reward points on every booking, refer friends, and unlock free slots." router={router} />
@@ -4562,7 +4931,7 @@ export default function PlayerAppClient({ profile }) {
             supabase={supabase}
             onClose={handleBookingClose}
             onConfirm={handleBookingConfirmed}
-            onGoToDashboard={() => setActiveTab("dashboard")}
+            onGoToDashboard={(tab) => setActiveTab(tab || "dashboard")}
             showToast={showToast}
             resume={resumeIntent}
           />
@@ -4577,7 +4946,7 @@ export default function PlayerAppClient({ profile }) {
               fetchJoinedMatches();
               fetchMyBookings();
             }}
-            onGoToDashboard={() => setActiveTab("dashboard")}
+            onGoToDashboard={(tab) => setActiveTab(tab || "dashboard")}
             showToast={showToast}
           />
         )}

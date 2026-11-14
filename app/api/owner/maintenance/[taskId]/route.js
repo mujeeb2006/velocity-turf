@@ -58,6 +58,26 @@ export async function PATCH(request, { params }) {
   const body = await readJson(request);
   const updates = {};
 
+  if (body.title && String(body.title).trim()) {
+    updates.title = String(body.title).trim();
+  }
+
+  if (body.description !== undefined) {
+    updates.description = String(body.description || "").trim();
+  }
+
+  if (body.facility_type || body.facilityType) {
+    updates.facility_type = body.facility_type || body.facilityType;
+  }
+
+  if (body.due_date !== undefined || body.dueDate !== undefined) {
+    updates.due_date = body.due_date || body.dueDate || null;
+  }
+
+  if (body.court_name !== undefined || body.courtName !== undefined) {
+    updates.court_name = body.court_name || body.courtName || "All Courts";
+  }
+
   if (body.status) {
     const nextStatus = String(body.status).toLowerCase();
     if (!MAINTENANCE_STATUSES.includes(nextStatus)) {
@@ -70,11 +90,11 @@ export async function PATCH(request, { params }) {
     if (nextStatus === "completed") {
       updates.completed_at = new Date().toISOString();
       // Also update linked maintenance window if any
-      await admin.from("maintenance_windows").update({ status: "completed" }).eq("task_id", taskId);
+      await admin.from("maintenance_windows").update({ status: "completed" }).eq("task_id", taskId).catch(() => {});
     } else if (nextStatus === "cancelled") {
-      await admin.from("maintenance_windows").update({ status: "cancelled" }).eq("task_id", taskId);
+      await admin.from("maintenance_windows").update({ status: "cancelled" }).eq("task_id", taskId).catch(() => {});
     } else if (nextStatus === "in_progress") {
-      await admin.from("maintenance_windows").update({ status: "in_progress" }).eq("task_id", taskId);
+      await admin.from("maintenance_windows").update({ status: "in_progress" }).eq("task_id", taskId).catch(() => {});
     }
   }
 
@@ -93,16 +113,20 @@ export async function PATCH(request, { params }) {
     const assignee = body.assigned_to || body.assignedTo;
     updates.assigned_to = assignee && UUID_PATTERN.test(assignee) ? assignee : null;
     if (updates.assigned_to && updates.assigned_to !== task.assigned_to) {
-      await sendSmartNotification(admin, {
-        userId: updates.assigned_to,
-        title: "Maintenance Task Re-assigned",
-        body: `You have been assigned to maintenance task: "${task.title}".`,
-        eventType: NOTIFICATION_EVENT_TYPES.MAINTENANCE_ASSIGNMENT,
-        category: NOTIFICATION_CATEGORIES.FACILITY,
-        link: "/owner",
-        metadata: { taskId: task.id, turfId: task.turf_id },
-        dedupKey: buildDedupKey("task_reassigned", task.id, updates.assigned_to),
-      });
+      try {
+        await sendSmartNotification(admin, {
+          userId: updates.assigned_to,
+          title: "Maintenance Task Re-assigned",
+          body: `You have been assigned to maintenance task: "${task.title}".`,
+          eventType: NOTIFICATION_EVENT_TYPES.MAINTENANCE_ASSIGNMENT,
+          category: NOTIFICATION_CATEGORIES.FACILITY,
+          link: "/owner",
+          metadata: { taskId: task.id, turfId: task.turf_id },
+          dedupKey: buildDedupKey("task_reassigned", task.id, updates.assigned_to),
+        });
+      } catch (notifErr) {
+        console.warn("reassignment notification error:", notifErr);
+      }
     }
   }
 
@@ -123,21 +147,25 @@ export async function PATCH(request, { params }) {
 
   if (updateError) {
     console.error("update maintenance task error:", updateError);
-    return NextResponse.json({ error: "Failed to update maintenance task." }, { status: 500 });
+    return NextResponse.json({ error: updateError.message || "Failed to update maintenance task." }, { status: 500 });
   }
 
-  // Audit log
-  await admin.from("staff_audit_log").insert({
-    turf_id: task.turf_id,
-    actor_id: profile.id,
-    actor_role: actorRole,
-    action: "update_maintenance_task",
-    target_type: "maintenance_task",
-    target_id: taskId,
-    details: { prev_status: task.status, new_status: updates.status, updates },
-  });
+  // Audit log (fail-safe)
+  try {
+    await admin.from("staff_audit_log").insert({
+      turf_id: task.turf_id,
+      actor_id: profile.id,
+      actor_role: actorRole,
+      action: "update_maintenance_task",
+      target_type: "maintenance_task",
+      target_id: taskId,
+      details: { prev_status: task.status, new_status: updates.status, updates },
+    });
+  } catch (auditErr) {
+    console.warn("maintenance update audit log error:", auditErr);
+  }
 
-  return NextResponse.json({ success: true, task: updated });
+  return NextResponse.json({ success: true, message: "Maintenance task updated successfully.", task: updated });
 }
 
 export async function DELETE(request, { params }) {
@@ -165,19 +193,30 @@ export async function DELETE(request, { params }) {
     return NextResponse.json({ error: "Only owners or admins can delete tasks." }, { status: 403 });
   }
 
-  await admin.from("maintenance_windows").delete().eq("task_id", taskId);
-  await admin.from("maintenance_tasks").delete().eq("id", taskId);
+  try {
+    await admin.from("maintenance_windows").delete().eq("task_id", taskId);
+    const { error: delErr } = await admin.from("maintenance_tasks").delete().eq("id", taskId);
+    if (delErr) {
+      return NextResponse.json({ error: delErr.message || "Failed to delete maintenance task." }, { status: 500 });
+    }
+  } catch (err) {
+    return NextResponse.json({ error: "Failed to delete maintenance task." }, { status: 500 });
+  }
 
-  await admin.from("staff_audit_log").insert({
-    turf_id: task.turf_id,
-    actor_id: profile.id,
-    actor_role: role,
-    action: "delete_maintenance_task",
-    target_type: "maintenance_task",
-    target_id: taskId,
-    details: { task_title: task.title },
-  });
+  try {
+    await admin.from("staff_audit_log").insert({
+      turf_id: task.turf_id,
+      actor_id: profile.id,
+      actor_role: role,
+      action: "delete_maintenance_task",
+      target_type: "maintenance_task",
+      target_id: taskId,
+      details: { task_title: task.title },
+    });
+  } catch (auditErr) {
+    console.warn("maintenance delete audit log error:", auditErr);
+  }
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, message: "Maintenance task deleted successfully." });
 }
 

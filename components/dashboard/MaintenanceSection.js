@@ -52,8 +52,41 @@ export function MaintenanceSection({ turfs = [], isStaff = false, staffPermissio
   const [editingTask, setEditingTask] = useState(null);
   const [completeNotes, setCompleteNotes] = useState("");
   const [completingTaskId, setCompletingTaskId] = useState(null);
+  const [staffList, setStaffList] = useState([]);
 
   const canManage = !isStaff || staffPermissions.includes("manage_maintenance");
+
+  useEffect(() => {
+    async function loadStaff() {
+      try {
+        const res = await fetch("/api/owner/staff");
+        const data = await res.json();
+        if (res.ok && data.staff) {
+          setStaffList(data.staff.filter((s) => s.status === "active"));
+        }
+      } catch (err) {
+        console.warn("Could not load staff list:", err);
+      }
+    }
+    loadStaff();
+  }, []);
+
+  async function handleDeleteTask(taskId) {
+    if (!confirm("Are you sure you want to delete this maintenance task?")) return;
+    try {
+      const res = await fetch(`/api/owner/maintenance/${taskId}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || "Failed to delete task.", { type: "error" });
+        return;
+      }
+      showToast(data.message || "Maintenance task deleted successfully.", { type: "success" });
+      fetchMaintenance();
+    } catch (err) {
+      console.error(err);
+      showToast("Network error deleting task.", { type: "error" });
+    }
+  }
 
   async function fetchMaintenance() {
     setLoading(true);
@@ -348,53 +381,72 @@ export function MaintenanceSection({ turfs = [], isStaff = false, staffPermissio
                     )}
 
                     {/* Actions */}
-                    {canManage && task.status !== "completed" && task.status !== "cancelled" && (
+                    {canManage && (
                       <div style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap", alignItems: "center" }}>
-                        {task.status === "open" && (
-                          <Btn size="sm" onClick={() => handleUpdateStatus(task.id, "in_progress")}>
-                            Start Task
-                          </Btn>
-                        )}
+                        {task.status !== "completed" && task.status !== "cancelled" && (
+                          <>
+                            {task.status === "open" && (
+                              <Btn size="sm" onClick={() => handleUpdateStatus(task.id, "in_progress")}>
+                                Start Task
+                              </Btn>
+                            )}
 
-                        {isCompleting ? (
-                          <div style={{ display: "flex", gap: 8, alignItems: "center", width: "100%", marginTop: 6 }}>
-                            <input
-                              type="text"
-                              placeholder="Completion notes (optional)..."
-                              value={completeNotes}
-                              onChange={(e) => setCompleteNotes(e.target.value)}
-                              style={{ ...inputStyle, minHeight: 34, fontSize: 13, flex: 1 }}
-                            />
-                            <Btn
-                              variant="primary"
-                              size="sm"
-                              onClick={() => handleUpdateStatus(task.id, "completed", completeNotes)}
-                            >
-                              Confirm Complete
-                            </Btn>
-                            <Btn size="sm" onClick={() => setCompletingTaskId(null)}>
-                              Cancel
-                            </Btn>
-                          </div>
-                        ) : (
-                          <Btn
-                            variant="primary"
-                            size="sm"
-                            icon="check"
-                            onClick={() => { setCompletingTaskId(task.id); setCompleteNotes(""); }}
-                          >
-                            Mark Completed
-                          </Btn>
+                            {isCompleting ? (
+                              <div style={{ display: "flex", gap: 8, alignItems: "center", width: "100%", marginTop: 6 }}>
+                                <input
+                                  type="text"
+                                  placeholder="Completion notes (optional)..."
+                                  value={completeNotes}
+                                  onChange={(e) => setCompleteNotes(e.target.value)}
+                                  style={{ ...inputStyle, minHeight: 34, fontSize: 13, flex: 1 }}
+                                />
+                                <Btn
+                                  variant="primary"
+                                  size="sm"
+                                  onClick={() => handleUpdateStatus(task.id, "completed", completeNotes)}
+                                >
+                                  Confirm Complete
+                                </Btn>
+                                <Btn size="sm" onClick={() => setCompletingTaskId(null)}>
+                                  Cancel
+                                </Btn>
+                              </div>
+                            ) : (
+                              <Btn
+                                variant="primary"
+                                size="sm"
+                                icon="check"
+                                onClick={() => { setCompletingTaskId(task.id); setCompleteNotes(""); }}
+                              >
+                                Mark Completed
+                              </Btn>
+                            )}
+
+                            {!isCompleting && (
+                              <Btn
+                                variant="danger"
+                                size="sm"
+                                onClick={() => handleUpdateStatus(task.id, "cancelled")}
+                              >
+                                Cancel Task
+                              </Btn>
+                            )}
+                          </>
                         )}
 
                         {!isCompleting && (
-                          <Btn
-                            variant="danger"
-                            size="sm"
-                            onClick={() => handleUpdateStatus(task.id, "cancelled")}
-                          >
-                            Cancel Task
-                          </Btn>
+                          <>
+                            <Btn size="sm" onClick={() => setEditingTask(task)}>
+                              Edit
+                            </Btn>
+                            <Btn
+                              variant="danger"
+                              size="sm"
+                              onClick={() => handleDeleteTask(task.id)}
+                            >
+                              Delete
+                            </Btn>
+                          </>
                         )}
                       </div>
                     )}
@@ -410,9 +462,25 @@ export function MaintenanceSection({ turfs = [], isStaff = false, staffPermissio
       {showCreateModal && (
         <CreateMaintenanceModal
           turfs={turfs}
+          staffList={staffList}
           onClose={() => setShowCreateModal(false)}
           onSuccess={() => {
             setShowCreateModal(false);
+            fetchMaintenance();
+          }}
+          showToast={showToast}
+        />
+      )}
+
+      {/* Edit Maintenance Task Modal */}
+      {editingTask && (
+        <EditMaintenanceModal
+          task={editingTask}
+          turfs={turfs}
+          staffList={staffList}
+          onClose={() => setEditingTask(null)}
+          onSuccess={() => {
+            setEditingTask(null);
             fetchMaintenance();
           }}
           showToast={showToast}
@@ -422,7 +490,7 @@ export function MaintenanceSection({ turfs = [], isStaff = false, staffPermissio
   );
 }
 
-function CreateMaintenanceModal({ turfs = [], onClose, onSuccess, showToast }) {
+function CreateMaintenanceModal({ turfs = [], staffList = [], onClose, onSuccess, showToast }) {
   const [turfId, setTurfId] = useState(turfs[0]?.id || "");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -430,6 +498,7 @@ function CreateMaintenanceModal({ turfs = [], onClose, onSuccess, showToast }) {
   const [priority, setPriority] = useState("medium");
   const [dueDate, setDueDate] = useState(new Date().toISOString().slice(0, 10));
   const [courtName, setCourtName] = useState("All Courts");
+  const [assignedTo, setAssignedTo] = useState("");
   const [blocksSlots, setBlocksSlots] = useState(false);
   const [startTime, setStartTime] = useState("06:00");
   const [endTime, setEndTime] = useState("08:00");
@@ -442,7 +511,7 @@ function CreateMaintenanceModal({ turfs = [], onClose, onSuccess, showToast }) {
 
   async function handleSubmit(cancelExisting = false) {
     if (!turfId || !title.trim()) {
-      showToast("Please provide task title and select a venue.", { type: "error" });
+      showToast("Please complete the required fields.", { type: "error" });
       return;
     }
 
@@ -456,6 +525,7 @@ function CreateMaintenanceModal({ turfs = [], onClose, onSuccess, showToast }) {
         priority,
         due_date: dueDate,
         court_name: courtName,
+        assigned_to: assignedTo || null,
         blocks_slots: blocksSlots,
         start_date: dueDate,
         start_time: blocksSlots ? startTime : null,
@@ -479,16 +549,16 @@ function CreateMaintenanceModal({ turfs = [], onClose, onSuccess, showToast }) {
       }
 
       if (!res.ok) {
-        showToast(data.error || "Failed to schedule maintenance task.", { type: "error" });
+        showToast(data.error || "Unable to create task. Please try again.", { type: "error" });
         setSubmitting(false);
         return;
       }
 
-      showToast("Maintenance task and schedule window created.", { type: "success" });
+      showToast(data.message || "Maintenance task created successfully.", { type: "success" });
       onSuccess();
     } catch (err) {
       console.error(err);
-      showToast("Network error creating maintenance task.", { type: "error" });
+      showToast("Unable to create task. Please try again.", { type: "error" });
       setSubmitting(false);
     }
   }
@@ -703,6 +773,22 @@ function CreateMaintenanceModal({ turfs = [], onClose, onSuccess, showToast }) {
           </div>
 
           <label>
+            <span style={labelStyle}>Assign to Staff Member (Optional)</span>
+            <select
+              value={assignedTo}
+              onChange={(e) => setAssignedTo(e.target.value)}
+              style={inputStyle}
+            >
+              <option value="">Unassigned</option>
+              {staffList.map((s) => (
+                <option key={s.user_id || s.id} value={s.user_id || s.id}>
+                  {s.full_name || s.email} ({s.role.replace("_", " ")})
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
             <span style={labelStyle}>Internal Notes</span>
             <input
               type="text"
@@ -714,6 +800,191 @@ function CreateMaintenanceModal({ turfs = [], onClose, onSuccess, showToast }) {
           </label>
         </div>
       )}
+    </Modal>
+  );
+}
+
+function EditMaintenanceModal({ task, turfs = [], staffList = [], onClose, onSuccess, showToast }) {
+  const [title, setTitle] = useState(task.title || "");
+  const [description, setDescription] = useState(task.description || "");
+  const [facilityType, setFacilityType] = useState(task.facility_type || "cleaning");
+  const [priority, setPriority] = useState(task.priority || "medium");
+  const [status, setStatus] = useState(task.status || "open");
+  const [dueDate, setDueDate] = useState(task.due_date || "");
+  const [courtName, setCourtName] = useState(task.court_name || "All Courts");
+  const [assignedTo, setAssignedTo] = useState(task.assigned_to || "");
+  const [notes, setNotes] = useState(task.notes || "");
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    if (!title.trim()) {
+      showToast("Please complete the required fields.", { type: "error" });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const payload = {
+        title: title.trim(),
+        description: description.trim(),
+        facility_type: facilityType,
+        priority,
+        status,
+        due_date: dueDate || null,
+        court_name: courtName,
+        assigned_to: assignedTo || null,
+        notes: notes.trim(),
+      };
+
+      const res = await fetch(`/api/owner/maintenance/${task.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || "Failed to update maintenance task.", { type: "error" });
+        setSaving(false);
+        return;
+      }
+
+      showToast(data.message || "Maintenance task updated successfully.", { type: "success" });
+      onSuccess();
+    } catch (err) {
+      console.error(err);
+      showToast("Network error updating task.", { type: "error" });
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal
+      title="Edit Maintenance Task"
+      subtitle={`Update task #${task.id.slice(0, 8)}`}
+      onClose={onClose}
+      maxWidth={520}
+      footer={
+        <>
+          <Btn onClick={onClose} disabled={saving}>Cancel</Btn>
+          <Btn variant="primary" busy={saving} onClick={handleSave}>
+            Save Changes
+          </Btn>
+        </>
+      }
+    >
+      <div style={{ display: "grid", gap: 14 }}>
+        <label>
+          <span style={labelStyle}>Task Title</span>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            style={inputStyle}
+          />
+        </label>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <label>
+            <span style={labelStyle}>Facility Area</span>
+            <select
+              value={facilityType}
+              onChange={(e) => setFacilityType(e.target.value)}
+              style={inputStyle}
+            >
+              {FACILITY_TYPES.map((f) => (
+                <option key={f.id} value={f.id}>{f.label}</option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            <span style={labelStyle}>Priority</span>
+            <select
+              value={priority}
+              onChange={(e) => setPriority(e.target.value)}
+              style={inputStyle}
+            >
+              {MAINTENANCE_PRIORITIES.map((p) => (
+                <option key={p} value={p}>{p.toUpperCase()}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <label>
+            <span style={labelStyle}>Status</span>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              style={inputStyle}
+            >
+              {MAINTENANCE_STATUSES.map((s) => (
+                <option key={s} value={s}>{s.replace("_", " ").toUpperCase()}</option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            <span style={labelStyle}>Date Due</span>
+            <input
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              style={inputStyle}
+            />
+          </label>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <label>
+            <span style={labelStyle}>Court / Zone</span>
+            <input
+              type="text"
+              value={courtName}
+              onChange={(e) => setCourtName(e.target.value)}
+              style={inputStyle}
+            />
+          </label>
+
+          <label>
+            <span style={labelStyle}>Assigned Staff</span>
+            <select
+              value={assignedTo}
+              onChange={(e) => setAssignedTo(e.target.value)}
+              style={inputStyle}
+            >
+              <option value="">Unassigned</option>
+              {staffList.map((s) => (
+                <option key={s.user_id || s.id} value={s.user_id || s.id}>
+                  {s.full_name || s.email} ({s.role.replace("_", " ")})
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <label>
+          <span style={labelStyle}>Description</span>
+          <textarea
+            rows={2}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            style={{ ...inputStyle, minHeight: 60 }}
+          />
+        </label>
+
+        <label>
+          <span style={labelStyle}>Internal Notes</span>
+          <input
+            type="text"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            style={inputStyle}
+          />
+        </label>
+      </div>
     </Modal>
   );
 }

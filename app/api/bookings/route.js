@@ -14,6 +14,7 @@ import {
   closeExpiredBookings,
   annotateSlotsWithLiveTime,
 } from "@/lib/booking/session-lifecycle";
+import { calculateSlotPrice } from "@/lib/turf/pricing";
 import { redeemPackageSession, refundPackageSession } from "@/lib/package/service";
 import { sendSmartNotification, NOTIFICATION_EVENT_TYPES, NOTIFICATION_CATEGORIES, buildDedupKey } from "@/lib/notifications/service";
 import {
@@ -216,7 +217,7 @@ export async function POST(request) {
   // ── Fetch turf ────────────────────────────────────────────────────────────
   const { data: turf, error: turfError } = await admin
     .from("turfs")
-    .select("id, name, owner_id, status, sports, base_price, peak_price, open_time, close_time, archived_at")
+    .select("id, name, owner_id, status, sports, base_price, peak_price, open_time, close_time, archived_at, pricing_rules")
     .eq("id", turfId)
     .maybeSingle();
 
@@ -271,10 +272,11 @@ export async function POST(request) {
     return Errors.slotTaken(requestId);
   }
 
-  // ── Dynamic pricing ───────────────────────────────────────────────────────
+  // ── Dynamic & rule-based pricing ──────────────────────────────────────────
   const bookedCount = slotList.filter((s) => s.status !== "available").length;
   const occupancy = slotList.length ? Math.round((bookedCount / slotList.length) * 100) : 0;
-  const price = occupancy > 70 ? Number(turf.peak_price) : Number(turf.base_price);
+  const pricingResult = calculateSlotPrice(turf, bookingDate, startTime, occupancy);
+  const price = pricingResult.price;
 
   // ── Team validation (if booking on behalf of team) ────────────────────────
   if (teamId) {

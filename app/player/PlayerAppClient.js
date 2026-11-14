@@ -17,6 +17,7 @@ import StadiumScene from "@/components/StadiumScene";
 import BrandLockup from "@/components/brand-lockup";
 import { SPORT_OPTIONS } from "@/lib/sports";
 import { getTurfImages } from "@/lib/turf-images";
+import { calculateSlotPrice } from "@/lib/turf/pricing";
 import {
   clearStoredBookingIntent,
   decodeBookingIntent,
@@ -106,9 +107,14 @@ function fmtTime(t) {
   return t ? t.slice(0, 5) : t;
 }
 
-// Simple demand-based pricing: peak price once more than 70% of today's
-// slots are taken, base price otherwise.
-function calcPrice(turf, occupancy) {
+// Dynamic rule-based pricing: evaluates time bands, weekend/weekday,
+// custom overrides, dynamic occupancy surge (>70%), or fallback to base price.
+function calcPrice(turf, occupancy, date, time) {
+  if (!turf) return 0;
+  if (date && time) {
+    const res = calculateSlotPrice(turf, date, time, occupancy);
+    return res.price;
+  }
   return occupancy > 70 ? Number(turf.peak_price) : Number(turf.base_price);
 }
 
@@ -453,7 +459,7 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
   const bookedSlotsCount = modalSlots.filter(s => s.status !== "available").length;
   const occupancy = modalSlots.length ? Math.round((bookedSlotsCount / modalSlots.length) * 100) : 0;
   const isDynamic = occupancy > 70;
-  const price = bookingPrice ?? (turf ? calcPrice(turf, occupancy) : 0);
+  const price = bookingPrice ?? (turf ? calcPrice(turf, occupancy, bookingDate, selectedSlot) : 0);
   const points = Math.floor(price * 0.1);
 
   const conversionRate = Number(rewardSettings?.conversion_rate_points_per_inr || 1);

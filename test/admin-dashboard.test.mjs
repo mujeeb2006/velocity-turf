@@ -78,3 +78,94 @@ test('sortRows sorts numbers and text, is stable, and does not mutate', () => {
   assert.deepEqual(rows.map((r) => r.n), ['b', 'A', 'c']);
   assert.equal(sortRows(rows, undefined), rows);
 });
+
+import { revenueBreakdown, revenueBy } from '../lib/dashboard/analytics.js';
+
+const b = (date, price, status = 'confirmed', extra = {}) => ({
+  booking_date: date, price, status, ...extra,
+});
+
+test('revenueBreakdown: correctly separates collected, pending, refunded', () => {
+  const bookings = [
+    b('2026-11-01', 1000, 'confirmed', { payment_status: 'paid' }),
+    b('2026-11-02', 500, 'completed', { payment_status: 'paid' }),
+    b('2026-11-03', 300, 'pending', { payment_status: 'pending' }),
+    b('2026-11-04', 200, 'cancelled', { payment_status: 'refunded' }),
+    b('2026-11-05', 150, 'declined', { payment_status: 'refunded' }),
+  ];
+  const rb = revenueBreakdown(bookings);
+  assert.equal(rb.collected, 1500);
+  assert.equal(rb.pending, 300);
+  assert.equal(rb.refunded, 350);
+  assert.equal(rb.cancelledCount, 1);
+});
+
+test('revenueBreakdown: infers payment_status from booking status when not set', () => {
+  const bookings = [
+    b('2026-11-01', 800, 'confirmed'),
+    b('2026-11-02', 400, 'pending'),
+    b('2026-11-03', 200, 'cancelled'),
+  ];
+  const rb = revenueBreakdown(bookings);
+  assert.equal(rb.collected, 800);
+  assert.equal(rb.pending, 400);
+  assert.equal(rb.refunded, 200);
+  assert.equal(rb.cancelledCount, 1);
+});
+
+test('revenueBreakdown: separates walk-in vs online revenue', () => {
+  const bookings = [
+    b('2026-11-01', 1000, 'confirmed', { payment_status: 'paid', booking_source: 'online' }),
+    b('2026-11-02', 600, 'confirmed', { payment_status: 'paid', booking_source: 'walk_in' }),
+    b('2026-11-03', 400, 'confirmed', { payment_status: 'paid' }),
+  ];
+  const rb = revenueBreakdown(bookings);
+  assert.equal(rb.onlineRev, 1400);
+  assert.equal(rb.walkInRev, 600);
+  assert.equal(rb.collected, 2000);
+});
+
+test('revenueBreakdown: cancelled bookings do not count as collected revenue', () => {
+  const bookings = [
+    b('2026-11-01', 1000, 'confirmed', { payment_status: 'paid' }),
+    b('2026-11-02', 500, 'cancelled', { payment_status: 'refunded' }),
+    b('2026-11-03', 300, 'cancelled'),
+  ];
+  const rb = revenueBreakdown(bookings);
+  assert.equal(rb.collected, 1000);
+  assert.equal(rb.cancelledCount, 2);
+  assert.equal(rb.refunded, 800);
+});
+
+test('revenueBreakdown: empty bookings returns zeroes', () => {
+  const rb = revenueBreakdown([]);
+  assert.equal(rb.collected, 0);
+  assert.equal(rb.pending, 0);
+  assert.equal(rb.refunded, 0);
+  assert.equal(rb.cancelledCount, 0);
+  assert.equal(rb.walkInRev, 0);
+  assert.equal(rb.onlineRev, 0);
+});
+
+test('revenueBy: aggregates by turf ID, not name — no merge on duplicate names', () => {
+  const bookings = [
+    b('2026-11-01', 500, 'confirmed', { turf_id: 'aaa' }),
+    b('2026-11-01', 300, 'confirmed', { turf_id: 'bbb' }),
+    b('2026-11-01', 200, 'confirmed', { turf_id: 'aaa' }),
+  ];
+  const results = revenueBy(bookings, (x) => x.turf_id);
+  assert.equal(results.length, 2);
+  assert.equal(results.find((r) => r.key === 'aaa').revenue, 700);
+  assert.equal(results.find((r) => r.key === 'bbb').revenue, 300);
+});
+
+test('revenueBy: pending and cancelled bookings excluded from turf revenue', () => {
+  const bookings = [
+    b('2026-11-01', 500, 'confirmed', { turf_id: 'x' }),
+    b('2026-11-01', 999, 'pending', { turf_id: 'x' }),
+    b('2026-11-01', 888, 'cancelled', { turf_id: 'x' }),
+  ];
+  const results = revenueBy(bookings, (x) => x.turf_id);
+  assert.equal(results.length, 1);
+  assert.equal(results[0].revenue, 500);
+});

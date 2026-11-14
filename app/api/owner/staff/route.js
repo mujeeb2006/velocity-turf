@@ -80,7 +80,7 @@ export async function POST(request) {
 
   const role = normalizeUserRole(profile.role);
   if (role !== "owner" && role !== "admin") {
-    return NextResponse.json({ error: "Only turf owners can invite staff." }, { status: 403 });
+    return NextResponse.json({ error: "You don't have permission to invite staff." }, { status: 403 });
   }
 
   const body = await readJson(request);
@@ -96,12 +96,17 @@ export async function POST(request) {
 
   const admin = createAdminClient();
 
-  // If owner, verify turf belongs to them if turfId specified
-  if (role === "owner" && turfId) {
-    const { data: turf } = await admin.from("turfs").select("id, owner_id").eq("id", turfId).maybeSingle();
-    if (!turf || turf.owner_id !== profile.id) {
-      return NextResponse.json({ error: "You can only invite staff to your own turfs." }, { status: 403 });
+  // Determine the effective venue owner
+  let targetOwnerId = profile.id;
+  if (turfId) {
+    const { data: turf, error: turfErr } = await admin.from("turfs").select("id, owner_id").eq("id", turfId).maybeSingle();
+    if (turfErr || !turf) {
+      return NextResponse.json({ error: "Turf not found." }, { status: 404 });
     }
+    if (role === "owner" && turf.owner_id !== profile.id) {
+      return NextResponse.json({ error: "You don't have permission to manage this turf." }, { status: 403 });
+    }
+    targetOwnerId = turf.owner_id;
   }
 
   const validation = validateStaffInvite({ email, role: staffRole, permissions, turfId });
@@ -116,7 +121,7 @@ export async function POST(request) {
     .from("venue_staff")
     .select("id, status")
     .eq("email", sanitizedEmail)
-    .eq("owner_id", profile.id)
+    .eq("owner_id", targetOwnerId)
     .in("status", ["active", "invited"]);
 
   if (turfId) {
@@ -126,7 +131,7 @@ export async function POST(request) {
   const { data: existing } = await dupQuery.maybeSingle();
   if (existing) {
     return NextResponse.json(
-      { error: "A staff invitation or active membership already exists for this email." },
+      { error: "An active invitation already exists for this email." },
       { status: 409 }
     );
   }
@@ -144,7 +149,7 @@ export async function POST(request) {
   const { data: newStaff, error: insertError } = await admin
     .from("venue_staff")
     .insert({
-      owner_id: profile.id,
+      owner_id: targetOwnerId,
       turf_id: turfId,
       user_id: existingUser?.id || null,
       email: sanitizedEmail,
@@ -164,36 +169,45 @@ export async function POST(request) {
 
   if (insertError) {
     console.error("insert staff error:", insertError);
-    return NextResponse.json({ error: "Failed to create staff invitation." }, { status: 500 });
+    return NextResponse.json({ error: insertError.message || "Unable to send invitation. Please try again." }, { status: 500 });
   }
 
-  // Audit log
-  await admin.from("staff_audit_log").insert({
-    turf_id: turfId,
-    actor_id: profile.id,
-    actor_role: role,
-    action: "invite_staff",
-    target_type: "venue_staff",
-    target_id: newStaff.id,
-    details: { email: sanitizedEmail, role: staffRole, permissions: validation.sanitized.permissions },
-  });
-
-  // If user already exists, send in-app notification
-  if (existingUser?.id) {
-    await sendSmartNotification(admin, {
-      userId: existingUser.id,
-      title: "Venue Staff Invitation",
-      body: `You've been invited by ${profile.full_name || "the turf owner"} to join as ${staffRole.replace("_", " ")}.`,
-      eventType: NOTIFICATION_EVENT_TYPES.VENUE_CHANGE,
-      category: NOTIFICATION_CATEGORIES.GENERAL,
-      link: `/owner`,
-      metadata: { staffId: newStaff.id, token },
-      dedupKey: buildDedupKey("staff_invite", newStaff.id, existingUser.id),
+  // Audit log (fail-safe)
+  try {
+    await admin.from("staff_audit_log").insert({
+      turf_id: turfId,
+      actor_id: profile.id,
+      actor_role: role,
+      action: "invite_staff",
+      target_type: "venue_staff",
+      target_id: newStaff.id,
+      details: { email: sanitizedEmail, role: staffRole, permissions: validation.sanitized.permissions },
     });
+  } catch (auditErr) {
+    console.warn("Staff audit log error:", auditErr);
+  }
+
+  // If user already exists, send in-app notification (fail-safe)
+  if (existingUser?.id) {
+    try {
+      await sendSmartNotification(admin, {
+        userId: existingUser.id,
+        title: "Venue Staff Invitation",
+        body: `You've been invited by ${profile.full_name || "the turf owner"} to join as ${staffRole.replace("_", " ")}.`,
+        eventType: NOTIFICATION_EVENT_TYPES.VENUE_CHANGE,
+        category: NOTIFICATION_CATEGORIES.GENERAL,
+        link: `/owner`,
+        metadata: { staffId: newStaff.id, token },
+        dedupKey: buildDedupKey("staff_invite", newStaff.id, existingUser.id),
+      });
+    } catch (notifErr) {
+      console.warn("Staff smart notification error:", notifErr);
+    }
   }
 
   return NextResponse.json({
     success: true,
+    message: "Invitation created successfully.",
     staff: newStaff,
     inviteLink: `/auth/setup-password?token=${token}&type=staff`,
   });

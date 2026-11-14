@@ -21,7 +21,7 @@ async function authorizeTurfOperator(admin, profile, turfId, requiredPermission 
     if (turfId) {
       const { data: turf } = await admin.from("turfs").select("id, owner_id").eq("id", turfId).maybeSingle();
       if (!turf || turf.owner_id !== profile.id) {
-        return { authorized: false, error: "You can only manage your own turfs.", status: 403 };
+        return { authorized: false, error: "You don't have permission to manage this turf.", status: 403 };
       }
     }
     return { authorized: true, role: "owner" };
@@ -272,48 +272,60 @@ export async function POST(request) {
 
   if (taskInsertError) {
     console.error("task insert error:", taskInsertError);
-    return NextResponse.json({ error: "Failed to create maintenance task." }, { status: 500 });
+    return NextResponse.json({ error: taskInsertError.message || "Unable to create task. Please try again." }, { status: 500 });
   }
 
-  // If blocks_slots, schedule maintenance window
+  // If blocks_slots, schedule maintenance window (fail-safe)
   if (blocksSlots && startDate && startTime && endTime) {
-    await admin.from("maintenance_windows").insert({
-      turf_id: turfId,
-      task_id: newTask.id,
-      court_name: courtName,
-      window_date: startDate,
-      start_time: startTime,
-      end_time: endTime,
-      reason: title,
-      status: "scheduled",
-    });
+    try {
+      await admin.from("maintenance_windows").insert({
+        turf_id: turfId,
+        task_id: newTask.id,
+        court_name: courtName,
+        window_date: startDate,
+        start_time: startTime,
+        end_time: endTime,
+        reason: title,
+        status: "scheduled",
+      });
+    } catch (winErr) {
+      console.warn("maintenance window insert error:", winErr);
+    }
   }
 
-  // If assigned to a staff member, send smart notification
+  // If assigned to a staff member, send smart notification (fail-safe)
   if (assignedTo && UUID_PATTERN.test(assignedTo)) {
-    await sendSmartNotification(admin, {
-      userId: assignedTo,
-      title: "New Maintenance Task Assigned",
-      body: `You have been assigned to maintenance task: "${title}" (${facilityType}) at the venue. Priority: ${priority.toUpperCase()}.`,
-      eventType: NOTIFICATION_EVENT_TYPES.MAINTENANCE_ASSIGNMENT,
-      category: NOTIFICATION_CATEGORIES.FACILITY,
-      link: "/owner",
-      metadata: { taskId: newTask.id, turfId },
-      dedupKey: buildDedupKey("task_assigned", newTask.id, assignedTo),
-    });
+    try {
+      await sendSmartNotification(admin, {
+        userId: assignedTo,
+        title: "New Maintenance Task Assigned",
+        body: `You have been assigned to maintenance task: "${title}" (${facilityType}) at the venue. Priority: ${priority.toUpperCase()}.`,
+        eventType: NOTIFICATION_EVENT_TYPES.MAINTENANCE_ASSIGNMENT,
+        category: NOTIFICATION_CATEGORIES.FACILITY,
+        link: "/owner",
+        metadata: { taskId: newTask.id, turfId },
+        dedupKey: buildDedupKey("task_assigned", newTask.id, assignedTo),
+      });
+    } catch (notifErr) {
+      console.warn("maintenance assignment notification error:", notifErr);
+    }
   }
 
-  // Audit log for staff action
-  await admin.from("staff_audit_log").insert({
-    turf_id: turfId,
-    actor_id: profile.id,
-    actor_role: authCheck.role,
-    action: "create_maintenance_task",
-    target_type: "maintenance_task",
-    target_id: newTask.id,
-    details: { title, priority, blocks_slots: blocksSlots, facility_type: facilityType },
-  });
+  // Audit log for staff action (fail-safe)
+  try {
+    await admin.from("staff_audit_log").insert({
+      turf_id: turfId,
+      actor_id: profile.id,
+      actor_role: authCheck.role,
+      action: "create_maintenance_task",
+      target_type: "maintenance_task",
+      target_id: newTask.id,
+      details: { title, priority, blocks_slots: blocksSlots, facility_type: facilityType },
+    });
+  } catch (auditErr) {
+    console.warn("maintenance audit log error:", auditErr);
+  }
 
-  return NextResponse.json({ success: true, task: newTask });
+  return NextResponse.json({ success: true, message: "Maintenance task created successfully.", task: newTask });
 }
 

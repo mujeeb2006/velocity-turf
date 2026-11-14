@@ -11,7 +11,7 @@ import {
   normalizeAdminRole, sortRows,
 } from "@/lib/admin/dashboard-utils";
 import {
-  avgResolutionHours, dateKey, monthComparison, revenueBy, revenueSeries, statusCounts,
+  avgResolutionHours, dateKey, monthComparison, revenueBy, revenueBreakdown, revenueSeries, statusCounts,
 } from "@/lib/dashboard/analytics";
 import {
   formatBookingDate, formatCompactINR, formatHours, formatINR, formatTime12, relativeTime, seriesToBars,
@@ -279,7 +279,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
       supabase.from("turfs").select("*, owner:profiles(full_name)").order("created_at", { ascending: false }),
       disputeQuery("*, turf:turfs(name), player:profiles!disputes_raised_by_fkey(full_name), booking:bookings(booking_date, start_time, sport, price, status)"),
       supabase.from("bookings")
-        .select("id, player_id, turf_id, booking_date, start_time, sport, players_count, price, status, created_at")
+        .select("id, player_id, turf_id, booking_date, start_time, sport, players_count, price, status, payment_status, booking_source, created_at")
         .order("created_at", { ascending: false }),
     ]);
 
@@ -492,15 +492,18 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
     const userById = Object.fromEntries(users.map((u) => [u.id, u]));
 
     const disputes = disputesRaw.map((d) => ({
-      id: d.ticket_number, dbId: d.id, user: d.player?.full_name || "Unknown", turf: d.turf?.name || "Unknown",
+      id: d.ticket_number, dbId: d.id, user: d.player?.full_name || "—", turf: d.turf?.name || "—",
       issue: d.issue, amount: Number(d.amount) || 0, status: d.status, createdAt: d.created_at,
       resolvedAt: d.resolved_at, booking: d.booking,
     }));
 
     const bookingRows = bookings.map((b) => ({
       id: b.id, date: b.booking_date, time: b.start_time, sortKey: `${b.booking_date} ${b.start_time}`,
-      turf: turfById[b.turf_id]?.name || "Unknown turf", player: userById[b.player_id]?.name || "Unknown player",
-      sport: b.sport, amount: Number(b.price) || 0, status: b.status,
+      turf: turfById[b.turf_id]?.name || "—", turfCity: turfById[b.turf_id]?.city || "",
+      player: userById[b.player_id]?.name || "—",
+      sport: b.sport || "—", amount: Number(b.price) || 0, status: b.status,
+      paymentStatus: b.payment_status || (b.status === "confirmed" || b.status === "completed" ? "paid" : b.status === "cancelled" || b.status === "declined" ? "refunded" : "pending"),
+      source: b.booking_source || "online",
     }));
 
     const cities = {};
@@ -511,8 +514,10 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
       c.value += t.revenue;
     });
 
+    const rb = revenueBreakdown(bookings);
+
     return {
-      turfs, users, disputes, bookingRows,
+      turfs, users, disputes, bookingRows, revenueBreakdown: rb,
       cityList: Object.values(cities).sort((a, b) => b.value - a.value).map((c) => ({ ...c, sub: `${c.turfs} turf${c.turfs === 1 ? "" : "s"}` })),
       pendingTurfs: turfs.filter((t) => t.status === "pending"),
       month: monthComparison(bookings, today),
@@ -1056,7 +1061,8 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
             { key: "player", label: "Player", width: "1.2fr", sortable: true },
             { key: "sport", label: "Sport", width: "0.9fr" },
             { key: "amount", label: "Amount", width: "1.2fr", align: "right", sortable: true, render: (b) => <span style={{ fontFamily: font, color: V.chalk, fontWeight: 700 }}>{formatINR(b.amount)}</span> },
-            { key: "status", label: "Status", width: "1.1fr", sortable: true, render: (b) => <StatusPill status={b.status} /> },
+            { key: "status", label: "Status", width: "1fr", sortable: true, render: (b) => <StatusPill status={b.status} /> },
+            { key: "paymentStatus", label: "Payment", width: "0.9fr", sortable: true, render: (b) => <StatusPill status={b.paymentStatus} /> },
             { key: "actions", label: "Actions", width: "1.5fr", render: (b) => ["pending", "confirmed"].includes(b.status) ? (
               <div style={{ display: "flex", gap: 6 }}>
                 <Btn variant="danger" size="sm" disabled={busyBookingId === b.id} onClick={() => setRejectingBooking(b)}>{b.status === "confirmed" ? "Cancel booking" : "Reject"}</Btn>
@@ -1073,7 +1079,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
                   </Btn>
                   <Btn icon="download" size="sm" disabled={!rows.length} onClick={() => downloadCSV(`bookings-${today}.csv`, rows, [
                     { label: "Date", key: "date" }, { label: "Time", key: "time" }, { label: "Turf", key: "turf" }, { label: "Player", key: "player" },
-                    { label: "Sport", key: "sport" }, { label: "Amount (INR)", key: "amount" }, { label: "Status", key: "status" },
+                    { label: "Sport", key: "sport" }, { label: "Amount (INR)", key: "amount" }, { label: "Status", key: "status" }, { label: "Payment", key: "paymentStatus" },
                   ])}>Export CSV</Btn>
                 </div>
               } />
@@ -1979,18 +1985,19 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
 
 // ------------------------------------------------------------------ overview
 function OverviewTab({ profile, view, loading, range, setRange, refreshButton, goTo }) {
-  const { month, pendingTurfs, openDisputes, userCounts, series, turfs, cityList, bookingRows, liveTurfs, avgResolve } = view;
+  const { month, pendingTurfs, openDisputes, userCounts, series, turfs, cityList, bookingRows, liveTurfs, avgResolve, revenueBreakdown, bookingCounts } = view;
   const topTurfs = [...turfs].sort((a, b) => b.revenue - a.revenue).filter((t) => t.revenue > 0).slice(0, 5)
     .map((t) => ({ key: t.id, label: t.name, sub: t.city, value: t.revenue }));
-  const recent = bookingRows.slice(0, 6);
+  const recent = bookingRows.slice(0, 8);
   const today = dateKey();
+  const rb = revenueBreakdown || { collected: 0, pending: 0, refunded: 0, cancelledCount: 0, walkInRev: 0, onlineRev: 0 };
 
   return (
     <>
       <TopBar title={`Welcome, ${profile?.full_name || "Admin"}`} sub="Everything happening across Velocity Turf." action={refreshButton} />
 
       {loading ? (
-        <StatGrid>{[...Array(5)].map((_, i) => <SkeletonCard key={i} lines={1} />)}</StatGrid>
+        <StatGrid>{[...Array(6)].map((_, i) => <SkeletonCard key={i} lines={1} />)}</StatGrid>
       ) : (
         <>
           <div style={{ display: "grid", gap: 10, marginBottom: 22 }}>
@@ -2010,8 +2017,9 @@ function OverviewTab({ profile, view, loading, range, setRange, refreshButton, g
           </div>
 
           <StatGrid>
+            <StatCard label="Collected revenue" value={formatCompactINR(rb.collected)} icon="rupee" color={V.confirmed} sub={`₹${rb.pending.toLocaleString("en-IN")} pending · ₹${rb.refunded.toLocaleString("en-IN")} refunded`} />
             <StatCard label="Revenue this month" value={formatCompactINR(month.revenue)} icon="rupee" color={V.sky} delta={month.revenueChange} sub="Confirmed + completed bookings" />
-            <StatCard label="Bookings this month" value={month.count.toLocaleString("en-IN")} icon="calendar" color={V.aqua} delta={month.countChange} sub="Games played so far" />
+            <StatCard label="Total bookings" value={bookingCounts.all.toLocaleString("en-IN")} icon="calendar" color={V.aqua} sub={`${bookingCounts.confirmed + bookingCounts.completed} confirmed · ${bookingCounts.pending} pending · ${rb.cancelledCount} cancelled`} />
             <StatCard label="Live turfs" value={liveTurfs} icon="building" color={V.confirmed} sub={pendingTurfs.length ? `${pendingTurfs.length} waiting for approval` : "None waiting for approval"} />
             <StatCard label="Total users" value={userCounts.all.toLocaleString("en-IN")} icon="users" color={V.pending} sub={`${userCounts.Player} players · ${userCounts["Turf Owner"]} owners · ${userCounts.Admin} admins`} />
             <StatCard label="Open disputes" value={openDisputes.length} icon="alert" color={V.danger} sub={openDisputes.length === 0 ? "Nothing to resolve" : avgResolve === null ? "Needs attention" : `Avg. resolution ${formatHours(avgResolve)}`} />
@@ -2034,11 +2042,39 @@ function OverviewTab({ profile, view, loading, range, setRange, refreshButton, g
         </Card>
       </div>
 
+      {/* Revenue source and city breakdown */}
+      {!loading && (rb.collected > 0) && (
+        <div className="vt-two-col" style={{ marginTop: 0 }}>
+          <Card>
+            <SectionTitle>Revenue by source</SectionTitle>
+            <BarList
+              items={[
+                { key: "online", label: "Online bookings", value: rb.onlineRev },
+                { key: "walkin", label: "Walk-in bookings", value: rb.walkInRev },
+              ].filter((i) => i.value > 0)}
+              color={V.aqua}
+              formatValue={formatCompactINR}
+              empty="Revenue source breakdown will appear here."
+            />
+          </Card>
+          <Card>
+            <SectionTitle>All-time revenue by city</SectionTitle>
+            <BarList items={cityList.slice(0, 6)} color={V.sky} formatValue={formatCompactINR} empty="City breakdown appears once turfs are listed." />
+          </Card>
+        </div>
+      )}
+
+      {/* Fallback city card when no revenue source breakdown needed */}
+      {!loading && rb.collected === 0 && (
+        <div className="vt-two-col" style={{ marginTop: 0 }}>
+          <Card>
+            <SectionTitle>All-time revenue by city</SectionTitle>
+            <BarList items={cityList.slice(0, 6)} color={V.sky} formatValue={formatCompactINR} empty="City breakdown appears once turfs are listed." />
+          </Card>
+        </div>
+      )}
+
       <div className="vt-even-col">
-        <Card>
-          <SectionTitle>All-time revenue by city</SectionTitle>
-          {loading ? <SkeletonCard lines={3} /> : <BarList items={cityList.slice(0, 6)} color={V.sky} formatValue={formatCompactINR} empty="City breakdown appears once turfs are listed." />}
-        </Card>
         <Card>
           <SectionTitle action={<Btn variant="ghost" size="sm" onClick={() => goTo("bookings")}>View all bookings</Btn>}>Latest bookings</SectionTitle>
           {loading ? <SkeletonCard lines={3} /> : recent.length === 0 ? (
@@ -2047,13 +2083,14 @@ function OverviewTab({ profile, view, loading, range, setRange, refreshButton, g
             <div style={{ display: "grid" }}>
               {recent.map((b, i) => (
                 <div key={b.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: i < recent.length - 1 ? `1px solid ${V.line}` : "none" }}>
-                  <div style={{ minWidth: 0 }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ color: V.chalk, fontWeight: 700, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.player} · {b.turf}</div>
                     <div style={{ color: V.chalkFaint, fontSize: 12 }}>{formatBookingDate(b.date)}, {formatTime12(b.time)} · {b.sport}</div>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
                     <span style={{ fontFamily: font, fontWeight: 700, fontSize: 12.5, color: V.chalk }}>{formatINR(b.amount)}</span>
                     <StatusPill status={b.status} />
+                    <StatusPill status={b.paymentStatus} />
                   </div>
                 </div>
               ))}

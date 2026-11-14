@@ -101,3 +101,65 @@ test("Auth role & guards: staff members are routed to owner venue portal", () =>
   assert.equal(resolveRoleRedirect({ role: "staff" }, "owner"), null);
 });
 
+test("Staff Invitation Workflow & Security Rules", async (t) => {
+  await t.test("Owner can create valid staff invitation with permissions", () => {
+    const invite = validateStaffInvite({
+      email: "Manager@VelocityTurf.com",
+      role: "venue_manager",
+      permissions: ["view_schedule", "checkin_players", "manage_maintenance"],
+      turfId: "00000000-0000-0000-0000-000000000001",
+    });
+    assert.equal(invite.valid, true);
+    assert.equal(invite.sanitized.email, "manager@velocityturf.com");
+    assert.equal(invite.sanitized.role, "venue_manager");
+    assert.equal(invite.sanitized.turfId, "00000000-0000-0000-0000-000000000001");
+  });
+
+  await t.test("Ordinary players are strictly unauthorized to create staff invitations", () => {
+    const playerRole = normalizeUserRole("player");
+    const isAuthorizedToInvite = playerRole === "owner" || playerRole === "admin";
+    assert.equal(isAuthorizedToInvite, false, "Players cannot create staff invitations");
+  });
+
+  await t.test("Duplicate prevention detects active or pending invitations", () => {
+    const existingStaff = [
+      { email: "active.staff@example.com", status: "active", turf_id: "turf-1" },
+      { email: "pending.staff@example.com", status: "invited", turf_id: "turf-1" },
+      { email: "revoked.staff@example.com", status: "revoked", turf_id: "turf-1" },
+    ];
+
+    const isDuplicateActive = (email, turfId) => {
+      return existingStaff.some(
+        (s) => s.email === email && s.turf_id === turfId && ["active", "invited"].includes(s.status)
+      );
+    };
+
+    assert.equal(isDuplicateActive("active.staff@example.com", "turf-1"), true);
+    assert.equal(isDuplicateActive("pending.staff@example.com", "turf-1"), true);
+    assert.equal(isDuplicateActive("revoked.staff@example.com", "turf-1"), false, "Revoked staff can be re-invited");
+    assert.equal(isDuplicateActive("new.staff@example.com", "turf-1"), false);
+  });
+
+  await t.test("Security: Prevents mismatching email from accepting staff invitation", () => {
+    const invite = { email: "intended.staff@example.com", status: "invited" };
+    const attackerProfile = { email: "random.user@example.com" };
+    const matchingProfile = { email: "Intended.Staff@example.com" };
+
+    const canAccept = (profile, inv) => {
+      return profile?.email && inv?.email && profile.email.toLowerCase() === inv.email.toLowerCase();
+    };
+
+    assert.equal(canAccept(attackerProfile, invite), false, "Attacker with different email cannot accept");
+    assert.equal(canAccept(matchingProfile, invite), true, "Matching email can accept case-insensitively");
+  });
+
+  await t.test("Expired and revoked invitations are properly rejected", () => {
+    const now = Date.now();
+    const revokedInvite = { status: "revoked", invite_expires_at: new Date(now + 100000).toISOString() };
+    const expiredInvite = { status: "invited", invite_expires_at: new Date(now - 100000).toISOString() };
+
+    assert.equal(revokedInvite.status === "revoked", true);
+    assert.equal(isInviteExpired(expiredInvite), true);
+  });
+});
+

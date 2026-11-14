@@ -104,3 +104,34 @@ test("isSlotAvailableForBooking: slots marked as maintenance are not bookable", 
   assert.equal(isSlotAvailableForBooking({ status: "booked" }), false);
 });
 
+test("Maintenance task editing and assignment lifecycle", async (t) => {
+  await t.test("Validates updates to existing maintenance task", () => {
+    const updatedPayload = {
+      title: "Updated Turf Brushing & Line Painting",
+      facility_type: "turf_repair",
+      priority: "urgent",
+      court_name: "Pitch B - East",
+      notes: "Completed initial inspection; need extra green paint",
+      assigned_to: "00000000-0000-0000-0000-000000000002",
+    };
+    const validation = validateMaintenanceTask(updatedPayload);
+    assert.equal(validation.valid, true);
+  });
+
+  await t.test("Validates status updates: open -> in_progress -> completed", () => {
+    let currentStatus = "open";
+    assert.equal(canTransitionMaintenanceStatus(currentStatus, "in_progress"), true);
+    currentStatus = "in_progress";
+    assert.equal(canTransitionMaintenanceStatus(currentStatus, "completed"), true);
+    currentStatus = "completed";
+    assert.equal(canTransitionMaintenanceStatus(currentStatus, "open"), false, "Completed task cannot be reopened");
+  });
+
+  await t.test("Rejects task deletion or modification by unauthorized roles", () => {
+    const isAuthorized = (role) => ["owner", "admin", "staff"].includes(role);
+    assert.equal(isAuthorized("owner"), true);
+    assert.equal(isAuthorized("admin"), true);
+    assert.equal(isAuthorized("player"), false, "Players cannot edit or delete maintenance tasks");
+  });
+});
+

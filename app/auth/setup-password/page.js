@@ -131,6 +131,27 @@ function SetupPasswordForm() {
             setUserEmail(freshSession.session.user.email || "");
             setStatus("ready");
           } else {
+            // Check if this is a staff invitation token that can be validated directly
+            const isStaffType = searchParams?.get("type") === "staff";
+            const staffToken = searchParams?.get("token");
+            if (isStaffType && staffToken) {
+              try {
+                const res = await fetch(`/api/owner/staff/accept?token=${encodeURIComponent(staffToken)}`);
+                const data = await res.json();
+                if (res.ok && data.valid) {
+                  setUserEmail(data.email || "");
+                  setStatus("ready");
+                  return;
+                } else if (data.error) {
+                  setStatus("invalid");
+                  setErrorMessage(data.error);
+                  return;
+                }
+              } catch (tokenErr) {
+                console.warn("Token inspection error:", tokenErr);
+              }
+            }
+
             setStatus("invalid");
             setErrorMessage(
               "No active invitation session found. Please open the link directly from your invitation email or contact your administrator."
@@ -175,15 +196,31 @@ function SetupPasswordForm() {
     setStatus("submitting");
 
     try {
-      // 1. Update the password on the authenticated invitation session
-      const { data: updateData, error: updateError } = await supabase.auth.updateUser({
-        password,
-      });
-
-      if (updateError) {
-        setStatus("error");
-        setErrorMessage(updateError.message || "Failed to update your password. Please try again.");
-        return;
+      // 1. Establish session or update password
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const { error: updateError } = await supabase.auth.updateUser({ password });
+        if (updateError) {
+          setStatus("error");
+          setErrorMessage(updateError.message || "Failed to update your password. Please try again.");
+          return;
+        }
+      } else if (userEmail) {
+        const { error: signInErr } = await supabase.auth.signInWithPassword({
+          email: userEmail,
+          password,
+        });
+        if (signInErr) {
+          const { error: signUpErr } = await supabase.auth.signUp({
+            email: userEmail,
+            password,
+          });
+          if (signUpErr && !signUpErr.message.includes("already registered")) {
+            setStatus("error");
+            setErrorMessage(signUpErr.message || "Failed to activate your account. Please try again.");
+            return;
+          }
+        }
       }
 
       // 2. Finalize server-side role confirmation or staff invitation acceptance
@@ -191,11 +228,17 @@ function SetupPasswordForm() {
       const staffToken = searchParams?.get("token");
 
       if (isStaffType && staffToken) {
-        await fetch("/api/owner/staff/accept", {
+        const acceptRes = await fetch("/api/owner/staff/accept", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token: staffToken }),
-        }).catch((err) => console.warn("Staff accept error:", err));
+        });
+        const acceptData = await acceptRes.json().catch(() => ({}));
+        if (!acceptRes.ok) {
+          setStatus("error");
+          setErrorMessage(acceptData.error || "Failed to accept staff invitation.");
+          return;
+        }
       } else {
         const response = await fetch("/api/auth/complete-invite", {
           method: "POST",

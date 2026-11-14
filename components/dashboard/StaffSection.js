@@ -474,7 +474,7 @@ function InviteStaffModal({ turfs = [], onClose, onSuccess, showToast }) {
 
   async function handleSubmit() {
     if (!email.trim()) {
-      showToast("Email address is required.", { type: "error" });
+      showToast("Please complete the required fields.", { type: "error" });
       return;
     }
 
@@ -494,16 +494,16 @@ function InviteStaffModal({ turfs = [], onClose, onSuccess, showToast }) {
 
       const data = await res.json();
       if (!res.ok) {
-        showToast(data.error || "Failed to invite staff member.", { type: "error" });
+        showToast(data.error || "Unable to send invitation. Please try again.", { type: "error" });
         setSubmitting(false);
         return;
       }
 
-      showToast("Staff invitation sent successfully.", { type: "success" });
+      showToast(data.message || "Invitation created successfully.", { type: "success" });
       onSuccess(data);
     } catch (err) {
       console.error(err);
-      showToast("Network error inviting staff.", { type: "error" });
+      showToast("Unable to send invitation. Please try again.", { type: "error" });
       setSubmitting(false);
     }
   }

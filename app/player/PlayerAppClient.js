@@ -70,6 +70,7 @@ import {
   Star,
   RefreshCw,
   Copy,
+  Share2,
 } from "@/components/ui/icons";
 
 function todayStr() {
@@ -3512,7 +3513,7 @@ function LoyaltySection({ isLoading, leaderboard, myPoints, gamesPlayed }) {
 // ============================================================
 // DASHBOARD
 // ============================================================
-function DashboardSection({ isLoading, bookings, matchesJoined, joinedGames = [], onCancel, onReview, onDispute, onViewQr, onFindTurf, onFindGames, onViewGame, profile, showToast }) {
+function DashboardSection({ isLoading, bookings = [], matchesJoined = 0, joinedGames = [], onCancel, onReview, onDispute, onViewQr, onFindTurf, onFindGames, onViewGame, profile, showToast }) {
   const [filter, setFilter] = useState("upcoming");
   const [referralData, setReferralData] = useState(null);
   const [referralLoading, setReferralLoading] = useState(true);
@@ -3522,19 +3523,27 @@ function DashboardSection({ isLoading, bookings, matchesJoined, joinedGames = []
 
   // Fetch referral data independently for dashboard card
   const fetchReferral = () => {
-    if (!profile?.id) return;
+    if (!profile?.id) {
+      setReferralLoading(false);
+      return;
+    }
     setReferralLoading(true);
     setReferralError(null);
     fetch("/api/player/rewards")
-      .then(r => r.json())
-      .then(json => {
+      .then(async (r) => {
+        const json = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          setReferralError(json?.error || "Could not load referral data.");
+          return;
+        }
         if (json?.referral) {
           setReferralData(json);
         } else if (json?.referralError) {
           setReferralError(json.referralError);
         }
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error("fetchReferral error:", err);
         setReferralError("Could not load referral data.");
       })
       .finally(() => setReferralLoading(false));
@@ -3550,7 +3559,7 @@ function DashboardSection({ isLoading, bookings, matchesJoined, joinedGames = []
   const refMaxAllowed = referralData?.referral?.maxAllowed ?? referralData?.referral?.maxReferrals ?? 3;
   const refRemaining = Math.max(0, refMaxAllowed - refCompleted);
   const refLimitReached = refCompleted >= refMaxAllowed;
-  const refSlots = referralData?.referral?.slots || [];
+  const refSlots = Array.isArray(referralData?.referral?.slots) ? referralData.referral.slots : [];
 
   const handleCopyReferral = () => {
     if (!refCode) return;
@@ -3580,10 +3589,14 @@ function DashboardSection({ isLoading, bookings, matchesJoined, joinedGames = []
     }
   };
 
-  const upcoming = bookings.filter(b => ["pending", "confirmed"].includes(b.status) && isUpcomingBooking(b, now));
-  const pastBookings = bookings.filter(booking => isPlayedBooking(booking, now));
-  const cancelledOrDeclined = bookings.filter(b => ["cancelled", "declined"].includes(b.status));
-  const totalSpent = bookings.filter(b => ["confirmed", "completed"].includes(b.status)).reduce((sum, b) => sum + b.price, 0);
+  const safeBookings = Array.isArray(bookings) ? bookings : [];
+  const safeJoinedGames = Array.isArray(joinedGames) ? joinedGames : [];
+  const safeMatchesJoined = Number(matchesJoined) || safeJoinedGames.length || 0;
+
+  const upcoming = safeBookings.filter(b => b && ["pending", "confirmed"].includes(b.status) && isUpcomingBooking(b, now));
+  const pastBookings = safeBookings.filter(booking => booking && isPlayedBooking(booking, now));
+  const cancelledOrDeclined = safeBookings.filter(b => b && ["cancelled", "declined"].includes(b.status));
+  const totalSpent = safeBookings.filter(b => b && ["confirmed", "completed"].includes(b.status)).reduce((sum, b) => sum + (Number(b.price) || 0), 0);
   const gamesPlayed = pastBookings.length;
 
   const currentList =
@@ -3593,7 +3606,9 @@ function DashboardSection({ isLoading, bookings, matchesJoined, joinedGames = []
         ? pastBookings
         : filter === "cancelled"
           ? cancelledOrDeclined
-          : bookings;
+          : filter === "community"
+            ? safeJoinedGames
+            : safeBookings;
 
   return (
     <div className="vt-dashboard-section" style={{ padding: "40px 20px 80px" }}>
@@ -3633,7 +3648,7 @@ function DashboardSection({ isLoading, bookings, matchesJoined, joinedGames = []
               {[
                 { label: "Total spent", value: `₹${totalSpent.toLocaleString()}`, icon: "trending", bg: "#EAF7FF", color: "#1769E8" },
                 { label: "Games played", value: gamesPlayed, icon: "clock", bg: "#E9F9ED", color: "#10B981" },
-                { label: "Squad matches joined", value: matchesJoined, icon: "trophy", bg: "#F1EEFF", color: "#7C3AED" },
+                { label: "Squad matches joined", value: safeMatchesJoined, icon: "trophy", bg: "#F1EEFF", color: "#7C3AED" },
                 { label: "Upcoming bookings", value: upcoming.length, icon: "calendar", bg: "#FFF2E5", color: "#F59E0B" },
               ].map(s => (
                 <div
@@ -3679,10 +3694,10 @@ function DashboardSection({ isLoading, bookings, matchesJoined, joinedGames = []
             >
               {[
                 { id: "upcoming", label: "Upcoming", count: upcoming.length },
-                { id: "community", label: "Community Games", count: (joinedGames || []).length },
+                { id: "community", label: "Community Games", count: safeJoinedGames.length },
                 { id: "past", label: "Completed", count: pastBookings.length },
                 { id: "cancelled", label: "Cancelled / Declined", count: cancelledOrDeclined.length },
-                { id: "all", label: "All Bookings", count: bookings.length },
+                { id: "all", label: "All Bookings", count: safeBookings.length },
               ].map(tab => {
                 const active = filter === tab.id;
                 return (
@@ -4056,6 +4071,42 @@ function DashboardSection({ isLoading, bookings, matchesJoined, joinedGames = []
                   </span>
                 </div>
               </div>
+
+              {referralError && (
+                <div style={{
+                  marginBottom: 16,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  background: "#FEF2F2",
+                  border: "1px solid #FCA5A5",
+                  borderRadius: 12,
+                  padding: "10px 14px",
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <AlertTriangle size={15} color="#991B1B" />
+                    <span style={{ fontSize: 12.5, color: "#991B1B", fontWeight: 600 }}>
+                      {referralError}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={fetchReferral}
+                    style={{
+                      background: "#991B1B",
+                      color: "#FFFFFF",
+                      border: "none",
+                      borderRadius: 6,
+                      padding: "4px 10px",
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
 
               {/* Referral Code + Actions Row */}
               <div style={{
@@ -4566,49 +4617,63 @@ export default function PlayerAppClient({ profile }) {
 
   async function fetchMyBookings() {
     if (!profile?.id) { setMyBookingsLoading(false); return; }
-    const { data, error } = await supabase
-      .from("bookings")
-      .select("*, turf:turfs(name)")
-      .eq("player_id", profile.id)
-      .is("archived_at", null)
-      .order("booking_date", { ascending: true });
-    if (error) {
-      showToast("Couldn't load your bookings. Try refreshing.", { type: "error" });
+    setMyBookingsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("bookings")
+        .select("*, turf:turfs(name)")
+        .eq("player_id", profile.id)
+        .is("archived_at", null)
+        .order("booking_date", { ascending: true });
+      if (error) {
+        showToast("Couldn't load your bookings. Try refreshing.", { type: "error" });
+        return;
+      }
+
+      // Fetch existing review booking_ids so we can hide the "Rate Turf" button
+      // for bookings that have already been reviewed.
+      let reviewedBookingIds = new Set();
+      if ((data || []).length > 0) {
+        try {
+          const bookingIds = (data || []).map(b => b.id);
+          const { data: reviewRows } = await supabase
+            .from("reviews")
+            .select("booking_id")
+            .in("booking_id", bookingIds);
+          reviewedBookingIds = new Set((reviewRows || []).map(r => r.booking_id));
+        } catch (rErr) {
+          console.warn("Could not check reviewed bookings:", rErr);
+        }
+      }
+
+      setMyBookings((data || []).map(b => ({
+        id: b.id,
+        turfId: b.turf_id,
+        turf: b.turf?.name || "Turf",
+        date: formatBookingDate(b.booking_date),
+        bookingDate: b.booking_date,
+        time: fmtTime(b.start_time),
+        sport: b.sport,
+        price: Number(b.price || 0),
+        status: b.status,
+        hasReview: reviewedBookingIds.has(b.id),
+      })));
+
+      try {
+        const { count } = await supabase
+          .from("match_participants")
+          .select("id", { count: "exact", head: true })
+          .eq("player_id", profile.id);
+        setMatchesJoinedCount(count || 0);
+      } catch (mErr) {
+        console.warn("Could not fetch matches count:", mErr);
+      }
+    } catch (err) {
+      console.error("fetchMyBookings error:", err);
+      showToast("Could not load your bookings. Try refreshing.", { type: "error" });
+    } finally {
       setMyBookingsLoading(false);
-      return;
     }
-
-    // Fetch existing review booking_ids so we can hide the "Rate Turf" button
-    // for bookings that have already been reviewed.
-    let reviewedBookingIds = new Set();
-    if ((data || []).length > 0) {
-      const bookingIds = (data || []).map(b => b.id);
-      const { data: reviewRows } = await supabase
-        .from("reviews")
-        .select("booking_id")
-        .in("booking_id", bookingIds);
-      reviewedBookingIds = new Set((reviewRows || []).map(r => r.booking_id));
-    }
-
-    setMyBookings((data || []).map(b => ({
-      id: b.id,
-      turfId: b.turf_id,
-      turf: b.turf?.name || "Turf",
-      date: formatBookingDate(b.booking_date),
-      bookingDate: b.booking_date,
-      time: fmtTime(b.start_time),
-      sport: b.sport,
-      price: Number(b.price),
-      status: b.status,
-      hasReview: reviewedBookingIds.has(b.id),
-    })));
-    setMyBookingsLoading(false);
-
-    const { count } = await supabase
-      .from("match_participants")
-      .select("id", { count: "exact", head: true })
-      .eq("player_id", profile.id);
-    setMatchesJoinedCount(count || 0);
   }
 
   async function fetchNotifications() {
@@ -4626,15 +4691,19 @@ export default function PlayerAppClient({ profile }) {
 
   async function fetchJoinedMatches() {
     if (!profile?.id) return;
-    const { data, error } = await supabase
-      .from("match_participants")
-      .select("id, match_id, amount_paid, payment_status, payment_id, created_at, match:matches(*, turf:turfs(name, city, address))")
-      .eq("player_id", profile.id)
-      .order("created_at", { ascending: false });
-    if (!error && data) {
-      setJoinedGamesList(data);
-      setJoinedMatchIds(new Set(data.map(r => r.match_id)));
-      setMatchesJoinedCount(data.length);
+    try {
+      const { data, error } = await supabase
+        .from("match_participants")
+        .select("id, match_id, amount_paid, payment_status, payment_id, created_at, match:matches(*, turf:turfs(name, city, address))")
+        .eq("player_id", profile.id)
+        .order("created_at", { ascending: false });
+      if (!error && data) {
+        setJoinedGamesList(data);
+        setJoinedMatchIds(new Set(data.map(r => r.match_id)));
+        setMatchesJoinedCount(data.length);
+      }
+    } catch (err) {
+      console.error("fetchJoinedMatches error:", err);
     }
   }
 

@@ -8,17 +8,19 @@ function Svg({
   color = "currentColor",
   strokeWidth = 2,
   fill = "none",
+  filled,
   className,
   style,
   children,
   ...props
 }) {
+  const actualFill = filled !== undefined ? (filled ? (color || "currentColor") : "none") : fill;
   return (
     <svg
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      fill={fill}
+      fill={actualFill}
       stroke={color}
       strokeWidth={strokeWidth}
       strokeLinecap="round"

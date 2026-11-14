@@ -976,7 +976,9 @@ export function Icon({ name, emoji, size = 18, color = "currentColor", filled = 
   }
 
   if (Component) {
-    return <Component size={size} color={color} filled={filled} className={className} style={style} {...props} />;
+    // Only Star accepts 'filled'; avoid passing it to other icons where it leaks to the DOM
+    const iconProps = Component === Star ? { filled } : {};
+    return <Component size={size} color={color} className={className} style={style} {...iconProps} {...props} />;
   }
 
   // Fallback to inbox if unknown

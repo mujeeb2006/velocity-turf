@@ -461,7 +461,8 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
   const bookedSlotsCount = modalSlots.filter(s => s.status !== "available").length;
   const occupancy = modalSlots.length ? Math.round((bookedSlotsCount / modalSlots.length) * 100) : 0;
   const isDynamic = occupancy > 70;
-  const price = bookingPrice ?? (turf ? calcPrice(turf, occupancy, bookingDate, selectedSlot) : 0);
+  const slotTime = selectedSlot !== null ? (modalSlots[selectedSlot]?.raw_time || modalSlots[selectedSlot]?.time) : null;
+  const price = bookingPrice ?? (turf ? calcPrice(turf, occupancy, selectedDate, slotTime) : 0);
   const points = Math.floor(price * 0.1);
 
   const conversionRate = Number(rewardSettings?.conversion_rate_points_per_inr || 1);

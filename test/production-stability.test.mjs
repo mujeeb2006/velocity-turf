@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import { extractErrorMessage } from '../lib/api-response.js';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary.js';
+import { calculateSlotPrice } from '../lib/turf/pricing.js';
 
 // ── 1. Error Message Extraction & Non-String Object Safety ───────────────────
 
@@ -117,4 +118,60 @@ test('Failed rewards/referral API payload fallback does not throw or corrupt das
 
   assert.equal(typeof safeMessage, 'string');
   assert.equal(safeMessage, 'Referral data temporarily unavailable.');
+});
+
+// ── 6. Player Booking Modal Date & Slot Pricing Safety ────────────────────────
+
+test('Player Booking Modal: price evaluation with selectedDate and slotTime works cleanly', () => {
+  const turf = {
+    id: 'turf-abc',
+    base_price: 1200,
+    peak_price: 1600,
+    pricing_rules: {
+      timeBands: [
+        { id: 'evening', label: 'Evening', startTime: '18:00', endTime: '23:00', price: 1600 },
+      ],
+    },
+  };
+
+  const selectedDate = '2026-11-18';
+  const modalSlots = [
+    { time: '07:00 AM', raw_time: '07:00', status: 'available' },
+    { time: '06:00 PM', raw_time: '18:00', status: 'available' },
+  ];
+
+  // Helper mimicking calcPrice from PlayerAppClient.js
+  const calcPrice = (t, occ, date, time) => {
+    if (!t) return 0;
+    if (date && time) {
+      return calculateSlotPrice(t, date, time, occ).price;
+    }
+    const base = Number(t.base_price || t.price || 0);
+    return occ > 70 ? Math.round(base * 1.15) : base;
+  };
+
+  // Case 1: Initial state before user selects any slot (selectedSlot === null)
+  let selectedSlot = null;
+  let bookingPrice = null;
+  const occupancy = 0;
+  const slotTime1 = selectedSlot !== null ? (modalSlots[selectedSlot]?.raw_time || modalSlots[selectedSlot]?.time) : null;
+  const price1 = bookingPrice ?? (turf ? calcPrice(turf, occupancy, selectedDate, slotTime1) : 0);
+  assert.equal(price1, 1200, 'Unselected slot falls back to base price without throwing');
+
+  // Case 2: User selects Slot 0 (07:00 regular hour)
+  selectedSlot = 0;
+  const slotTime2 = selectedSlot !== null ? (modalSlots[selectedSlot]?.raw_time || modalSlots[selectedSlot]?.time) : null;
+  const price2 = bookingPrice ?? (turf ? calcPrice(turf, occupancy, selectedDate, slotTime2) : 0);
+  assert.equal(price2, 1200, 'Regular slot returns base price');
+
+  // Case 3: User selects Slot 1 (18:00 Evening peak band)
+  selectedSlot = 1;
+  const slotTime3 = selectedSlot !== null ? (modalSlots[selectedSlot]?.raw_time || modalSlots[selectedSlot]?.time) : null;
+  const price3 = bookingPrice ?? (turf ? calcPrice(turf, occupancy, selectedDate, slotTime3) : 0);
+  assert.equal(price3, 1600, 'Peak slot returns dynamic time-band price');
+
+  // Case 4: Pre-set bookingPrice (e.g. from completed group booking)
+  bookingPrice = 500;
+  const price4 = bookingPrice ?? (turf ? calcPrice(turf, occupancy, selectedDate, slotTime3) : 0);
+  assert.equal(price4, 500, 'Pre-set bookingPrice takes precedence');
 });

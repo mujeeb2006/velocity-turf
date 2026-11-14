@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { COLORS as V, panel, buttonStyle } from "@/lib/design-tokens";
 import { formatBookingDate, formatINR } from "@/lib/dashboard/format";
+import { getGroupBookingStatusLabel } from "@/lib/group/policy";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { GroupBookingDetailsModal } from "./GroupBookingDetailsModal";
@@ -187,6 +188,16 @@ export function GroupBookingsSection({ profile, showToast, onFindTurf }) {
 
             const participants = group.participants || [];
             const paidCount = participants.filter((p) => p.payment_status === "paid").length;
+            const totalPaid = participants.filter((p) => p.payment_status === "paid").reduce((sum, p) => sum + Number(p.share_amount || 0), 0);
+            const remainingBalance = Math.max(0, Math.round((Number(group.total_price || 0) - totalPaid) * 100) / 100);
+
+            const statusInfo = getGroupBookingStatusLabel(group, {
+              totalCount: participants.length,
+              paidCount,
+              remainingBalance,
+              isExpired,
+            });
+
             const myParticipant = participants.find((p) => p.player_id === profile?.id);
             const myPaid = myParticipant?.payment_status === "paid";
 
@@ -223,15 +234,11 @@ export function GroupBookingsSection({ profile, showToast, onFindTurf }) {
                         borderRadius: 6,
                         fontSize: 11,
                         fontWeight: 800,
-                        background: isConfirmed
-                          ? "rgba(21, 128, 81, 0.15)"
-                          : isPending
-                          ? "rgba(24, 168, 224, 0.15)"
-                          : "rgba(220, 38, 38, 0.15)",
-                        color: isConfirmed ? V.confirmed : isPending ? V.flood : "#EF4444",
+                        background: statusInfo.bg,
+                        color: statusInfo.color,
                       }}
                     >
-                      {isConfirmed ? "Confirmed" : isPending ? "Pending" : isExpired ? "Expired" : "Cancelled"}
+                      {statusInfo.label}
                     </span>
                   </div>
 

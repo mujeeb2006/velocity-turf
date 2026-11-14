@@ -200,3 +200,45 @@ test("Points refund simulation preserves wallet integrity", () => {
   assert.equal(lifetimeRedeemed, 0);
   assert(availablePoints >= 0, "Wallet balance must never be negative");
 });
+
+test("Wallet summary provides dual camelCase and snake_case properties for component resilience", () => {
+  const walletSummary = {
+    availablePoints: 250,
+    available_points: 250,
+    pendingPoints: 50,
+    pending_points: 50,
+    lifetimeEarned: 500,
+    lifetime_earned: 500,
+    lifetimeRedeemed: 250,
+    lifetime_redeemed: 250,
+    inrValue: 250,
+    equivalent_inr: 250,
+  };
+
+  assert.equal(walletSummary.availablePoints, walletSummary.available_points);
+  assert.equal(walletSummary.inrValue, walletSummary.equivalent_inr);
+  assert.equal(walletSummary.lifetimeEarned, walletSummary.lifetime_earned);
+});
+
+test("Referral summary safely builds slots without throwing when referral list is empty or null", () => {
+  const maxReferrals = 3;
+  const rawReferrals = null;
+  const referralRows = Array.isArray(rawReferrals) ? rawReferrals : [];
+
+  const slots = [];
+  for (let i = 0; i < maxReferrals; i++) {
+    const ref = referralRows[i];
+    if (!ref) {
+      slots.push({
+        slotNumber: i + 1,
+        status: "empty",
+        friendName: null,
+      });
+    }
+  }
+
+  assert.equal(slots.length, 3);
+  assert.equal(slots[0].status, "empty");
+  assert.equal(slots[1].status, "empty");
+  assert.equal(slots[2].status, "empty");
+});

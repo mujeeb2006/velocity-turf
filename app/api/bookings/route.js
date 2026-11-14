@@ -22,6 +22,7 @@ import {
   adminAdjustPoints,
   processBookingRewardAndReferralCompletion,
 } from "@/lib/rewards/service";
+import { sweepExpiredGroupHolds } from "@/lib/group/service";
 
 // ── Idempotency helpers ───────────────────────────────────────────────────────
 
@@ -237,6 +238,9 @@ export async function POST(request) {
   }
 
   // ── Verify slot availability (server-side, before insert) ─────────────────
+  // Pre-sweep expired group holds so freed slots can be booked immediately
+  await sweepExpiredGroupHolds(admin);
+
   // Note: the DB trigger also checks atomically — this pre-flight gives a
   // clean 409 before hitting the unique constraint.
   const { data: rawSlots, error: slotsError } = await admin.rpc("turf_slots", {
@@ -343,24 +347,46 @@ export async function POST(request) {
 
   // ── Insert booking (DB trigger validates atomically + locks turf row) ─────
   const effectivePrice = packageRedemptionId ? 0 : Math.max(0, price - discountINR);
-  const { data: booking, error: insertError } = await admin
+  const insertPayload = {
+    turf_id: turfId,
+    player_id: userId,
+    booking_date: bookingDate,
+    start_time: targetSlot.slot_time,
+    sport,
+    players_count: 1,
+    price: effectivePrice,
+    team_id: teamId,
+    package_redemption_id: packageRedemptionId,
+    points_redeemed: pointsRedeemed,
+    discount_amount: discountINR,
+    status: "confirmed", // trigger enforces this
+  };
+
+  let booking = null;
+  let insertError = null;
+
+  const initialInsert = await admin
     .from("bookings")
-    .insert({
-      turf_id: turfId,
-      player_id: userId,
-      booking_date: bookingDate,
-      start_time: targetSlot.slot_time,
-      sport,
-      players_count: 1,
-      price: effectivePrice,
-      team_id: teamId,
-      package_redemption_id: packageRedemptionId,
-      points_redeemed: pointsRedeemed,
-      discount_amount: discountINR,
-      status: "confirmed", // trigger enforces this
-    })
+    .insert(insertPayload)
     .select("id, price, booking_date, start_time, team_id, package_redemption_id, points_redeemed, discount_amount")
     .single();
+
+  booking = initialInsert.data;
+  insertError = initialInsert.error;
+
+  // Fallback in case points_redeemed or discount_amount columns are not yet in the DB schema cache
+  if (insertError && (insertError.message?.includes("discount_amount") || insertError.message?.includes("points_redeemed"))) {
+    logger.warn("booking - retrying without reward discount columns pending DB schema cache refresh", { requestId, error: insertError.message });
+    delete insertPayload.points_redeemed;
+    delete insertPayload.discount_amount;
+    const retryInsert = await admin
+      .from("bookings")
+      .insert(insertPayload)
+      .select("id, price, booking_date, start_time, team_id, package_redemption_id")
+      .single();
+    booking = retryInsert.data;
+    insertError = retryInsert.error;
+  }
 
   if (insertError) {
     // If pass was redeemed, roll it back immediately so sessions aren't lost

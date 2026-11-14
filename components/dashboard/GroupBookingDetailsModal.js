@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { COLORS as V, panel, buttonStyle } from "@/lib/design-tokens";
 import { formatBookingDate, formatINR } from "@/lib/dashboard/format";
+import { getGroupBookingStatusLabel } from "@/lib/group/policy";
 import {
   Users,
   Wallet,
@@ -267,6 +268,7 @@ export function GroupBookingDetailsModal({
   const isExpired = group?.status === "expired" || summary?.isExpired;
   const isCancelled = group?.status === "cancelled";
   const isUrgent = isPending && secondsRemaining > 0 && secondsRemaining <= 180;
+  const statusInfo = getGroupBookingStatusLabel(group, summary);
 
   return (
     <div
@@ -305,6 +307,9 @@ export function GroupBookingDetailsModal({
           <div>
             <div style={{ display: "inline-flex", alignItems: "center", gap: 6, color: V.flood, fontSize: 11.5, fontWeight: 800, textTransform: "uppercase" }}>
               <Users size={14} /> Group Booking #{group?.invitation_code}
+              <span style={{ background: statusInfo.bg, color: statusInfo.color, padding: "2px 8px", borderRadius: 6, fontSize: 10.5, fontWeight: 800 }}>
+                {statusInfo.label}
+              </span>
               {isInstant && (
                 <span style={{ background: "rgba(21, 128, 81, 0.15)", color: V.confirmed, padding: "2px 6px", borderRadius: 4, fontSize: 10 }}>
                   Instant Confirmed
@@ -315,7 +320,7 @@ export function GroupBookingDetailsModal({
               {group?.turf?.name || "Turf Venue"}
             </h2>
             <div style={{ fontSize: 13, color: V.chalkDim }}>
-              {formatBookingDate(group?.booking_date)} · {group?.start_time?.slice(0, 5)} (1 hr) · {group?.sport}
+              {formatBookingDate(group?.booking_date)} · {group?.start_time?.slice(0, 5)} (1 hr) · {group?.sport} · {group?.participant_count} Players
             </div>
           </div>
           <button
@@ -355,8 +360,8 @@ export function GroupBookingDetailsModal({
                 </div>
                 <div style={{ fontSize: 11.5, color: V.chalkDim }}>
                   {isUrgent
-                    ? "Complete shares or guarantee balance to avoid automatic cancellation."
-                    : "Slot is exclusively reserved while your group pays."}
+                    ? "Complete shares or guarantee balance to avoid automatic slot release."
+                    : "Slot is held exclusively for your group while members pay."}
                 </div>
               </div>
             </div>
@@ -381,31 +386,33 @@ export function GroupBookingDetailsModal({
             background: isConfirmed
               ? "rgba(21, 128, 81, 0.12)"
               : isPending
-              ? "rgba(24, 168, 224, 0.08)"
+              ? statusInfo.bg
               : "rgba(220, 38, 38, 0.1)",
             border: `1px solid ${
               isConfirmed
                 ? "rgba(21, 128, 81, 0.3)"
                 : isPending
-                ? "rgba(24, 168, 224, 0.25)"
+                ? statusInfo.color + "40"
                 : "rgba(220, 38, 38, 0.3)"
             }`,
           }}
         >
           {isConfirmed && <CheckCircle size={22} color={V.confirmed} />}
-          {isPending && <Clock size={22} color={V.flood} />}
+          {isPending && <Clock size={22} color={statusInfo.color} />}
           {(isExpired || isCancelled) && <AlertTriangle size={22} color="#EF4444" />}
 
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 13.5, fontWeight: 800, color: isConfirmed ? V.confirmed : isPending ? V.chalk : "#EF4444" }}>
+            <div style={{ fontSize: 13.5, fontWeight: 800, color: isConfirmed ? V.confirmed : isPending ? statusInfo.color : "#EF4444" }}>
               {isConfirmed && (isInstant ? "Instant Booking Officially Confirmed!" : "Booking Officially Confirmed!")}
-              {isPending && "Awaiting Group Share Payments"}
+              {isPending && statusInfo.label}
               {isExpired && "Payment Deadline Expired — Slot Hold Released"}
               {isCancelled && "Group Booking Cancelled"}
             </div>
             <div style={{ fontSize: 12, color: V.chalkDim, marginTop: 2 }}>
               {isConfirmed && (isInstant ? "Leader guaranteed full payment upfront. Members can reimburse their shares." : "All shares collected. Your slot is exclusively confirmed at the venue.")}
-              {isPending && "If unpaid by deadline, the slot will be released automatically and any paid contributions refunded."}
+              {isPending && (summary.paidCount > 0
+                ? `${summary.paidCount} of ${group?.participant_count} players have paid. ₹${summary.remainingBalance} remaining before slot confirmation.`
+                : `Awaiting payments from all ${group?.participant_count} players. Unpaid slots will be automatically released when the deadline expires.`)}
               {isExpired && "The temporary slot hold was released for other players. Collected payments are refunded."}
               {isCancelled && "This booking was cancelled by the leader. All contributions have been refunded."}
             </div>
@@ -418,7 +425,7 @@ export function GroupBookingDetailsModal({
             <span style={{ fontSize: 12, fontWeight: 700, color: V.chalkFaint, textTransform: "uppercase" }}>
               {isInstant
                 ? `Reimbursements (${summary.reimbursedCount || 0}/${(summary.totalCount || 1) - 1} Friends Reimbursed)`
-                : `Collection Progress (${summary.paidCount}/${summary.totalCount} Players Paid)`}
+                : `Collection Progress (${summary.paidCount}/${group?.participant_count || summary.totalCount} Players Paid)`}
             </span>
             <span style={{ fontSize: 13, fontWeight: 800, color: summary.isFullyPaid ? V.confirmed : V.flood }}>
               {summary.progressPercentage}%
@@ -429,7 +436,7 @@ export function GroupBookingDetailsModal({
             <div style={{ height: "100%", width: `${summary.progressPercentage}%`, background: summary.isFullyPaid ? V.confirmed : V.flood, transition: "width 0.3s ease" }} />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, textAlign: "center", paddingTop: 8, borderTop: `1px solid ${V.lineStrong}` }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: 10, textAlign: "center", paddingTop: 8, borderTop: `1px solid ${V.lineStrong}` }}>
             <div>
               <div style={{ fontSize: 11, color: V.chalkFaint, textTransform: "uppercase" }}>Total Booking</div>
               <div style={{ fontSize: 16, fontWeight: 800, color: V.chalk, marginTop: 2 }}>₹{summary.totalPrice}</div>
@@ -442,8 +449,14 @@ export function GroupBookingDetailsModal({
             </div>
             <div>
               <div style={{ fontSize: 11, color: V.chalkFaint, textTransform: "uppercase" }}>Remaining</div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: summary.remainingBalance === 0 ? V.confirmed : V.chalk, marginTop: 2 }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: summary.remainingBalance === 0 ? V.confirmed : "#D97706", marginTop: 2 }}>
                 ₹{summary.remainingBalance}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, color: V.chalkFaint, textTransform: "uppercase" }}>Players Paid</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: summary.paidCount >= (group?.participant_count || 1) ? V.confirmed : V.chalk, marginTop: 2 }}>
+                {summary.paidCount} / {group?.participant_count || summary.totalCount}
               </div>
             </div>
           </div>
@@ -552,24 +565,57 @@ export function GroupBookingDetailsModal({
           </div>
         </div>
 
-        {/* Member Payment Actions */}
-        {isPending && myParticipant && myParticipant.payment_status !== "paid" && (
-          <div style={{ background: "rgba(24, 168, 224, 0.08)", border: `1px solid ${V.flood}40`, borderRadius: 14, padding: "16px 18px", marginBottom: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        {/* Member Payment Actions / Status Card */}
+        {isPending && myParticipant && (
+          <div
+            style={{
+              background: myParticipant.payment_status === "paid" ? "rgba(21, 128, 81, 0.08)" : "rgba(24, 168, 224, 0.08)",
+              border: `1px solid ${myParticipant.payment_status === "paid" ? "rgba(21, 128, 81, 0.3)" : V.flood + "40"}`,
+              borderRadius: 14,
+              padding: "16px 18px",
+              marginBottom: 16,
+            }}
+          >
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 8 }}>
               <div>
-                <span style={{ fontSize: 12, fontWeight: 700, color: V.chalkFaint, textTransform: "uppercase" }}>Your Share Amount</span>
-                <div style={{ fontSize: 24, fontWeight: 900, color: V.chalk, marginTop: 2 }}>₹{myParticipant.share_amount}</div>
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: V.chalkFaint, textTransform: "uppercase" }}>
+                  Your Individual Share
+                </span>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginTop: 2 }}>
+                  <span style={{ fontSize: 24, fontWeight: 900, color: V.chalk }}>₹{myParticipant.share_amount}</span>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 800,
+                      color: myParticipant.payment_status === "paid" ? V.confirmed : "#D97706",
+                      background: myParticipant.payment_status === "paid" ? "rgba(21, 128, 81, 0.15)" : "rgba(217, 119, 6, 0.12)",
+                      padding: "2px 8px",
+                      borderRadius: 6,
+                    }}
+                  >
+                    {myParticipant.payment_status === "paid" ? "✓ Paid in Full" : `₹${myParticipant.share_amount} Remaining`}
+                  </span>
+                </div>
               </div>
-              <button
-                onClick={handlePayShare}
-                disabled={paying}
-                style={{ ...buttonStyle("primary", "md", paying), display: "inline-flex", alignItems: "center", gap: 6 }}
-              >
-                {paying ? "Processing payment…" : `Pay My Share · ₹${myParticipant.share_amount}`}
-              </button>
+
+              {myParticipant.payment_status !== "paid" ? (
+                <button
+                  onClick={handlePayShare}
+                  disabled={paying}
+                  style={{ ...buttonStyle("primary", "md", paying), display: "inline-flex", alignItems: "center", gap: 6 }}
+                >
+                  {paying ? "Processing payment…" : `Pay My Share · ₹${myParticipant.share_amount}`}
+                </button>
+              ) : (
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 6, color: V.confirmed, fontWeight: 800, fontSize: 13 }}>
+                  <CheckCircle size={16} /> Verified on Backend
+                </div>
+              )}
             </div>
             <div style={{ fontSize: 11.5, color: V.chalkDim }}>
-              Slot is held temporarily. It will be officially confirmed once all members complete their payment.
+              {myParticipant.payment_status === "paid"
+                ? "Your share payment is securely confirmed. The booking will finalize once all group members have completed payment."
+                : "The turf slot is held exclusively while your group completes payments. Pay before the timer expires to confirm the slot."}
             </div>
           </div>
         )}

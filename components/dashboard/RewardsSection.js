@@ -16,20 +16,27 @@ import {
 export function RewardsSection({ profile, showToast, onFindTurf }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [historyFilter, setHistoryFilter] = useState("all");
 
   const fetchRewards = async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch("/api/player/rewards");
       const json = await res.json();
-      if (res.ok) {
+      if (res.ok && !json?.walletError) {
         setData(json);
       } else {
-        showToast(json?.error || "Could not load rewards.", { type: "error" });
+        const errorMsg = json?.walletError || json?.message || json?.error || "Your rewards wallet couldn't be loaded. Please try again.";
+        setError(errorMsg);
+        if (showToast) showToast(errorMsg, { type: "error" });
+        if (json?.wallet) setData(json);
       }
     } catch {
-      showToast("Network error loading rewards.", { type: "error" });
+      const errorMsg = "Your rewards wallet couldn't be loaded. Please try again.";
+      setError(errorMsg);
+      if (showToast) showToast(errorMsg, { type: "error" });
     } finally {
       setLoading(false);
     }
@@ -108,6 +115,22 @@ export function RewardsSection({ profile, showToast, onFindTurf }) {
           Refresh
         </button>
       </div>
+
+      {/* Error state banner with retry */}
+      {error && (
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+          background: "rgba(220, 38, 38, 0.08)", border: "1px solid rgba(220, 38, 38, 0.25)",
+          borderRadius: 12, padding: "14px 18px", marginBottom: 24,
+        }}>
+          <div style={{ fontSize: 13.5, color: "#DC2626", fontWeight: 600 }}>
+            {error}
+          </div>
+          <button onClick={fetchRewards} style={{ ...buttonStyle("secondary", "sm"), display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
+            <RefreshCw size={12} /> Retry
+          </button>
+        </div>
+      )}
 
       {/* ================================================================ */}
       {/* WALLET SUMMARY — compact 3-column grid                          */}

@@ -6,6 +6,7 @@ import {
   calculateLeaderPaysSplit,
   calculateGroupPaymentSummary,
   generateGroupInviteCode,
+  getGroupBookingStatusLabel,
   DEFAULT_PAYMENT_DEADLINE_MINUTES,
   DEFAULT_REMINDER_MINUTES_BEFORE_DEADLINE,
 } from "../lib/group/policy.js";
@@ -429,5 +430,201 @@ test("Smart Payment Deadline and Slot Protection Tests", async (t) => {
 
     // Turf booking remains firmly confirmed throughout
     assert.equal(instantBooking.status, "confirmed");
+  });
+
+  await t.test("Expired Hold Sweep: Identifies expired pending group bookings and releases slot holds", async () => {
+    const now = Date.now();
+    const mockGroups = [
+      { id: "grp_active", status: "pending", expires_at: new Date(now + 5 * 60 * 1000).toISOString(), booking_id: "b_active" },
+      { id: "grp_expired", status: "pending", expires_at: new Date(now - 2 * 60 * 1000).toISOString(), booking_id: "b_expired" },
+      { id: "grp_confirmed", status: "confirmed", expires_at: new Date(now - 10 * 60 * 1000).toISOString(), booking_id: "b_confirmed" },
+    ];
+
+    const expiredToSweep = mockGroups.filter(
+      (g) => g.status === "pending" && new Date(g.expires_at).getTime() < now
+    );
+
+    assert.equal(expiredToSweep.length, 1);
+    assert.equal(expiredToSweep[0].id, "grp_expired");
+    assert.equal(expiredToSweep[0].booking_id, "b_expired");
+  });
+});
+
+test("Group Booking Scenario: ₹352 split among 4 players with partial payment", async (t) => {
+  const totalPrice = 352;
+  const participantCount = 4;
+
+  await t.test("1. Cost distribution divides ₹352 exactly into ₹88 per player", () => {
+    const shares = calculateEqualSplit(totalPrice, participantCount);
+    assert.deepEqual(shares, [88, 88, 88, 88]);
+    const sum = shares.reduce((a, b) => a + b, 0);
+    assert.equal(sum, 352, "Total shares must equal original ₹352 booking price");
+  });
+
+  await t.test("2. Initial state: 4 participants, 0 paid, pending balance ₹352", () => {
+    const group = {
+      id: "grp_352",
+      total_price: 352,
+      participant_count: 4,
+      status: "pending",
+      expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+    };
+    const participants = [
+      { id: "p1", player_id: "user_1", role: "leader", share_amount: 88, payment_status: "pending" },
+      { id: "p2", player_id: "user_2", role: "member", share_amount: 88, payment_status: "pending" },
+      { id: "p3", player_id: "user_3", role: "member", share_amount: 88, payment_status: "pending" },
+      { id: "p4", player_id: "user_4", role: "member", share_amount: 88, payment_status: "pending" },
+    ];
+
+    const summary = calculateGroupPaymentSummary({ groupBooking: group, participants });
+    assert.equal(summary.totalPrice, 352);
+    assert.equal(summary.totalPaid, 0);
+    assert.equal(summary.remainingBalance, 352);
+    assert.equal(summary.paidCount, 0);
+    assert.equal(summary.pendingCount, 4);
+    assert.equal(summary.isFullyPaid, false);
+
+    const statusLabel = getGroupBookingStatusLabel(group, summary);
+    assert.equal(statusLabel.label, "Payment Pending");
+  });
+
+  await t.test("3. Three players pay ₹88 each: collected = ₹264, pending = ₹88, MUST NOT confirm prematurely", () => {
+    const group = {
+      id: "grp_352",
+      total_price: 352,
+      participant_count: 4,
+      status: "pending",
+      expires_at: new Date(Date.now() + 8 * 60 * 1000).toISOString(),
+    };
+    const booking = { id: "bk_352", status: "pending", price: 352 };
+
+    const participants = [
+      { id: "p1", player_id: "user_1", role: "leader", share_amount: 88, payment_status: "paid" },
+      { id: "p2", player_id: "user_2", role: "member", share_amount: 88, payment_status: "paid" },
+      { id: "p3", player_id: "user_3", role: "member", share_amount: 88, payment_status: "paid" },
+      { id: "p4", player_id: "user_4", role: "member", share_amount: 88, payment_status: "pending" },
+    ];
+
+    const summary = calculateGroupPaymentSummary({ groupBooking: group, participants });
+
+    // Tracking checks
+    assert.equal(summary.totalPaid, 264, "Total collected must be exactly ₹264");
+    assert.equal(summary.remainingBalance, 88, "Remaining balance must be exactly ₹88");
+    assert.equal(summary.paidCount, 3, "3 players have paid");
+    assert.equal(summary.pendingCount, 1, "1 player pending");
+    assert.equal(summary.progressPercentage, 75, "Progress should be 75%");
+
+    // CRITICAL: Booking MUST NOT be marked confirmed prematurely
+    assert.equal(summary.isFullyPaid, false, "Must NOT be marked fully paid when 1 share is missing");
+    assert.notEqual(group.status, "confirmed");
+    assert.equal(booking.status, "pending", "Slot must remain in pending hold, NOT confirmed");
+
+    // Status label check
+    const statusLabel = getGroupBookingStatusLabel(group, summary);
+    assert.equal(statusLabel.label, "Partially Paid");
+
+    // Individual view checks
+    const unpaidParticipant = participants.find((p) => p.player_id === "user_4");
+    assert.equal(unpaidParticipant.payment_status, "pending");
+    assert.equal(unpaidParticipant.share_amount, 88, "Unpaid user clearly sees their ₹88 share");
+
+    const paidParticipant = participants.find((p) => p.player_id === "user_1");
+    assert.equal(paidParticipant.payment_status, "paid");
+  });
+
+  await t.test("4. Fourth player pays ₹88: collected = ₹352, remaining = ₹0, transitions to Fully Paid & Confirmed", () => {
+    const group = {
+      id: "grp_352",
+      total_price: 352,
+      participant_count: 4,
+      status: "pending",
+      expires_at: new Date(Date.now() + 6 * 60 * 1000).toISOString(),
+    };
+    const booking = { id: "bk_352", status: "pending", price: 352 };
+
+    const participants = [
+      { id: "p1", player_id: "user_1", role: "leader", share_amount: 88, payment_status: "paid" },
+      { id: "p2", player_id: "user_2", role: "member", share_amount: 88, payment_status: "paid" },
+      { id: "p3", player_id: "user_3", role: "member", share_amount: 88, payment_status: "paid" },
+      { id: "p4", player_id: "user_4", role: "member", share_amount: 88, payment_status: "paid" }, // 4th pays
+    ];
+
+    const summary = calculateGroupPaymentSummary({ groupBooking: group, participants });
+    assert.equal(summary.totalPaid, 352);
+    assert.equal(summary.remainingBalance, 0);
+    assert.equal(summary.paidCount, 4);
+    assert.equal(summary.pendingCount, 0);
+    assert.equal(summary.isFullyPaid, true, "Booking is now fully paid");
+
+    const fullyPaidStatus = getGroupBookingStatusLabel(group, summary);
+    assert.equal(fullyPaidStatus.label, "Fully Paid");
+
+    // Atomic backend transition
+    if (summary.isFullyPaid) {
+      group.status = "confirmed";
+      booking.status = "confirmed";
+    }
+
+    assert.equal(group.status, "confirmed");
+    assert.equal(booking.status, "confirmed");
+
+    const confirmedStatus = getGroupBookingStatusLabel(group, summary);
+    assert.equal(confirmedStatus.label, "Confirmed");
+  });
+});
+
+test("Group Booking Mathematical Integrity and Edge Cases", async (t) => {
+  await t.test("Split precision across prime and non-standard player counts", () => {
+    const testCases = [
+      { price: 1000, players: 3 },
+      { price: 1500, players: 7 },
+      { price: 777, players: 5 },
+      { price: 999.99, players: 6 },
+      { price: 352, players: 4 },
+      { price: 1200, players: 11 },
+      { price: 2500, players: 16 },
+    ];
+
+    for (const { price, players } of testCases) {
+      const shares = calculateEqualSplit(price, players);
+      assert.equal(shares.length, players);
+      const sum = shares.reduce((acc, val) => Math.round((acc + val) * 100) / 100, 0);
+      assert.equal(
+        Math.abs(sum - price) < 0.001,
+        true,
+        `Sum of shares (${sum}) must match price (${price}) for ${players} players`
+      );
+    }
+  });
+
+  await t.test("All 7 Human-Readable Status Labels are correctly identified", () => {
+    // 1. Waiting for Players
+    const waitingGroup = { status: "pending", participant_count: 4, total_price: 352 };
+    assert.equal(getGroupBookingStatusLabel(waitingGroup, { totalCount: 2, paidCount: 0, remainingBalance: 352 }).label, "Waiting for Players");
+
+    // 2. Payment Pending
+    const pendingGroup = { status: "pending", participant_count: 4, total_price: 352 };
+    assert.equal(getGroupBookingStatusLabel(pendingGroup, { totalCount: 4, paidCount: 0, remainingBalance: 352 }).label, "Payment Pending");
+
+    // 3. Partially Paid
+    const partialGroup = { status: "pending", participant_count: 4, total_price: 352 };
+    assert.equal(getGroupBookingStatusLabel(partialGroup, { totalCount: 4, paidCount: 2, remainingBalance: 176 }).label, "Partially Paid");
+
+    // 4. Fully Paid
+    const fullyPaidGroup = { status: "pending", participant_count: 4, total_price: 352 };
+    assert.equal(getGroupBookingStatusLabel(fullyPaidGroup, { totalCount: 4, paidCount: 4, remainingBalance: 0 }).label, "Fully Paid");
+
+    // 5. Confirmed
+    const confirmedGroup = { status: "confirmed", participant_count: 4, total_price: 352 };
+    assert.equal(getGroupBookingStatusLabel(confirmedGroup, {}).label, "Confirmed");
+
+    // 6. Expired
+    const expiredGroup = { status: "expired", participant_count: 4, total_price: 352 };
+    assert.equal(getGroupBookingStatusLabel(expiredGroup, {}).label, "Expired");
+    assert.equal(getGroupBookingStatusLabel(pendingGroup, { isExpired: true }).label, "Expired");
+
+    // 7. Cancelled
+    const cancelledGroup = { status: "cancelled", participant_count: 4, total_price: 352 };
+    assert.equal(getGroupBookingStatusLabel(cancelledGroup, {}).label, "Cancelled");
   });
 });

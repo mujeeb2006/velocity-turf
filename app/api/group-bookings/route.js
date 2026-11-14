@@ -33,12 +33,15 @@ export async function POST(request) {
     sport,
     bookingDate,
     startTime,
-    participantCount,
+    participantCount: explicitCount,
+    totalParticipants,
     splitMode,
     customShares,
     paymentMode,
     deadlineMinutes,
   } = body || {};
+
+  const participantCount = explicitCount || totalParticipants || 2;
 
   if (!turfId || !bookingDate || !startTime) {
     return Errors.badRequest("Turf, date, and start time are required.");

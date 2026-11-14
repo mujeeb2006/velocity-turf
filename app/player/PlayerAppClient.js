@@ -674,6 +674,7 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
             startTime: slot.raw_time,
             sport: turf.sports?.[0] || "Football",
             bookingDate: selectedDate,
+            participantCount: groupParticipantCount,
             totalParticipants: groupParticipantCount,
             splitMode: groupSplitMode,
             paymentMode: groupPaymentMode,
@@ -3515,24 +3516,38 @@ function DashboardSection({ isLoading, bookings, matchesJoined, joinedGames = []
   const [filter, setFilter] = useState("upcoming");
   const [referralData, setReferralData] = useState(null);
   const [referralLoading, setReferralLoading] = useState(true);
+  const [referralError, setReferralError] = useState(null);
   const [copiedReferral, setCopiedReferral] = useState(false);
   const now = new Date();
 
-  // Fetch referral data for dashboard card
-  useEffect(() => {
+  // Fetch referral data independently for dashboard card
+  const fetchReferral = () => {
     if (!profile?.id) return;
     setReferralLoading(true);
+    setReferralError(null);
     fetch("/api/player/rewards")
-      .then(r => r.ok ? r.json() : null)
-      .then(json => { if (json) setReferralData(json); })
-      .catch(() => { })
+      .then(r => r.json())
+      .then(json => {
+        if (json?.referral) {
+          setReferralData(json);
+        } else if (json?.referralError) {
+          setReferralError(json.referralError);
+        }
+      })
+      .catch(() => {
+        setReferralError("Could not load referral data.");
+      })
       .finally(() => setReferralLoading(false));
+  };
+
+  useEffect(() => {
+    fetchReferral();
   }, [profile?.id]);
 
   const refCode = referralData?.referral?.referralCode || profile?.referral_code || "";
   const refSettings = referralData?.settings || {};
-  const refCompleted = referralData?.referral?.totalCompleted || 0;
-  const refMaxAllowed = referralData?.referral?.maxAllowed || 3;
+  const refCompleted = referralData?.referral?.totalCompleted ?? referralData?.referral?.completedCount ?? 0;
+  const refMaxAllowed = referralData?.referral?.maxAllowed ?? referralData?.referral?.maxReferrals ?? 3;
   const refRemaining = Math.max(0, refMaxAllowed - refCompleted);
   const refLimitReached = refCompleted >= refMaxAllowed;
   const refSlots = referralData?.referral?.slots || [];

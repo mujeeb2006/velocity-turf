@@ -1,15 +1,43 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getProfile } from "@/lib/supabase/server";
 import { Errors, ok } from "@/lib/api-response";
 import { dateKey } from "@/lib/dashboard/analytics";
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
+  const joined = searchParams.get("joined");
+  const admin = createAdminClient();
+
+  if (joined === "true") {
+    try {
+      const profile = await getProfile();
+      if (!profile?.id) return ok({ games: [] });
+      const { data, error } = await admin
+        .from("match_participants")
+        .select("id, match_id, amount_paid, payment_status, payment_id, created_at, match:matches(*, turf:turfs(name, city, address))")
+        .eq("player_id", profile.id)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.warn("Joined matches query fallback:", error.message);
+        const { data: simpleData } = await admin
+          .from("match_participants")
+          .select("match_id, player_id, payment_status, amount_paid")
+          .eq("player_id", profile.id);
+        return ok({ games: simpleData || [] });
+      }
+      return ok({ games: data || [] });
+    } catch (e) {
+      console.warn("Joined matches exception:", e);
+      return ok({ games: [] });
+    }
+  }
+
   const sport = searchParams.get("sport");
   const turfId = searchParams.get("turfId");
   const date = searchParams.get("date");
   const timeOfDay = searchParams.get("timeOfDay"); // "morning", "afternoon", "evening", "night"
 
-  const admin = createAdminClient();
   const today = dateKey();
 
   let query = admin

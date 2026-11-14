@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/supabase/server";
 import { resolveRoleRedirect } from "@/lib/auth/guards";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import PlayerAppClient from "./PlayerAppClient";
 
 export default async function PlayerPage() {
@@ -16,7 +17,9 @@ export default async function PlayerPage() {
 
   return (
     <Suspense fallback={null}>
-      <PlayerAppClient profile={profile} />
+      <ErrorBoundary title="Player Portal Error">
+        <PlayerAppClient profile={profile} />
+      </ErrorBoundary>
     </Suspense>
   );
 }

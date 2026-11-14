@@ -351,7 +351,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
     fetchPayouts();
     fetchGames();
     const channel = supabase
-      .channel("admin-live-updates")
+      .channel(`admin-live-${profile?.id || "admin"}-${Math.random().toString(36).slice(2, 7)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "turfs" }, refreshSoon)
       .on("postgres_changes", { event: "*", schema: "public", table: "disputes" }, refreshSoon)
       .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, refreshSoon)

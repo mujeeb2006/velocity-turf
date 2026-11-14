@@ -222,9 +222,18 @@ export function EmptyBlock({ icon = "inbox", emoji, title, subtitle, action }) {
 
 export function ErrorBanner({ message, onRetry }) {
   if (!message) return null;
+  const text =
+    typeof message === "string"
+      ? message
+      : message instanceof Error
+        ? message.message
+        : typeof message?.message === "string"
+          ? message.message
+          : JSON.stringify(message);
+
   return (
     <div role="alert" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", background: "rgba(228,93,93,0.08)", border: "1px solid rgba(228,93,93,0.3)", borderRadius: 12, padding: "12px 16px", marginBottom: 20, color: V.danger, fontSize: 13, fontWeight: 600 }}>
-      <span>{message}</span>
+      <span>{text}</span>
       {onRetry && <Btn size="sm" variant="danger" onClick={onRetry}>Retry</Btn>}
     </div>
   );
@@ -340,11 +349,19 @@ export function DataTable({ columns, rows, rowKey = "id", sort, onSort, onRowCli
                 onKeyDown={onRowClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onRowClick(row); } } : undefined}
                 style={{ display: "grid", gridTemplateColumns: template, gap: 12, alignItems: "center", padding: "14px 20px", borderBottom: i < rows.length - 1 ? `1px solid ${V.line}` : "none" }}
               >
-                {columns.map((c) => (
-                  <div key={c.key} role="cell" style={{ ...cell(c), display: "flex", alignItems: "center", fontSize: 13, color: V.chalkDim, overflow: "hidden" }}>
-                    {c.render ? c.render(row) : row[c.key]}
-                  </div>
-                ))}
+                {columns.map((c) => {
+                  const val = row[c.key];
+                  const rendered = c.render
+                    ? c.render(row)
+                    : typeof val === "object" && val !== null && !React.isValidElement(val)
+                      ? JSON.stringify(val)
+                      : val;
+                  return (
+                    <div key={c.key} role="cell" style={{ ...cell(c), display: "flex", alignItems: "center", fontSize: 13, color: V.chalkDim, overflow: "hidden" }}>
+                      {rendered}
+                    </div>
+                  );
+                })}
               </div>
             ))
           )}
@@ -517,12 +534,18 @@ export function ConfirmModal({ title, message, confirmLabel = "Confirm", tone = 
 export function DetailRows({ rows }) {
   return (
     <dl style={{ margin: 0, display: "grid", gridTemplateColumns: "auto 1fr", gap: "10px 18px", fontSize: 13.5 }}>
-      {rows.filter((r) => r.value !== undefined && r.value !== null && r.value !== "").map((r) => (
-        <div key={r.label} style={{ display: "contents" }}>
-          <dt style={{ color: V.chalkFaint, fontWeight: 600 }}>{r.label}</dt>
-          <dd style={{ margin: 0, color: V.chalk, fontWeight: 600, wordBreak: "break-word" }}>{r.value}</dd>
-        </div>
-      ))}
+      {rows.filter((r) => r.value !== undefined && r.value !== null && r.value !== "").map((r) => {
+        const displayVal =
+          typeof r.value === "object" && r.value !== null && !React.isValidElement(r.value)
+            ? JSON.stringify(r.value)
+            : r.value;
+        return (
+          <div key={r.label} style={{ display: "contents" }}>
+            <dt style={{ color: V.chalkFaint, fontWeight: 600 }}>{r.label}</dt>
+            <dd style={{ margin: 0, color: V.chalk, fontWeight: 600, wordBreak: "break-word" }}>{displayVal}</dd>
+          </div>
+        );
+      })}
     </dl>
   );
 }

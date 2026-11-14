@@ -1038,7 +1038,7 @@ export default function OwnerDashboardClient({ profile }) {
     fetchAll();
     if (!profile?.id) return undefined;
     const channel = supabase
-      .channel(`owner-live-${profile.id}`)
+      .channel(`owner-live-${profile.id}-${Math.random().toString(36).slice(2, 7)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, refreshSoon)
       .on("postgres_changes", { event: "*", schema: "public", table: "turfs", filter: `owner_id=eq.${profile.id}` }, refreshSoon)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "reviews" }, refreshSoon)

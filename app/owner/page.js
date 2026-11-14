@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveRoleRedirect } from "@/lib/auth/guards";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import OwnerDashboardClient from "./OwnerDashboardClient";
 
 export default async function OwnerPage() {
@@ -31,5 +32,9 @@ export default async function OwnerPage() {
   const redirectTo = resolveRoleRedirect(effectiveProfile, "owner");
   if (redirectTo) redirect(redirectTo);
 
-  return <OwnerDashboardClient profile={effectiveProfile} />;
+  return (
+    <ErrorBoundary title="Owner Dashboard Error">
+      <OwnerDashboardClient profile={effectiveProfile} />
+    </ErrorBoundary>
+  );
 }

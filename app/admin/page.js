@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/supabase/server";
 import { resolveRoleRedirect } from "@/lib/auth/guards";
 import { loadAdminUsers } from "@/lib/admin/server";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import AdminDashboardClient from "./AdminDashboardClient";
 
 export const dynamic = "force-dynamic";
@@ -23,5 +24,9 @@ export default async function AdminPage() {
     usersError = true;
   }
 
-  return <AdminDashboardClient profile={profile} initialUsers={initialUsers} usersError={usersError} />;
+  return (
+    <ErrorBoundary title="Admin Console Error">
+      <AdminDashboardClient profile={profile} initialUsers={initialUsers} usersError={usersError} />
+    </ErrorBoundary>
+  );
 }

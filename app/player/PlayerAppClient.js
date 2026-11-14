@@ -33,6 +33,7 @@ import {
   saveMatchIntent,
 } from "@/lib/match/intent";
 import { extractErrorMessage } from "@/lib/api-response";
+import { useDebounced } from "@/components/dashboard/kit";
 import { SmartNotificationCenter } from "@/components/dashboard/SmartNotificationCenter";
 import {
   getTurfCurrentTime,
@@ -277,12 +278,13 @@ function TurfCard({ turf, onBook, onMatch, index = 0 }) {
   const price = calcPrice(turf, turf.occupancy);
   const isDynamic = turf.occupancy > 70;
   const { cover: coverImage, gallery } = getTurfImages(turf);
-  const hasAvailability = turf.slots.some(slot => slot.status === "available");
+  const hasAvailability = Array.isArray(turf.slots) && turf.slots.some(slot => slot.status === "available");
+  const primarySport = Array.isArray(turf.sports) && turf.sports.length > 0 ? turf.sports[0] : "Sports";
 
   return (
     <article className="vt-venue-card" style={{ ...panel(), "--venue-index": index }}>
       <div className="vt-venue-cover">
-        <img src={coverImage} alt={`${turf.sports[0]} venue`} loading="lazy" onError={e => { e.currentTarget.style.display = "none"; }} />
+        <img src={coverImage} alt={`${primarySport} venue`} loading="lazy" onError={e => { e.currentTarget.style.display = "none"; }} />
         <div className="vt-venue-cover-shade" />
         {gallery.length > 1 && (
           <span style={{
@@ -3192,7 +3194,7 @@ function MatchmakingSection({
               Could not load community games
             </h3>
             <p style={{ color: V.chalkDim, fontSize: 13.5, maxWidth: 440, margin: "0 auto 18px", fontFamily: FONT_BODY }}>
-              {fetchError}
+              {typeof fetchError === "string" ? fetchError : (fetchError?.message || String(fetchError || ""))}
             </p>
             <button type="button" onClick={onRefresh} style={buttonStyle("secondary", "md")}>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -4092,7 +4094,7 @@ function DashboardSection({ isLoading, bookings = [], matchesJoined = 0, joinedG
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <AlertTriangle size={15} color="#991B1B" />
                     <span style={{ fontSize: 12.5, color: "#991B1B", fontWeight: 600 }}>
-                      {referralError}
+                      {typeof referralError === "string" ? referralError : (referralError?.message || String(referralError || ""))}
                     </span>
                   </div>
                   <button
@@ -4570,7 +4572,7 @@ export default function PlayerAppClient({ profile }) {
       const res = await fetch("/api/player/games");
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setMatchesError(json.error || "Could not load community games.");
+        setMatchesError(extractErrorMessage(json, "Could not load community games."));
         setMatchesLoading(false);
         return;
       }
@@ -4668,7 +4670,7 @@ export default function PlayerAppClient({ profile }) {
       try {
         const { count } = await supabase
           .from("match_participants")
-          .select("id", { count: "exact", head: true })
+          .select("match_id", { count: "exact", head: true })
           .eq("player_id", profile.id);
         setMatchesJoinedCount(count || 0);
       } catch (mErr) {
@@ -4698,18 +4700,28 @@ export default function PlayerAppClient({ profile }) {
   async function fetchJoinedMatches() {
     if (!profile?.id) return;
     try {
+      // 1. Prefer server endpoint to avoid client column grant / nested relationship 400s
+      const res = await fetch("/api/player/games?joined=true");
+      if (res.ok) {
+        const json = await res.json().catch(() => ({}));
+        const list = Array.isArray(json.games) ? json.games : [];
+        setJoinedGamesList(list);
+        setJoinedMatchIds(new Set(list.map(r => r.match_id || r.id)));
+        setMatchesJoinedCount(list.length);
+        return;
+      }
+      // 2. Resilient fallback to direct table query with granted columns only
       const { data, error } = await supabase
         .from("match_participants")
-        .select("id, match_id, amount_paid, payment_status, payment_id, created_at, match:matches(*, turf:turfs(name, city, address))")
-        .eq("player_id", profile.id)
-        .order("created_at", { ascending: false });
+        .select("match_id, player_id, payment_status, amount_paid")
+        .eq("player_id", profile.id);
       if (!error && data) {
         setJoinedGamesList(data);
         setJoinedMatchIds(new Set(data.map(r => r.match_id)));
         setMatchesJoinedCount(data.length);
       }
     } catch (err) {
-      console.error("fetchJoinedMatches error:", err);
+      console.warn("fetchJoinedMatches non-fatal error:", err);
     }
   }
 
@@ -4773,6 +4785,17 @@ export default function PlayerAppClient({ profile }) {
     }
   };
 
+  const refreshBookingsSoon = useDebounced(() => {
+    fetchTurfs();
+    fetchMyBookings();
+    fetchNotifications();
+  }, 400);
+
+  const refreshMatchesSoon = useDebounced(() => {
+    fetchMatches();
+    fetchJoinedMatches();
+  }, 400);
+
   useEffect(() => {
     fetchTurfs();
     fetchMatches();
@@ -4781,18 +4804,13 @@ export default function PlayerAppClient({ profile }) {
     fetchNotifications();
     fetchJoinedMatches();
 
-    // Live slot/match/notification updates: when anyone books a slot,
-    // joins a match, or a new notification arrives, refresh so every open
-    // tab reflects it without a manual reload.
+    // Unique channel identifier prevents channel collision across tabs or StrictMode remounts
+    const channelName = `player-live-${profile?.id || "anon"}-${Math.random().toString(36).slice(2, 7)}`;
     const channel = supabase
-      .channel("player-live-updates")
-      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => {
-        fetchTurfs();
-        fetchMyBookings();
-        fetchNotifications();
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, () => fetchMatches())
-      .on("postgres_changes", { event: "*", schema: "public", table: "match_participants" }, () => { fetchMatches(); fetchJoinedMatches(); })
+      .channel(channelName)
+      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, refreshBookingsSoon)
+      .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, refreshMatchesSoon)
+      .on("postgres_changes", { event: "*", schema: "public", table: "match_participants" }, refreshMatchesSoon)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${profile?.id}` }, (payload) => {
         fetchNotifications();
         if (payload?.new?.title && !showNotifications) {
@@ -4802,7 +4820,9 @@ export default function PlayerAppClient({ profile }) {
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "notifications", filter: `user_id=eq.${profile?.id}` }, () => fetchNotifications())
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.id]);
 

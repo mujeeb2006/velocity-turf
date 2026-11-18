@@ -49,12 +49,12 @@ export function PackagesSection({ profile, showToast, onPassPurchased }) {
   const activeMyPasses = myPackages.filter((p) => p.status === "active" && p.remainingSessions > 0);
 
   return (
-    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 16px" }}>
+    <div className="vt-packages-section" style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 16px 80px" }}>
       {/* Header */}
-      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 16, marginBottom: 24 }}>
+      <div className="vt-packages-header" style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 16, marginBottom: 20 }}>
         <div>
           <h1 style={{ fontSize: 26, fontWeight: 800, color: V.chalk, margin: 0 }}>Sports Packages & Passes</h1>
-          <p style={{ fontSize: 14, color: V.chalkDim, marginTop: 4 }}>
+          <p style={{ fontSize: 13.5, color: V.chalkDim, marginTop: 4 }}>
             Save with session bundles, monthly subscriptions, and redeem directly at checkout.
           </p>
         </div>
@@ -62,25 +62,26 @@ export function PackagesSection({ profile, showToast, onPassPurchased }) {
           <button
             onClick={() => setShowConfigModal(true)}
             style={{
-              background: V.pitchCard, border: `1px solid ${V.line}`, color: V.chalk, borderRadius: 10,
-              padding: "10px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer",
+              background: V.pitchCard, border: `1px solid ${V.line}`, color: V.chalk, borderRadius: 8,
+              padding: "8px 14px", fontWeight: 700, fontSize: 12.5, cursor: "pointer",
               display: "inline-flex", alignItems: "center", gap: 6,
             }}
           >
-            <Settings size={15} />
+            <Settings size={14} />
             <span>Configure Packages</span>
           </button>
         )}
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 12, borderBottom: `1px solid ${V.line}`, marginBottom: 20 }}>
+      <div style={{ display: "flex", gap: 10, borderBottom: `1px solid ${V.line}`, marginBottom: 18, overflowX: "auto", scrollbarWidth: "none" }}>
         <button
           onClick={() => setActiveTab("passes")}
           style={{
-            padding: "10px 16px", background: "transparent", border: "none",
+            padding: "8px 14px", background: "transparent", border: "none",
             borderBottom: activeTab === "passes" ? `2px solid ${V.flood}` : "2px solid transparent",
-            color: activeTab === "passes" ? V.flood : V.chalkDim, fontWeight: 700, fontSize: 14, cursor: "pointer",
+            color: activeTab === "passes" ? V.flood : V.chalkDim, fontWeight: 700, fontSize: 13.5, cursor: "pointer",
+            whiteSpace: "nowrap",
           }}
         >
           Explore Passes ({packages.length})
@@ -89,9 +90,10 @@ export function PackagesSection({ profile, showToast, onPassPurchased }) {
           <button
             onClick={() => setActiveTab("my_passes")}
             style={{
-              padding: "10px 16px", background: "transparent", border: "none",
+              padding: "8px 14px", background: "transparent", border: "none",
               borderBottom: activeTab === "my_passes" ? `2px solid ${V.flood}` : "2px solid transparent",
-              color: activeTab === "my_passes" ? V.flood : V.chalkDim, fontWeight: 700, fontSize: 14, cursor: "pointer",
+              color: activeTab === "my_passes" ? V.flood : V.chalkDim, fontWeight: 700, fontSize: 13.5, cursor: "pointer",
+              whiteSpace: "nowrap",
             }}
           >
             My Active Passes ({activeMyPasses.length})
@@ -103,24 +105,25 @@ export function PackagesSection({ profile, showToast, onPassPurchased }) {
       {activeTab === "passes" && (
         <div>
           {loading ? (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
+            <div className="vt-packages-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 }}>
               <SkeletonCard />
               <SkeletonCard />
             </div>
           ) : packages.length === 0 ? (
             <EmptyState
+              compact
               icon="ticket"
               title="No sports packages available right now"
-              description="Packages are being updated by administrators. Check back shortly."
+              subtitle="Packages are being updated by administrators. Check back shortly."
             />
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 20 }}>
+            <div className="vt-packages-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 }}>
               {packages.map((pkg) => (
                 <div
                   key={pkg.id}
                   style={{
-                    background: V.pitchCard, border: `1px solid ${V.line}`, borderRadius: 16,
-                    padding: 24, display: "flex", flexDirection: "column", justifyContent: "space-between",
+                    background: V.pitchCard, border: `1px solid ${V.line}`, borderRadius: 14,
+                    padding: "16px 18px", display: "flex", flexDirection: "column", justifyContent: "space-between",
                     transition: "border-color 0.2s",
                   }}
                   onMouseEnter={(e) => { e.currentTarget.style.borderColor = V.flood; }}
@@ -136,24 +139,24 @@ export function PackagesSection({ profile, showToast, onPassPurchased }) {
                       </span>
                     </div>
 
-                    <h3 style={{ fontSize: 20, fontWeight: 800, color: V.chalk, marginTop: 14, marginBottom: 6 }}>
+                    <h3 style={{ fontSize: 18, fontWeight: 800, color: V.chalk, marginTop: 12, marginBottom: 4 }}>
                       {pkg.name}
                     </h3>
-                    <p style={{ fontSize: 13, color: V.chalkDim, margin: 0, minHeight: 40, lineHeight: 1.4 }}>
+                    <p style={{ fontSize: 12.5, color: V.chalkDim, margin: 0, minHeight: 36, lineHeight: 1.4 }}>
                       {pkg.description || "Versatile session bundle across all supported venues."}
                     </p>
 
                     {/* Pricing */}
-                    <div style={{ marginTop: 20, padding: "14px 0", borderTop: `1px solid ${V.line}`, borderBottom: `1px solid ${V.line}` }}>
+                    <div style={{ marginTop: 14, padding: "10px 0", borderTop: `1px solid ${V.line}`, borderBottom: `1px solid ${V.line}` }}>
                       <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-                        <span style={{ fontSize: 28, fontWeight: 800, color: V.chalk }}>{formatINR(pkg.price)}</span>
-                        <span style={{ fontSize: 12.5, color: V.chalkFaint }}>({formatINR(pkg.pricePerSession)}/session)</span>
+                        <span style={{ fontSize: 24, fontWeight: 800, color: V.chalk }}>{formatINR(pkg.price)}</span>
+                        <span style={{ fontSize: 12, color: V.chalkFaint }}>({formatINR(pkg.pricePerSession)}/session)</span>
                       </div>
                     </div>
 
                     {/* Eligibility & Restrictions Badge List */}
-                    <div style={{ marginTop: 14, fontSize: 12, color: V.chalkDim }}>
-                      <div style={{ marginBottom: 4 }}>
+                    <div style={{ marginTop: 12, fontSize: 12, color: V.chalkDim }}>
+                      <div style={{ marginBottom: 3 }}>
                         Sports: <strong>{pkg.eligibleSports.length ? pkg.eligibleSports.join(", ") : "All Sports"}</strong>
                       </div>
                       <div>
@@ -162,7 +165,7 @@ export function PackagesSection({ profile, showToast, onPassPurchased }) {
                     </div>
                   </div>
 
-                  <div style={{ marginTop: 22 }}>
+                  <div style={{ marginTop: 16 }}>
                     <button
                       onClick={() => {
                         if (!profile?.id) {
@@ -173,7 +176,7 @@ export function PackagesSection({ profile, showToast, onPassPurchased }) {
                       }}
                       style={{
                         width: "100%", background: V.flood, color: "#fff", border: "none",
-                        borderRadius: 10, padding: "12px", fontWeight: 700, fontSize: 14, cursor: "pointer",
+                        borderRadius: 8, padding: "10px", fontWeight: 700, fontSize: 13.5, cursor: "pointer",
                       }}
                     >
                       Buy Pass
@@ -189,22 +192,26 @@ export function PackagesSection({ profile, showToast, onPassPurchased }) {
       {/* Active Tab: My Passes */}
       {activeTab === "my_passes" && (
         <div>
-          <h2 style={{ fontSize: 18, fontWeight: 800, color: V.chalk, marginBottom: 16 }}>
+          <h2 style={{ fontSize: 17, fontWeight: 800, color: V.chalk, marginBottom: 14 }}>
             Your Sports Passes & Redemptions
           </h2>
 
           {myPackages.length === 0 ? (
             <EmptyState
+              compact
               icon="ticket"
               title="You don't own any active passes yet"
-              description="Purchase a 5-session, 10-session, or monthly pass to save on regular bookings."
-              actionLabel="Browse Passes"
-              onAction={() => setActiveTab("passes")}
+              subtitle="Purchase a 5-session, 10-session, or monthly pass to save on regular bookings."
+              action={
+                <button onClick={() => setActiveTab("passes")} style={buttonStyle("primary", "sm")}>
+                  Browse Passes
+                </button>
+              }
             />
           ) : (
             <div>
               {/* Passes Grid */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16, marginBottom: 32 }}>
+              <div className="vt-packages-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14, marginBottom: 28 }}>
                 {myPackages.map((up) => (
                   <div key={up.id} style={{
                     background: V.pitchCard, border: `1px solid ${V.line}`, borderRadius: 14,

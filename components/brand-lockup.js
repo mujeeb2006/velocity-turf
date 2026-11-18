@@ -28,16 +28,21 @@ export default function BrandLockup({ markSize = 46, compact = false, dark = fal
           fontWeight: 800,
           letterSpacing: compact ? 0.35 : 0.65,
         }}>TURF</span>
-        <span style={{
-          color: taglineColor,
-          fontFamily: "'Manrope', sans-serif",
-          fontSize: taglineSize,
-          fontWeight: 700,
-          letterSpacing: compact ? 0.75 : 1.6,
-          lineHeight: 1,
-          whiteSpace: "nowrap",
-          marginTop: compact ? 1 : 2,
-        }}>ONLINE TURF BOOKING</span>
+        <span
+          className="vt-brand-tagline"
+          style={{
+            color: taglineColor,
+            fontFamily: "'Manrope', sans-serif",
+            fontSize: taglineSize,
+            fontWeight: 700,
+            letterSpacing: compact ? 0.75 : 1.6,
+            lineHeight: 1,
+            whiteSpace: "nowrap",
+            marginTop: compact ? 1 : 2,
+          }}
+        >
+          ONLINE TURF BOOKING
+        </span>
       </span>
     </div>
   );

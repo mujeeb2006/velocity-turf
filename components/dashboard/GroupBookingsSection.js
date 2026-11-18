@@ -86,44 +86,44 @@ export function GroupBookingsSection({ profile, showToast, onFindTurf }) {
   const list = activeTab === "created" ? data.created : data.joined;
 
   return (
-    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 16px 80px" }}>
+    <div className="vt-group-bookings-section" style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 16px 80px" }}>
       {/* Header */}
-      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: 16, marginBottom: 28 }}>
+      <div className="vt-group-header" style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: 16, marginBottom: 24 }}>
         <div>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: V.floodDim, border: `1px solid ${V.flood}40`, borderRadius: 8, padding: "4px 12px", marginBottom: 10 }}>
-            <Users size={14} color={V.flood} />
-            <span style={{ color: V.flood, fontSize: 12, fontWeight: 800, letterSpacing: 0.5 }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: V.floodDim, border: `1px solid ${V.flood}40`, borderRadius: 8, padding: "3px 10px", marginBottom: 8 }}>
+            <Users size={13} color={V.flood} />
+            <span style={{ color: V.flood, fontSize: 11, fontWeight: 800, letterSpacing: 0.5 }}>
               BILL SPLITTING & TEAMS
             </span>
           </div>
-          <h1 style={{ fontSize: 32, fontWeight: 800, color: V.chalk, margin: "0 0 6px" }}>
+          <h1 style={{ fontSize: 28, fontWeight: 800, color: V.chalk, margin: "0 0 4px" }}>
             Group Bookings & Split Pay
           </h1>
-          <p style={{ fontSize: 14.5, color: V.chalkDim, margin: 0, maxWidth: 640, lineHeight: 1.5 }}>
+          <p style={{ fontSize: 13.5, color: V.chalkDim, margin: 0, maxWidth: 640, lineHeight: 1.45 }}>
             Book turf venues together and split the cost equally or with custom shares. Lock the slot while friends pay before the deadline.
           </p>
         </div>
 
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <div className="vt-group-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <button
             onClick={() => setShowJoinModal(true)}
-            style={{ ...buttonStyle("secondary", "md"), display: "inline-flex", alignItems: "center", gap: 6 }}
+            style={{ ...buttonStyle("secondary", "sm"), display: "inline-flex", alignItems: "center", gap: 6 }}
           >
-            <Users size={14} /> Join with Code
+            <Users size={13} /> Join with Code
           </button>
           {onFindTurf && (
             <button
               onClick={onFindTurf}
-              style={{ ...buttonStyle("primary", "md"), display: "inline-flex", alignItems: "center", gap: 6 }}
+              style={{ ...buttonStyle("primary", "sm"), display: "inline-flex", alignItems: "center", gap: 6 }}
             >
-              <Plus size={14} /> Create Group Booking
+              <Plus size={13} /> Create Group Booking
             </button>
           )}
         </div>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 8, borderBottom: `1px solid ${V.line}`, paddingBottom: 12, marginBottom: 24 }}>
+      <div className="vt-group-tabs" style={{ display: "flex", gap: 8, borderBottom: `1px solid ${V.line}`, paddingBottom: 10, marginBottom: 20, overflowX: "auto", scrollbarWidth: "none" }}>
         <button
           onClick={() => setActiveTab("created")}
           style={{
@@ -131,10 +131,11 @@ export function GroupBookingsSection({ profile, showToast, onFindTurf }) {
             color: activeTab === "created" ? V.flood : V.chalkDim,
             border: `1px solid ${activeTab === "created" ? V.flood + "40" : "transparent"}`,
             borderRadius: 8,
-            padding: "8px 16px",
-            fontSize: 13.5,
+            padding: "7px 14px",
+            fontSize: 13,
             fontWeight: 700,
             cursor: "pointer",
+            whiteSpace: "nowrap",
           }}
         >
           Created by Me ({data.created.length})
@@ -146,10 +147,11 @@ export function GroupBookingsSection({ profile, showToast, onFindTurf }) {
             color: activeTab === "joined" ? V.flood : V.chalkDim,
             border: `1px solid ${activeTab === "joined" ? V.flood + "40" : "transparent"}`,
             borderRadius: 8,
-            padding: "8px 16px",
-            fontSize: 13.5,
+            padding: "7px 14px",
+            fontSize: 13,
             fontWeight: 700,
             cursor: "pointer",
+            whiteSpace: "nowrap",
           }}
         >
           Groups Joined ({data.joined.length})
@@ -158,12 +160,13 @@ export function GroupBookingsSection({ profile, showToast, onFindTurf }) {
 
       {/* Content */}
       {loading ? (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16 }}>
+        <div className="vt-group-cards-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14 }}>
           <SkeletonCard lines={4} />
           <SkeletonCard lines={4} />
         </div>
       ) : list.length === 0 ? (
         <EmptyState
+          compact
           icon="users"
           title={activeTab === "created" ? "No group bookings created yet" : "No joined group bookings"}
           subtitle={
@@ -179,7 +182,7 @@ export function GroupBookingsSection({ profile, showToast, onFindTurf }) {
           accent={V.flood}
         />
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 16 }}>
+        <div className="vt-group-cards-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14 }}>
           {list.map((group) => {
             const isConfirmed = group.status === "confirmed";
             const isPending = group.status === "pending";

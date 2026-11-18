@@ -90,14 +90,14 @@ export function RewardsSection({ profile, showToast, onFindTurf }) {
   }
 
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto", padding: "32px 16px 80px" }}>
+    <div className="vt-rewards-section" style={{ maxWidth: 900, margin: "0 auto", padding: "24px 16px 80px" }}>
       {/* Header */}
-      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 16, marginBottom: 28 }}>
+      <div className="vt-rewards-header" style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 14, marginBottom: 20 }}>
         <div>
           <h1 style={{ fontSize: 26, fontWeight: 800, color: V.chalk, margin: "0 0 4px" }}>
             Rewards & Wallet
           </h1>
-          <p style={{ fontSize: 14, color: V.chalkDim, margin: 0 }}>
+          <p style={{ fontSize: 13.5, color: V.chalkDim, margin: 0 }}>
             Earn points on every booking and redeem them for discounts.
           </p>
         </div>
@@ -121,9 +121,9 @@ export function RewardsSection({ profile, showToast, onFindTurf }) {
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
           background: "rgba(220, 38, 38, 0.08)", border: "1px solid rgba(220, 38, 38, 0.25)",
-          borderRadius: 12, padding: "14px 18px", marginBottom: 24,
+          borderRadius: 12, padding: "12px 16px", marginBottom: 20,
         }}>
-          <div style={{ fontSize: 13.5, color: "#DC2626", fontWeight: 600 }}>
+          <div style={{ fontSize: 13, color: "#DC2626", fontWeight: 600 }}>
             {error}
           </div>
           <button onClick={fetchRewards} style={{ ...buttonStyle("secondary", "sm"), display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
@@ -135,63 +135,63 @@ export function RewardsSection({ profile, showToast, onFindTurf }) {
       {/* ================================================================ */}
       {/* WALLET SUMMARY — compact 3-column grid                          */}
       {/* ================================================================ */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 28 }}>
+      <div className="vt-rewards-wallet-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginBottom: 22 }}>
         {/* Available Balance */}
-        <div style={{
+        <div className="vt-wallet-card-featured" style={{
           ...panel(true),
           borderRadius: 16,
-          padding: "22px 20px",
+          padding: "18px 18px",
           background: `linear-gradient(135deg, ${V.pitchCard} 0%, rgba(24, 168, 224, 0.08) 100%)`,
           border: `1px solid ${V.flood}40`,
         }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: V.chalkFaint, textTransform: "uppercase", letterSpacing: 0.6 }}>
             Available Balance
           </div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 6 }}>
-            <span style={{ fontSize: 34, fontWeight: 900, color: V.chalk, letterSpacing: -1 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 4 }}>
+            <span style={{ fontSize: 30, fontWeight: 900, color: V.chalk, letterSpacing: -1 }}>
               {wallet.available_points.toLocaleString()}
             </span>
-            <span style={{ fontSize: 14, fontWeight: 800, color: V.flood }}>pts</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: V.flood }}>pts</span>
           </div>
-          <div style={{ fontSize: 12, color: V.chalkDim, marginTop: 6 }}>
+          <div style={{ fontSize: 12, color: V.chalkDim, marginTop: 4 }}>
             = ₹{wallet.equivalent_inr.toLocaleString()} value · {conversionRate} pt = ₹1
           </div>
         </div>
 
         {/* Lifetime Earned */}
-        <div style={{ ...panel(), borderRadius: 16, padding: "22px 20px" }}>
+        <div className="vt-wallet-card" style={{ ...panel(), borderRadius: 16, padding: "18px 18px" }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: V.chalkFaint, textTransform: "uppercase", letterSpacing: 0.6 }}>
             Lifetime Earned
           </div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: V.chalk, marginTop: 6 }}>
-            {wallet.lifetime_earned.toLocaleString()} <span style={{ fontSize: 13, color: V.chalkFaint }}>pts</span>
+          <div style={{ fontSize: 24, fontWeight: 800, color: V.chalk, marginTop: 4 }}>
+            {wallet.lifetime_earned.toLocaleString()} <span style={{ fontSize: 12, color: V.chalkFaint }}>pts</span>
           </div>
-          <div style={{ fontSize: 12, color: V.chalkDim, marginTop: 6 }}>
+          <div style={{ fontSize: 11.5, color: V.chalkDim, marginTop: 4 }}>
             From bookings & referrals
           </div>
         </div>
 
         {/* Lifetime Redeemed */}
-        <div style={{ ...panel(), borderRadius: 16, padding: "22px 20px" }}>
+        <div className="vt-wallet-card" style={{ ...panel(), borderRadius: 16, padding: "18px 18px" }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: V.chalkFaint, textTransform: "uppercase", letterSpacing: 0.6 }}>
             Lifetime Redeemed
           </div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: V.chalk, marginTop: 6 }}>
-            {wallet.lifetime_redeemed.toLocaleString()} <span style={{ fontSize: 13, color: V.chalkFaint }}>pts</span>
+          <div style={{ fontSize: 24, fontWeight: 800, color: V.chalk, marginTop: 4 }}>
+            {wallet.lifetime_redeemed.toLocaleString()} <span style={{ fontSize: 12, color: V.chalkFaint }}>pts</span>
           </div>
-          <div style={{ fontSize: 12, color: V.chalkDim, marginTop: 6 }}>
+          <div style={{ fontSize: 11.5, color: V.chalkDim, marginTop: 4 }}>
             Saved ₹{Math.floor(wallet.lifetime_redeemed / conversionRate).toLocaleString()}
           </div>
         </div>
       </div>
 
       {onFindTurf && wallet.available_points >= (settings.min_redemption_points || 100) && (
-        <div style={{
+        <div className="vt-rewards-redeem-banner" style={{
           display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
           background: "rgba(21, 128, 81, 0.08)", border: "1px solid rgba(21, 128, 81, 0.25)",
-          borderRadius: 12, padding: "14px 18px", marginBottom: 28,
+          borderRadius: 12, padding: "12px 16px", marginBottom: 22, flexWrap: "wrap",
         }}>
-          <div style={{ fontSize: 13.5, color: V.chalk, fontWeight: 600 }}>
+          <div style={{ fontSize: 13, color: V.chalk, fontWeight: 600 }}>
             <strong style={{ color: V.confirmed }}>You have redeemable points!</strong> Use them at checkout for instant discounts.
           </div>
           <button onClick={onFindTurf} style={{ ...buttonStyle("primary", "sm"), display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
@@ -206,21 +206,21 @@ export function RewardsSection({ profile, showToast, onFindTurf }) {
       <div style={{
         ...panel(),
         borderRadius: 16,
-        padding: "24px 22px",
+        padding: "20px 18px",
         border: `1px solid ${V.lineStrong}`,
       }}>
-        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 16, marginBottom: 18 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 16 }}>
           <div>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, color: V.flood, fontSize: 12, fontWeight: 800, textTransform: "uppercase" }}>
-              <Clock size={14} /> Transaction History
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, color: V.flood, fontSize: 11.5, fontWeight: 800, textTransform: "uppercase" }}>
+              <Clock size={13} /> Transaction History
             </div>
-            <h2 style={{ fontSize: 18, fontWeight: 800, color: V.chalk, margin: "4px 0 0" }}>
+            <h2 style={{ fontSize: 17, fontWeight: 800, color: V.chalk, margin: "2px 0 0" }}>
               Reward Points Ledger
             </h2>
           </div>
 
           {/* Filter Pills */}
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          <div className="vt-rewards-filter-pills" style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch", paddingBottom: 2 }}>
             {[
               { id: "all", label: "All" },
               { id: "referrals", label: "Referrals" },
@@ -236,11 +236,13 @@ export function RewardsSection({ profile, showToast, onFindTurf }) {
                   background: historyFilter === f.id ? V.flood : "transparent",
                   color: historyFilter === f.id ? "#fff" : V.chalkDim,
                   border: `1px solid ${historyFilter === f.id ? V.flood : V.line}`,
-                  borderRadius: 8,
-                  padding: "4px 10px",
-                  fontSize: 12,
+                  borderRadius: 6,
+                  padding: "4px 9px",
+                  fontSize: 11.5,
                   fontWeight: 700,
                   cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
                 }}
               >
                 {f.label}
@@ -251,6 +253,7 @@ export function RewardsSection({ profile, showToast, onFindTurf }) {
 
         {filteredTransactions.length === 0 ? (
           <EmptyState
+            compact
             icon="gift"
             title="No reward transactions yet"
             subtitle="Book games or share your referral code to start earning!"

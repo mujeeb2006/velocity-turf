@@ -154,6 +154,7 @@ export default function CinematicHome({
 
   return (
     <div
+      className="vt-cinematic-home"
       style={{
         background: VIBRANT_PALETTE.white,
         color: VIBRANT_PALETTE.mainText,
@@ -165,6 +166,7 @@ export default function CinematicHome({
           3. HERO SECTION (Sky-Blue to Electric-Blue Gradient + Turf Photo + Glow + Cards)
       ────────────────────────────────────────────────────────── */}
       <section
+        className="vt-home-hero-wrap"
         style={{
           padding: "16px 20px 0",
           maxWidth: 1440,
@@ -172,6 +174,7 @@ export default function CinematicHome({
         }}
       >
         <div
+          className="vt-home-hero"
           style={{
             position: "relative",
             borderRadius: 28,
@@ -263,6 +266,7 @@ export default function CinematicHome({
 
             {/* Main Headline */}
             <h1
+              className="vt-home-hero-title"
               style={{
                 fontSize: "clamp(2.4rem, 5.5vw, 4.3rem)",
                 fontWeight: 900,
@@ -284,6 +288,7 @@ export default function CinematicHome({
 
             {/* Description */}
             <p
+              className="vt-home-hero-desc"
               style={{
                 fontSize: "clamp(1rem, 2vw, 1.25rem)",
                 lineHeight: 1.6,
@@ -298,6 +303,7 @@ export default function CinematicHome({
 
             {/* Dual CTA Buttons */}
             <div
+              className="vt-home-hero-cta"
               style={{
                 display: "flex",
                 gap: 16,
@@ -373,6 +379,7 @@ export default function CinematicHome({
 
             {/* Interactive Real-Time Search Bar */}
             <div
+              className="vt-home-hero-search"
               style={{
                 maxWidth: 780,
                 margin: "0 auto 24px",
@@ -460,6 +467,7 @@ export default function CinematicHome({
 
             {/* Quick Sport Pills */}
             <div
+              className="vt-home-hero-pills"
               style={{
                 display: "flex",
                 justifyContent: "center",
@@ -519,6 +527,7 @@ export default function CinematicHome({
 
             {/* Streamlined Trust Badges */}
             <div
+              className="vt-home-hero-trust"
               style={{
                 display: "flex",
                 justifyContent: "center",
@@ -548,6 +557,7 @@ export default function CinematicHome({
           4. COLOURFUL TRUSTED PARTNERS SECTION
       ────────────────────────────────────────────────────────── */}
       <section
+        className="vt-home-partners"
         style={{
           background: VIBRANT_PALETTE.white,
           padding: "48px 24px",
@@ -556,6 +566,7 @@ export default function CinematicHome({
       >
         <div style={{ maxWidth: 1240, margin: "0 auto", textAlign: "center" }}>
           <div
+            className="vt-home-partners-title"
             style={{
               fontSize: 12,
               fontWeight: 800,
@@ -568,6 +579,7 @@ export default function CinematicHome({
             TRUSTED BY ATHLETIC CLUBS & VENUE OPERATORS
           </div>
           <div
+            className="vt-home-partners-grid"
             style={{
               display: "flex",
               justifyContent: "space-between",
@@ -579,6 +591,7 @@ export default function CinematicHome({
             {PARTNER_LOGOS.map((partner, i) => (
               <div
                 key={i}
+                className="vt-home-partner-item"
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -600,6 +613,7 @@ export default function CinematicHome({
                 }}
               >
                 <span
+                  className="vt-home-partner-icon"
                   style={{
                     width: 28,
                     height: 28,
@@ -609,6 +623,7 @@ export default function CinematicHome({
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
+                    flexShrink: 0,
                   }}
                 >
                   <ShieldCheck size={14} color="#18A8E0" />
@@ -624,6 +639,7 @@ export default function CinematicHome({
           5. DISCOVER TOP TURFS (Colourful Venue Cards with Real Data)
       ────────────────────────────────────────────────────────── */}
       <section
+        className="vt-home-turfs"
         style={{
           background: VIBRANT_PALETTE.white,
           padding: "90px 24px",
@@ -632,6 +648,7 @@ export default function CinematicHome({
         }}
       >
         <div
+          className="vt-home-section-header"
           style={{
             display: "flex",
             justifyContent: "space-between",
@@ -704,6 +721,7 @@ export default function CinematicHome({
 
         {/* 3-4 Cards Per Row Grid */}
         <div
+          className="vt-home-turf-grid"
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
@@ -719,6 +737,7 @@ export default function CinematicHome({
             return (
               <div
                 key={turf.id}
+                className="vt-home-turf-card"
                 onMouseEnter={() => setHoveredTurfId(turf.id)}
                 onMouseLeave={() => setHoveredTurfId(null)}
                 style={{
@@ -896,6 +915,7 @@ export default function CinematicHome({
           6. MATCHES AND COMMUNITY (Soft Mint Background + Match Cards)
       ────────────────────────────────────────────────────────── */}
       <section
+        className="vt-home-matches"
         style={{
           background: VIBRANT_PALETTE.softMint,
           padding: "88px 24px",
@@ -903,6 +923,7 @@ export default function CinematicHome({
       >
         <div style={{ maxWidth: 1240, margin: "0 auto" }}>
           <div
+            className="vt-home-section-header"
             style={{
               display: "flex",
               justifyContent: "space-between",
@@ -967,6 +988,7 @@ export default function CinematicHome({
 
           {/* Match Cards */}
           <div
+            className="vt-home-match-grid"
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(310px, 1fr))",
@@ -976,6 +998,7 @@ export default function CinematicHome({
             {displayMatches.map((m) => (
               <div
                 key={m.id}
+                className="vt-home-match-card"
                 style={{
                   background: "#FFFFFF",
                   borderRadius: 20,
@@ -1090,12 +1113,14 @@ export default function CinematicHome({
           7. ABOUT VELOCITY TURF (Two-Column with Photo & Stats)
       ────────────────────────────────────────────────────────── */}
       <section
+        className="vt-home-about"
         style={{
           background: VIBRANT_PALETTE.lightBlue,
           padding: "80px 24px",
         }}
       >
         <div
+          className="vt-home-about-grid"
           style={{
             maxWidth: 1240,
             margin: "0 auto",
@@ -1294,6 +1319,7 @@ export default function CinematicHome({
           8. WHY CHOOSE VELOCITY TURF (4 Colourful Feature Cards)
       ────────────────────────────────────────────────────────── */}
       <section
+        className="vt-home-features"
         style={{
           background: VIBRANT_PALETTE.white,
           padding: "90px 24px",
@@ -1332,6 +1358,7 @@ export default function CinematicHome({
 
         {/* 4 Alternating Colourful Cards */}
         <div
+          className="vt-home-features-grid"
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
@@ -1499,8 +1526,12 @@ export default function CinematicHome({
       {/* ──────────────────────────────────────────────────────────
           9. CALL TO ACTION (Vibrant Blue-to-Cyan Gradient)
       ────────────────────────────────────────────────────────── */}
-      <section style={{ padding: "0 20px 80px", maxWidth: 1440, margin: "0 auto" }}>
+      <section
+        className="vt-home-cta-wrap"
+        style={{ padding: "0 20px 80px", maxWidth: 1440, margin: "0 auto" }}
+      >
         <div
+          className="vt-home-cta-banner"
           style={{
             borderRadius: 28,
             overflow: "hidden",
@@ -1596,6 +1627,7 @@ export default function CinematicHome({
           10. FOOTER (Clean Colourful Deep Blue Gradient — No Black Backgrounds)
       ────────────────────────────────────────────────────────── */}
       <footer
+        className="vt-home-footer"
         style={{
           background: "linear-gradient(135deg, #0A3C78 0%, #1769E8 65%, #18A8E0 100%)",
           color: "#FFFFFF",
@@ -1603,6 +1635,7 @@ export default function CinematicHome({
         }}
       >
         <div
+          className="vt-home-footer-grid"
           style={{
             maxWidth: 1240,
             margin: "0 auto",
@@ -1720,6 +1753,7 @@ export default function CinematicHome({
 
         {/* Bottom Copyright bar */}
         <div
+          className="vt-home-footer-bottom"
           style={{
             maxWidth: 1240,
             margin: "0 auto",

@@ -2539,7 +2539,16 @@ body {
   font-size: 12px !important;
 }
 
+.vt-stat-lbl-full {
+  display: inline;
+}
+
+.vt-stat-lbl-short {
+  display: none;
+}
+
 .vt-bottom-nav {
+  display: none !important;
   background: rgba(255, 255, 255, 0.97) !important;
   border-top-color: rgba(25, 48, 39, 0.1) !important;
   box-shadow: 0 -8px 24px rgba(20, 53, 38, 0.05);
@@ -2787,8 +2796,8 @@ body {
   }
 
   .vt-mobile-topbar {
-    height: 58px !important;
-    padding-inline: 13px !important;
+    height: 56px !important;
+    padding-inline: 14px !important;
   }
 
   .vt-mobile-account-button {
@@ -2805,7 +2814,8 @@ body {
   }
 
   .vt-bottom-nav {
-    padding: 6px 4px calc(7px + env(safe-area-inset-bottom)) !important;
+    display: flex !important;
+    padding: 6px 4px calc(8px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
   .vt-bottom-nav button {
@@ -2820,8 +2830,8 @@ body {
   }
 
   .vt-main-content {
-    padding-top: 58px !important;
-    padding-bottom: calc(max(var(--vt-bottom-nav-h, 72px), env(safe-area-inset-bottom, 0px)) + 24px) !important;
+    padding-top: 56px !important;
+    padding-bottom: calc(max(var(--vt-bottom-nav-h, 72px), env(safe-area-inset-bottom, 0px)) + var(--vt-pwa-banner-h, 0px) + 24px) !important;
   }
 
   .vt-live-indicator {
@@ -2842,13 +2852,366 @@ body {
 
   .vt-discover-section {
     --vt-discover-pad: 16px;
-    padding: 38px var(--vt-discover-pad) 52px;
+    padding: 24px var(--vt-discover-pad) 36px;
   }
 
   .vt-match-section,
-  .vt-loyalty-section,
+  .vt-loyalty-section {
+    padding: 24px 14px !important;
+  }
+
   .vt-dashboard-section {
-    padding: 34px 16px !important;
+    padding: 16px 14px 28px !important;
+  }
+
+  .vt-dashboard-header {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .vt-dashboard-header h2 {
+    font-size: 24px !important;
+    margin: 2px 0 0 !important;
+  }
+
+  .vt-dashboard-header .vt-book-new-game-btn {
+    width: 100% !important;
+    min-height: 42px !important;
+    justify-content: center !important;
+    font-size: 13.5px !important;
+  }
+
+  .vt-dashboard-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .vt-dashboard-stat-card {
+    padding: 12px 14px !important;
+    border-radius: 12px !important;
+  }
+
+  .vt-dashboard-stat-card .vt-stat-icon-wrap {
+    margin-bottom: 8px !important;
+  }
+
+  .vt-dashboard-stat-card .vt-stat-icon-wrap > div {
+    padding: 6px !important;
+    border-radius: 8px !important;
+  }
+
+  .vt-dashboard-stat-card .vt-stat-val {
+    font-size: 19px !important;
+    line-height: 1.2 !important;
+  }
+
+  .vt-stat-lbl-full {
+    display: none !important;
+  }
+
+  .vt-stat-lbl-short {
+    display: inline !important;
+  }
+
+  .vt-dashboard-stat-card .vt-stat-lbl {
+    font-size: 11.5px !important;
+    margin-top: 2px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .vt-booking-filter-tabs {
+    padding-bottom: 8px !important;
+    margin-bottom: 14px !important;
+    gap: 6px !important;
+  }
+
+  .vt-booking-filter-tabs button {
+    padding: 7px 12px !important;
+    font-size: 12px !important;
+    border-radius: 8px !important;
+  }
+
+  .vt-booking-card {
+    padding: 14px 14px !important;
+    border-radius: 14px !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  .vt-booking-card > div:first-child {
+    min-width: 0 !important;
+    width: 100% !important;
+    gap: 12px !important;
+  }
+
+  .vt-booking-card-actions {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+    padding-top: 10px !important;
+    border-top: 1px solid rgba(24, 168, 224, 0.12) !important;
+    margin-top: 2px !important;
+  }
+
+  .vt-booking-card-actions > div:first-child {
+    text-align: left !important;
+    margin-right: 0 !important;
+  }
+
+  /* Player Hub STICKY horizontal sub-navigation on mobile */
+  .vt-player-hub-wrap {
+    position: sticky !important;
+    top: 56px !important;
+    z-index: 850 !important;
+    background: #FAFCFE !important;
+    padding: 6px 12px !important;
+    margin: 0 !important;
+    border-bottom: 1px solid rgba(24, 168, 224, 0.14) !important;
+    box-shadow: 0 4px 12px rgba(23, 105, 232, 0.05) !important;
+  }
+
+  .vt-player-hub-container {
+    position: relative !important;
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  .vt-player-hub-nav {
+    padding: 5px 8px !important;
+    gap: 6px !important;
+    border-radius: 12px !important;
+    background: #F4F8FC !important;
+    border: 1px solid rgba(24, 168, 224, 0.16) !important;
+    -webkit-overflow-scrolling: touch !important;
+    scroll-behavior: smooth !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    width: 100% !important;
+  }
+
+  .vt-player-hub-nav::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .vt-hub-eyebrow {
+    display: none !important;
+  }
+
+  .vt-hub-nav-pill {
+    padding: 6px 11px !important;
+    font-size: 12px !important;
+    border-radius: 8px !important;
+    gap: 5px !important;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  /* Right-edge scroll guidance & chevron on mobile */
+  .vt-scroll-hint,
+  .vt-hub-scroll-hint {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    display: flex !important;
+    align-items: center;
+    justify-content: flex-end;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.22s ease, visibility 0.22s ease;
+    z-index: 25;
+    visibility: hidden;
+  }
+
+  .vt-scroll-hint.visible,
+  .vt-hub-scroll-hint.visible {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  .vt-scroll-fade,
+  .vt-hub-scroll-fade {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    width: 52px;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.88) 50%, #FFFFFF 100%);
+    border-radius: 0 12px 12px 0;
+    pointer-events: none;
+  }
+
+  .vt-player-hub-container .vt-scroll-fade,
+  .vt-player-hub-container .vt-hub-scroll-fade {
+    background: linear-gradient(to right, rgba(244, 248, 252, 0) 0%, rgba(244, 248, 252, 0.92) 50%, #F4F8FC 100%);
+  }
+
+  .vt-scroll-chevron-btn,
+  .vt-hub-scroll-chevron-btn {
+    position: relative;
+    z-index: 26;
+    pointer-events: auto;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #1769E8;
+    color: #FFFFFF;
+    border: none;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(23, 105, 232, 0.4);
+    margin-right: 4px;
+    transition: transform 0.15s ease, background 0.15s ease;
+    animation: vtChevronPulse 2s ease-in-out infinite;
+  }
+
+  .vt-scroll-chevron-btn:active,
+  .vt-hub-scroll-chevron-btn:active {
+    transform: scale(0.9);
+  }
+
+  @keyframes vtChevronPulse {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(2px); }
+  }
+
+  /* Player Hub Sections: compact mobile padding and headers */
+  .vt-group-bookings-section,
+  .vt-teams-section,
+  .vt-packages-section,
+  .vt-rewards-section {
+    padding: 12px 14px 28px !important;
+  }
+
+  .vt-group-header,
+  .vt-teams-header,
+  .vt-packages-header,
+  .vt-rewards-header {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .vt-group-header h1,
+  .vt-teams-header h1,
+  .vt-packages-header h1,
+  .vt-rewards-header h1 {
+    font-size: 22px !important;
+    margin: 2px 0 0 !important;
+    line-height: 1.2 !important;
+  }
+
+  .vt-group-header p,
+  .vt-teams-header p,
+  .vt-packages-header p,
+  .vt-rewards-header p {
+    font-size: 12.5px !important;
+  }
+
+  /* Group Bookings */
+  .vt-group-actions {
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 8px !important;
+  }
+
+  .vt-group-actions button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  .vt-group-tabs {
+    gap: 6px !important;
+    padding-bottom: 4px !important;
+    margin-bottom: 14px !important;
+  }
+
+  .vt-group-tabs button {
+    padding: 7px 12px !important;
+    font-size: 12px !important;
+    border-radius: 8px !important;
+  }
+
+  .vt-group-cards-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  /* Teams */
+  .vt-team-join-banner {
+    padding: 14px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .vt-team-join-inputs {
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    gap: 8px !important;
+  }
+
+  .vt-team-join-inputs input {
+    width: 100% !important;
+  }
+
+  .vt-team-join-inputs button {
+    width: 100% !important;
+  }
+
+  .vt-team-cards-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  /* Packages & Passes */
+  .vt-packages-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  /* Rewards & Wallet */
+  .vt-rewards-wallet-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    margin-bottom: 18px !important;
+  }
+
+  .vt-wallet-card-featured {
+    grid-column: span 2 !important;
+  }
+
+  .vt-rewards-filter-pills {
+    display: flex !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    padding-bottom: 6px !important;
+    margin-bottom: 14px !important;
+    gap: 6px !important;
+    scrollbar-width: none !important;
+  }
+
+  .vt-rewards-filter-pills::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .vt-rewards-filter-pills button {
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+    flex-shrink: 0 !important;
   }
 
   .vt-loyalty-grid {
@@ -2921,7 +3284,8 @@ body {
     width: 100%;
     min-width: 0;
     max-width: 100%;
-    height: 44px;
+    height: 42px;
+    border-radius: 10px;
   }
 
   .vt-sport-scroll,
@@ -2929,50 +3293,339 @@ body {
     display: none !important;
   }
 
-  /* One horizontally scrollable row. It bleeds to the screen edges (negative
-     margin == the section padding) so chips scroll under the edge instead of
-     being cut off at the content boundary, and padding restores the inset at
-     both ends so the first/last chip rest fully visible. */
   .vt-sport-filters-wrap {
-    flex: 0 0 auto;
-    width: calc(100% + (2 * var(--vt-discover-pad)));
-    margin-inline: calc(-1 * var(--vt-discover-pad));
-    padding: 0;
-    gap: 0;
+    position: relative !important;
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    margin-inline: 0 !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    overflow: visible !important;
   }
 
   .vt-sport-filters {
-    padding: 4px var(--vt-discover-pad) 6px;
-    scroll-padding-inline: var(--vt-discover-pad);
-    /* edge-to-edge on phones: no fade, the cut-off chip is the scroll hint */
-    -webkit-mask-image: none;
-    mask-image: none;
-    gap: 8px;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-x pan-y;
+    padding: 4px 44px 6px 0 !important;
+    scroll-padding-inline: 0 !important;
+    -webkit-mask-image: none !important;
+    mask-image: none !important;
+    gap: 8px !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x pan-y !important;
+    scroll-behavior: smooth !important;
+    width: 100% !important;
+    overflow-x: auto !important;
   }
 
   .vt-sport-filters::-webkit-scrollbar {
-    display: none;
+    display: none !important;
   }
 
   .vt-sport-filter {
-    flex: 0 0 auto;
-    min-height: 38px;
-    height: 38px;
-    padding: 0 14px;
-    font-size: 12px;
+    flex: 0 0 auto !important;
+    min-height: 36px !important;
+    height: 36px !important;
+    padding: 0 14px !important;
+    font-size: 12.5px !important;
+    white-space: nowrap !important;
+    border-radius: 999px !important;
+  }
+
+  .vt-sport-filter.active {
+    background: #1769E8 !important;
+    color: #FFFFFF !important;
+    border-color: #1769E8 !important;
+    font-weight: 800 !important;
   }
 
   .vt-venue-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 14px !important;
   }
 
   .vt-venue-cover {
-    height: 210px;
+    height: 200px !important;
+  }
+
+  /* Homepage Mobile (320px–430px) adjustments */
+  .vt-cinematic-home {
+    overflow-x: hidden !important;
+  }
+
+  .vt-home-hero-wrap {
+    padding: 8px 12px 0 !important;
+  }
+
+  .vt-home-hero {
+    padding: 32px 14px 26px !important;
+    border-radius: 18px !important;
+    box-shadow: 0 12px 36px rgba(23, 105, 232, 0.18) !important;
+  }
+
+  .vt-home-hero-title {
+    font-size: clamp(25px, 7.5vw, 32px) !important;
+    line-height: 1.15 !important;
+    margin: 0 0 14px !important;
+  }
+
+  .vt-home-hero-desc {
+    font-size: 13px !important;
+    line-height: 1.55 !important;
+    margin: 0 auto 22px !important;
+  }
+
+  .vt-home-hero-cta {
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 10px !important;
+    margin-bottom: 24px !important;
+  }
+
+  .vt-home-hero-cta button {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 13px 20px !important;
+    font-size: 13.5px !important;
+  }
+
+  .vt-home-hero-search {
+    padding: 10px 12px !important;
+    border-radius: 14px !important;
+    gap: 8px !important;
+    margin-bottom: 18px !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .vt-home-hero-search > div {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+  }
+
+  .vt-home-hero-search .vt-search-divider {
+    display: none !important;
+  }
+
+  .vt-home-hero-search button {
+    width: 100% !important;
+    justify-content: center !important;
+    margin-left: 0 !important;
+    padding: 12px !important;
+  }
+
+  .vt-home-hero-pills {
+    gap: 6px !important;
+    margin-bottom: 22px !important;
+  }
+
+  .vt-home-hero-pills button {
+    padding: 5px 10px !important;
+    font-size: 11.5px !important;
+  }
+
+  .vt-home-hero-trust {
+    gap: 10px 16px !important;
+    font-size: 11.5px !important;
+  }
+
+  .vt-home-partners {
+    padding: 22px 14px !important;
+  }
+
+  .vt-home-partners-title {
+    font-size: 11.5px !important;
+    letter-spacing: 0.12em !important;
+    margin-bottom: 16px !important;
+    text-align: center !important;
+  }
+
+  .vt-home-partners-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px 14px !important;
+    justify-items: center !important;
+  }
+
+  .vt-home-partner-item {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  .vt-home-turfs,
+  .vt-home-matches,
+  .vt-home-about,
+  .vt-home-features {
+    padding: 32px 14px !important;
+  }
+
+  .vt-home-section-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    margin-bottom: 18px !important;
+  }
+
+  .vt-home-section-header h2 {
+    font-size: 22px !important;
+  }
+
+  .vt-home-section-header p {
+    font-size: 13px !important;
+  }
+
+  .vt-home-section-header button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  .vt-home-turf-grid,
+  .vt-home-match-grid,
+  .vt-home-about-grid,
+  .vt-home-features-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 14px !important;
+  }
+
+  .vt-home-turf-card,
+  .vt-home-match-card {
+    border-radius: 16px !important;
+  }
+
+  .vt-home-cta-wrap {
+    padding: 0 12px 28px !important;
+  }
+
+  .vt-home-cta-banner {
+    padding: 36px 16px !important;
+    border-radius: 18px !important;
+  }
+
+  .vt-home-cta-banner h2 {
+    font-size: 24px !important;
+  }
+
+  .vt-home-cta-banner p {
+    font-size: 13.5px !important;
+    margin-bottom: 22px !important;
+  }
+
+  .vt-home-cta-banner > div:last-child {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+
+  .vt-home-cta-banner button {
+    width: 100% !important;
+    padding: 13px 20px !important;
+  }
+
+  .vt-home-footer {
+    padding: 36px 14px calc(max(var(--vt-bottom-nav-h, 72px), env(safe-area-inset-bottom, 0px)) + 24px) !important;
+  }
+
+  .vt-home-footer-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 22px 14px !important;
+    margin-bottom: 24px !important;
+  }
+
+  .vt-home-footer-grid > div:first-child {
+    grid-column: span 2 !important;
+  }
+
+  .vt-home-footer-bottom {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    gap: 10px !important;
+  }
+}
+
+/* Desktop: hide mobile scroll guidance */
+.vt-scroll-hint,
+.vt-hub-scroll-hint {
+  display: none !important;
+}
+
+/* Homepage Desktop Improvements */
+.vt-cinematic-home section {
+  scroll-margin-top: 100px;
+}
+
+.vt-home-footer {
+  padding: 56px 24px 32px !important;
+}
+
+.vt-home-footer-grid {
+  gap: 32px !important;
+  margin-bottom: 40px !important;
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .vt-home-partners-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 16px 20px !important;
+    justify-items: center !important;
+  }
+  .vt-home-partner-item {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
+@media (max-width: 479px) {
+  .vt-home-partners {
+    padding: 20px 14px !important;
+  }
+
+  .vt-home-partners-title {
+    font-size: 11px !important;
+    letter-spacing: 0.12em !important;
+    margin-bottom: 14px !important;
+    text-align: center !important;
+  }
+
+  .vt-home-partners-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 9px !important;
+    width: 100% !important;
+    max-width: 320px !important;
+    margin: 0 auto !important;
+  }
+
+  .vt-home-partner-item {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 12px !important;
+    padding: 9px 14px !important;
+    background: #F7FBFE !important;
+    border: 1px solid rgba(24, 168, 224, 0.14) !important;
+    border-radius: 10px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .vt-home-partner-item span:last-child {
+    font-size: 13px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.04em !important;
+    color: #4A5568 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .vt-home-partner-icon {
+    width: 26px !important;
+    height: 26px !important;
+    min-width: 26px !important;
+    border-radius: 6px !important;
+    flex-shrink: 0 !important;
   }
 }
 
@@ -3050,6 +3703,15 @@ body {
   }
 }
 
+@media (max-width: 380px) {
+  .vt-brand-tagline {
+    display: none !important;
+  }
+  .vt-mobile-topbar {
+    padding-inline: 10px !important;
+  }
+}
+
 @media (max-width: 360px) {
   .vt-discover-section {
     --vt-discover-pad: 12px;
@@ -3063,13 +3725,24 @@ body {
     gap: 6px !important;
   }
 
-
   .vt-bottom-nav button {
     padding: 4px 1px !important;
   }
 
   .vt-bottom-nav button span {
     font-size: 8px !important;
+  }
+
+  .vt-dashboard-stats-grid {
+    gap: 8px !important;
+  }
+
+  .vt-dashboard-stat-card {
+    padding: 10px 10px !important;
+  }
+
+  .vt-dashboard-stat-card .vt-stat-val {
+    font-size: 17px !important;
   }
 }
 

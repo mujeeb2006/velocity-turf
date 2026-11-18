@@ -2063,6 +2063,31 @@ function HeroSection({ onExplore, venueCount, isLoading }) {
 }
 
 // ============================================================
+// HORIZONTAL SCROLL GUIDANCE COMPONENT
+// ============================================================
+function HorizontalScrollHint({ canScrollRight, onScrollRight, label = "Scroll for more" }) {
+  return (
+    <div
+      className={`vt-scroll-hint ${canScrollRight ? "visible" : ""}`}
+      aria-hidden={!canScrollRight}
+    >
+      <div className="vt-scroll-fade" />
+      <button
+        type="button"
+        onClick={onScrollRight}
+        className="vt-scroll-chevron-btn"
+        aria-label={label}
+        tabIndex={canScrollRight ? 0 : -1}
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+// ============================================================
 // DISCOVER / TURF LIST
 // ============================================================
 function DiscoverSection({ turfs, onBook, onMatch, isLoading, initialSearch = "" }) {
@@ -2100,8 +2125,18 @@ function DiscoverSection({ turfs, onBook, onMatch, isLoading, initialSearch = ""
   const scrollBehavior = () => (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth");
   const scrollRail = (direction) => {
     const el = railRef.current;
-    if (el) el.scrollBy({ left: direction * Math.max(160, el.clientWidth * 0.7), behavior: scrollBehavior() });
+    if (el) el.scrollBy({ left: direction * Math.max(140, el.clientWidth * 0.6), behavior: scrollBehavior() });
   };
+
+  useEffect(() => {
+    if (!railRef.current) return;
+    const activeBtn = railRef.current.querySelector(".vt-sport-filter.active");
+    if (activeBtn) {
+      activeBtn.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+      const timer = setTimeout(updateEdges, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [filter, updateEdges]);
 
   const q = search.trim().toLowerCase();
   const filtered = turfs
@@ -2171,6 +2206,13 @@ function DiscoverSection({ turfs, onBook, onMatch, isLoading, initialSearch = ""
             >
               ›
             </button>
+
+            {/* Mobile Horizontal Scroll Guidance Indicator (Fade + Chevron) */}
+            <HorizontalScrollHint
+              canScrollRight={edges.end}
+              onScrollRight={() => scrollRail(1)}
+              label="Scroll to see more sports"
+            />
           </div>
 
           <label className="vt-discover-search">
@@ -2920,52 +2962,71 @@ function MatchmakingSection({
   };
 
   return (
-    <div className="vt-match-section" style={{ padding: "50px 24px 80px" }}>
+    <div className="vt-match-section" style={{ padding: "18px 20px 32px" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
         {/* Title & Refresh */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16, marginBottom: 28 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
           <div>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: V.floodDim, border: `1px solid ${V.flood}4D`, borderRadius: 8, padding: "5px 14px", marginBottom: 10 }}>
-              <span style={{ color: V.flood, fontSize: 12, fontWeight: 700, fontFamily: FONT_BODY, letterSpacing: 0.4 }}>COMMUNITY GAMES</span>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: V.floodDim, border: `1px solid ${V.flood}4D`, borderRadius: 6, padding: "3px 10px", marginBottom: 6 }}>
+              <span style={{ color: V.flood, fontSize: 11, fontWeight: 700, fontFamily: FONT_BODY, letterSpacing: 0.4 }}>COMMUNITY GAMES</span>
             </div>
-            <h2 style={{ color: V.chalk, fontFamily: FONT_DISPLAY, fontSize: 38, fontWeight: 700, margin: 0 }}>
+            <h2 style={{ color: V.chalk, fontFamily: FONT_DISPLAY, fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-0.01em" }}>
               Discover & Join Approved Games
             </h2>
-            <p style={{ color: V.chalkFaint, margin: "6px 0 0", fontFamily: FONT_BODY }}>
+            <p style={{ color: V.chalkFaint, margin: "4px 0 0", fontSize: 13.5, fontFamily: FONT_BODY }}>
               Play scheduled open games at your favorite turfs with individual ticket pricing.
             </p>
           </div>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: 8 }}>
             <button
               type="button"
               onClick={onRefresh}
+              aria-label="Refresh community games"
               style={{
-                ...buttonStyle("secondary", "sm"),
+                background: "rgba(255, 255, 255, 0.05)",
+                border: `1px solid ${V.line}`,
+                borderRadius: 8,
+                padding: "7px 12px",
+                color: V.chalkDim,
+                fontSize: 12.5,
+                fontWeight: 600,
+                fontFamily: FONT_BODY,
+                cursor: "pointer",
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 6,
+                transition: "all 0.15s ease",
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
+                e.currentTarget.style.color = V.chalk;
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
+                e.currentTarget.style.color = V.chalkDim;
               }}
             >
-              <span>↻</span> Refresh Games
+              <RefreshCw size={13} /> Refresh Games
             </button>
           </div>
         </div>
 
         {/* Filter Toolbar */}
         <div style={{
-          ...panel(),
-          borderRadius: 16,
-          padding: "18px 20px",
-          marginBottom: 24,
+          background: V.pitchCard,
+          border: `1px solid ${V.line}`,
+          borderRadius: 12,
+          padding: "14px 16px",
+          marginBottom: 16,
           display: "flex",
           flexDirection: "column",
-          gap: 14,
+          gap: 10,
         }}>
           {/* Top filter row: Search + Turfs + Date + Time */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
             {/* Search */}
             <div>
-              <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: V.chalkFaint, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
+              <label style={{ display: "block", fontSize: 10.5, fontWeight: 700, color: V.chalkFaint, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
                 Search
               </label>
               <input
@@ -2975,20 +3036,22 @@ function MatchmakingSection({
                 onChange={e => setSearchQuery(e.target.value)}
                 style={{
                   width: "100%",
-                  background: V.pitchCard,
+                  height: 36,
+                  background: V.pitchCardRaised || "#162032",
                   border: `1px solid ${V.line}`,
-                  borderRadius: 10,
-                  padding: "9px 12px",
+                  borderRadius: 8,
+                  padding: "0 10px",
                   color: V.chalk,
-                  fontSize: 13,
+                  fontSize: 12.5,
                   outline: "none",
+                  boxSizing: "border-box",
                 }}
               />
             </div>
 
             {/* Turf Venue Selector */}
             <div>
-              <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: V.chalkFaint, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
+              <label style={{ display: "block", fontSize: 10.5, fontWeight: 700, color: V.chalkFaint, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
                 Venue / Turf
               </label>
               <select
@@ -2999,13 +3062,15 @@ function MatchmakingSection({
                 }}
                 style={{
                   width: "100%",
-                  background: V.pitchCard,
+                  height: 36,
+                  background: V.pitchCardRaised || "#162032",
                   border: `1px solid ${V.line}`,
-                  borderRadius: 10,
-                  padding: "9px 12px",
+                  borderRadius: 8,
+                  padding: "0 10px",
                   color: V.chalk,
-                  fontSize: 13,
+                  fontSize: 12.5,
                   outline: "none",
+                  boxSizing: "border-box",
                 }}
               >
                 <option value="all">All Turfs & Venues</option>
@@ -3019,7 +3084,7 @@ function MatchmakingSection({
 
             {/* Date filter */}
             <div>
-              <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: V.chalkFaint, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
+              <label style={{ display: "block", fontSize: 10.5, fontWeight: 700, color: V.chalkFaint, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
                 Date
               </label>
               <select
@@ -3027,13 +3092,15 @@ function MatchmakingSection({
                 onChange={e => setDateFilter(e.target.value)}
                 style={{
                   width: "100%",
-                  background: V.pitchCard,
+                  height: 36,
+                  background: V.pitchCardRaised || "#162032",
                   border: `1px solid ${V.line}`,
-                  borderRadius: 10,
-                  padding: "9px 12px",
+                  borderRadius: 8,
+                  padding: "0 10px",
                   color: V.chalk,
-                  fontSize: 13,
+                  fontSize: 12.5,
                   outline: "none",
+                  boxSizing: "border-box",
                 }}
               >
                 <option value="all">Any Upcoming Date</option>
@@ -3044,7 +3111,7 @@ function MatchmakingSection({
 
             {/* Time of Day filter */}
             <div>
-              <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: V.chalkFaint, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
+              <label style={{ display: "block", fontSize: 10.5, fontWeight: 700, color: V.chalkFaint, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
                 Time of Day
               </label>
               <select
@@ -3052,13 +3119,15 @@ function MatchmakingSection({
                 onChange={e => setTimeFilter(e.target.value)}
                 style={{
                   width: "100%",
-                  background: V.pitchCard,
+                  height: 36,
+                  background: V.pitchCardRaised || "#162032",
                   border: `1px solid ${V.line}`,
-                  borderRadius: 10,
-                  padding: "9px 12px",
+                  borderRadius: 8,
+                  padding: "0 10px",
                   color: V.chalk,
-                  fontSize: 13,
+                  fontSize: 12.5,
                   outline: "none",
+                  boxSizing: "border-box",
                 }}
               >
                 <option value="all">All Times</option>
@@ -3070,22 +3139,45 @@ function MatchmakingSection({
             </div>
           </div>
 
-          {/* Sport Filter Pills Row */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, paddingTop: 10, borderTop: `1px solid ${V.line}` }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 11.5, fontWeight: 700, color: V.chalkFaint, marginRight: 4 }}>SPORT:</span>
+          {/* Sport Filter Row (Compact & Horizontally Scrollable) */}
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 10,
+            paddingTop: 8,
+            borderTop: `1px solid ${V.line}`,
+          }}>
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              overflowX: "auto",
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+              WebkitOverflowScrolling: "touch",
+              paddingBottom: 2,
+              flex: 1,
+              minWidth: 0,
+            }}>
+              <span style={{ fontSize: 11, fontWeight: 800, color: V.chalkFaint, textTransform: "uppercase", letterSpacing: 0.5, marginRight: 2, flexShrink: 0 }}>
+                SPORT:
+              </span>
               <button
                 type="button"
                 onClick={() => setSportFilter("all")}
                 style={{
                   background: sportFilter === "all" ? V.floodDim : "transparent",
                   border: `1px solid ${sportFilter === "all" ? V.flood : V.line}`,
-                  borderRadius: 8,
-                  padding: "4px 12px",
+                  borderRadius: 6,
+                  padding: "4px 10px",
                   color: sportFilter === "all" ? V.flood : V.chalkDim,
-                  fontSize: 12,
+                  fontSize: 11.5,
                   fontWeight: sportFilter === "all" ? 700 : 500,
                   cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                  transition: "all 0.15s ease",
                 }}
               >
                 All Sports
@@ -3098,12 +3190,15 @@ function MatchmakingSection({
                   style={{
                     background: sportFilter === s ? V.floodDim : "transparent",
                     border: `1px solid ${sportFilter === s ? V.flood : V.line}`,
-                    borderRadius: 8,
-                    padding: "4px 12px",
+                    borderRadius: 6,
+                    padding: "4px 10px",
                     color: sportFilter === s ? V.flood : V.chalkDim,
-                    fontSize: 12,
+                    fontSize: 11.5,
                     fontWeight: sportFilter === s ? 700 : 500,
                     cursor: "pointer",
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                    transition: "all 0.15s ease",
                   }}
                 >
                   {sportIcon(s)} {s}
@@ -3118,16 +3213,18 @@ function MatchmakingSection({
                 style={{
                   background: "transparent",
                   border: `1px solid ${V.line}`,
-                  borderRadius: 8,
-                  padding: "5px 12px",
+                  borderRadius: 6,
+                  padding: "4px 10px",
                   color: V.chalkDim,
-                  fontSize: 12,
+                  fontSize: 11.5,
                   fontWeight: 600,
                   cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
                 }}
               >
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                  Clear all filters <X size={13} />
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  Clear filters <X size={12} />
                 </span>
               </button>
             )}
@@ -3206,15 +3303,16 @@ function MatchmakingSection({
         ) : filteredMatches.length === 0 ? (
           hasActiveFilters ? (
             <EmptyState
+              compact
               icon="search"
               title="No approved games match your filters"
               subtitle="No community games meet your current criteria. Try adjusting sport, date, time, or venue to find open games."
               action={
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
-                  <button type="button" onClick={handleResetFilters} style={buttonStyle("primary", "md")}>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+                  <button type="button" onClick={handleResetFilters} style={buttonStyle("primary", "sm")}>
                     Reset all filters
                   </button>
-                  <button type="button" onClick={onRefresh} style={buttonStyle("secondary", "md")}>
+                  <button type="button" onClick={onRefresh} style={buttonStyle("secondary", "sm")}>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                       Refresh games <RefreshCw size={13} />
                     </span>
@@ -3225,17 +3323,18 @@ function MatchmakingSection({
             />
           ) : (
             <EmptyState
+              compact
               icon="trophy"
               title="No approved community games available"
               subtitle="Turf owners schedule community games here once reviewed and approved by administrators. None are open right now. Check back soon or book your own slot!"
               action={
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
-                  <button type="button" onClick={onRefresh} style={buttonStyle("secondary", "md")}>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+                  <button type="button" onClick={onRefresh} style={buttonStyle("secondary", "sm")}>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                       Refresh games <RefreshCw size={13} />
                     </span>
                   </button>
-                  <button type="button" onClick={onFindTurf} style={buttonStyle("primary", "md")}>
+                  <button type="button" onClick={onFindTurf} style={buttonStyle("primary", "sm")}>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                       Find a turf to book <ArrowRight size={14} />
                     </span>
@@ -3622,7 +3721,7 @@ function DashboardSection({ isLoading, bookings = [], matchesJoined = 0, joinedG
   return (
     <div className="vt-dashboard-section" style={{ padding: "40px 20px 80px" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 28, flexWrap: "wrap", gap: 12 }}>
+        <div className="vt-dashboard-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 28, flexWrap: "wrap", gap: 12 }}>
           <div>
             <span style={{ fontSize: 12, fontWeight: 800, color: V.floodButton || V.flood, textTransform: "uppercase", letterSpacing: 0.8, fontFamily: FONT_BODY }}>
               Player Dashboard
@@ -3634,6 +3733,7 @@ function DashboardSection({ isLoading, bookings = [], matchesJoined = 0, joinedG
           <button
             type="button"
             onClick={onFindTurf}
+            className="vt-book-new-game-btn"
             style={buttonStyle("primary", "md")}
           >
             + Book New Game
@@ -3642,7 +3742,7 @@ function DashboardSection({ isLoading, bookings = [], matchesJoined = 0, joinedG
 
         {isLoading ? (
           <>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
+            <div className="vt-dashboard-stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
               {[...Array(4)].map((_, i) => <SkeletonCard key={i} lines={1} />)}
             </div>
             <Skeleton width={160} height={14} style={{ marginBottom: 16 }} />
@@ -3653,15 +3753,16 @@ function DashboardSection({ isLoading, bookings = [], matchesJoined = 0, joinedG
         ) : (
           <>
             {/* Stat Cards */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14, marginBottom: 32 }}>
+            <div className="vt-dashboard-stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14, marginBottom: 28 }}>
               {[
-                { label: "Total spent", value: `₹${totalSpent.toLocaleString()}`, icon: "trending", bg: "#EAF7FF", color: "#1769E8" },
-                { label: "Games played", value: gamesPlayed, icon: "clock", bg: "#E9F9ED", color: "#10B981" },
-                { label: "Squad matches joined", value: safeMatchesJoined, icon: "trophy", bg: "#F1EEFF", color: "#7C3AED" },
-                { label: "Upcoming bookings", value: upcoming.length, icon: "calendar", bg: "#FFF2E5", color: "#F59E0B" },
+                { label: "Total spent", shortLabel: "Total spent", value: `₹${totalSpent.toLocaleString()}`, icon: "trending", bg: "#EAF7FF", color: "#1769E8" },
+                { label: "Games played", shortLabel: "Games played", value: gamesPlayed, icon: "clock", bg: "#E9F9ED", color: "#10B981" },
+                { label: "Squad matches joined", shortLabel: "Matches joined", value: safeMatchesJoined, icon: "trophy", bg: "#F1EEFF", color: "#7C3AED" },
+                { label: "Upcoming bookings", shortLabel: "Upcoming", value: upcoming.length, icon: "calendar", bg: "#FFF2E5", color: "#F59E0B" },
               ].map(s => (
                 <div
                   key={s.label}
+                  className="vt-dashboard-stat-card"
                   style={{
                     ...panel(),
                     borderRadius: 16,
@@ -3672,16 +3773,17 @@ function DashboardSection({ isLoading, bookings = [], matchesJoined = 0, joinedG
                     transition: "transform 0.2s, box-shadow 0.2s",
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                  <div className="vt-stat-icon-wrap" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                     <div style={{ background: s.bg, borderRadius: 10, padding: 8, display: "inline-flex" }}>
                       <Icon name={s.icon} size={18} color={s.color} />
                     </div>
                   </div>
-                  <div style={{ color: "#172B4D", fontWeight: 900, fontSize: 24, fontFamily: typeof s.value === "string" && s.value.startsWith("₹") ? FONT_BODY : FONT_DATA }}>
+                  <div className="vt-stat-val" style={{ color: "#172B4D", fontWeight: 900, fontSize: 24, fontFamily: typeof s.value === "string" && s.value.startsWith("₹") ? FONT_BODY : FONT_DATA }}>
                     {s.value}
                   </div>
-                  <div style={{ color: "#718096", fontSize: 13, marginTop: 4, fontFamily: FONT_BODY, fontWeight: 700 }}>
-                    {s.label}
+                  <div className="vt-stat-lbl" style={{ color: "#718096", fontSize: 13, marginTop: 4, fontFamily: FONT_BODY, fontWeight: 700 }}>
+                    <span className="vt-stat-lbl-full">{s.label}</span>
+                    <span className="vt-stat-lbl-short">{s.shortLabel}</span>
                   </div>
                 </div>
               ))}
@@ -3691,14 +3793,17 @@ function DashboardSection({ isLoading, bookings = [], matchesJoined = 0, joinedG
             <div
               role="tablist"
               aria-label="Filter bookings"
+              className="vt-booking-filter-tabs"
               style={{
                 display: "flex",
                 gap: 8,
                 borderBottom: `1px solid ${V.line}`,
-                paddingBottom: 12,
-                marginBottom: 20,
+                paddingBottom: 10,
+                marginBottom: 16,
                 overflowX: "auto",
                 scrollbarWidth: "none",
+                msOverflowStyle: "none",
+                WebkitOverflowScrolling: "touch",
               }}
             >
               {[
@@ -3752,45 +3857,47 @@ function DashboardSection({ isLoading, bookings = [], matchesJoined = 0, joinedG
             {/* Bookings / Community Games List */}
             {filter === "community" ? (
               joinedGames.length === 0 ? (
-                <div style={{ marginTop: 12 }}>
+                <div style={{ marginTop: 8 }}>
                   <EmptyState
+                    compact
                     icon="trophy"
                     title="No joined community games yet"
-                    subtitle="You haven't joined any community games yet. Browse scheduled games at nearby turfs to jump in and play with others!"
+                    subtitle="Browse scheduled games at nearby turfs to jump in and play with others!"
                     action={
-                      <button type="button" onClick={onFindGames || onFindTurf} style={buttonStyle("primary", "md")}>
+                      <button type="button" onClick={onFindGames || onFindTurf} style={buttonStyle("primary", "sm")}>
                         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                          Browse Community Games <ArrowRight size={14} />
+                          Browse Community Games <ArrowRight size={13} />
                         </span>
                       </button>
                     }
                   />
                 </div>
               ) : (
-                <div style={{ display: "grid", gap: 14 }}>
+                <div style={{ display: "grid", gap: 12 }}>
                   {joinedGames.map(jg => {
                     const game = jg.match || {};
                     const turf = game.turf || {};
                     return (
                       <article
                         key={jg.id}
+                        className="vt-booking-card"
                         style={{
                           ...panel(),
                           borderRadius: 16,
-                          padding: "20px 22px",
+                          padding: "18px 20px",
                           display: "flex",
                           justifyContent: "space-between",
                           alignItems: "center",
                           flexWrap: "wrap",
-                          gap: 16,
+                          gap: 14,
                           boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
                         }}
                       >
-                        <div style={{ display: "flex", gap: 16, alignItems: "center", minWidth: 260 }}>
+                        <div style={{ display: "flex", gap: 14, alignItems: "center", minWidth: 260 }}>
                           <div style={{
-                            width: 50,
-                            height: 50,
-                            borderRadius: 14,
+                            width: 48,
+                            height: 48,
+                            borderRadius: 12,
                             background: V.pitchCardRaised,
                             border: `1px solid ${V.line}`,
                             display: "flex",
@@ -3803,7 +3910,7 @@ function DashboardSection({ isLoading, bookings = [], matchesJoined = 0, joinedG
                           </div>
                           <div>
                             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                              <h3 style={{ color: V.chalk, fontWeight: 800, fontSize: 17, margin: 0, fontFamily: FONT_BODY }}>
+                              <h3 style={{ color: V.chalk, fontWeight: 800, fontSize: 16, margin: 0, fontFamily: FONT_BODY }}>
                                 {game.title || `${game.sport} Community Match`}
                               </h3>
                               <span style={{
@@ -3821,21 +3928,21 @@ function DashboardSection({ isLoading, bookings = [], matchesJoined = 0, joinedG
                                 <Check size={11} strokeWidth={2.5} /> Paid & Confirmed
                               </span>
                             </div>
-                            <div style={{ color: V.chalkDim, fontSize: 13, marginTop: 4, fontFamily: FONT_BODY, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><StadiumIcon size={14} color={V.chalkFaint} /> {turf.name || "Turf"} ({turf.city || "Venue"})</span>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Calendar size={13} color={V.chalkFaint} /> {formatBookingDate(game.match_date)}</span>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Clock size={13} color={V.chalkFaint} /> {formatTime12(game.start_time)} – {formatTime12(game.end_time || game.start_time)}</span>
+                            <div style={{ color: V.chalkDim, fontSize: 12.5, marginTop: 4, fontFamily: FONT_BODY, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><StadiumIcon size={13} color={V.chalkFaint} /> {turf.name || "Turf"} ({turf.city || "Venue"})</span>
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Calendar size={12} color={V.chalkFaint} /> {formatBookingDate(game.match_date)}</span>
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Clock size={12} color={V.chalkFaint} /> {formatTime12(game.start_time)} – {formatTime12(game.end_time || game.start_time)}</span>
                             </div>
-                            <div style={{ color: V.chalkFaint, fontSize: 11.5, marginTop: 4, fontFamily: FONT_DATA }}>
-                              Ref: {jg.payment_id || "VT-PAY-CONFIRMED"} · Individual Spot Confirmed
+                            <div style={{ color: V.chalkFaint, fontSize: 11, marginTop: 3, fontFamily: FONT_DATA }}>
+                              Ref: {jg.payment_id || "VT-PAY-CONFIRMED"} · Spot Confirmed
                             </div>
                           </div>
                         </div>
 
-                        <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+                        <div className="vt-booking-card-actions" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                           <div style={{ textAlign: "right" }}>
-                            <span style={{ color: V.chalkFaint, fontSize: 11, display: "block" }}>Fee Paid</span>
-                            <span style={{ color: V.flood, fontWeight: 800, fontSize: 18, fontFamily: FONT_BODY }}>
+                            <span style={{ color: V.chalkFaint, fontSize: 10.5, display: "block" }}>Fee Paid</span>
+                            <span style={{ color: V.flood, fontWeight: 800, fontSize: 17, fontFamily: FONT_BODY }}>
                               {formatINR(jg.amount_paid || 0)}
                             </span>
                           </div>
@@ -3862,48 +3969,52 @@ function DashboardSection({ isLoading, bookings = [], matchesJoined = 0, joinedG
                 </div>
               )
             ) : currentList.length === 0 ? (
-              <div style={{ marginTop: 12 }}>
+              <div style={{ marginTop: 8 }}>
                 {filter === "upcoming" ? (
                   <EmptyState
+                    compact
                     icon="calendar"
                     title="No upcoming bookings"
                     subtitle="You have no matches scheduled right now. Browse nearby pitches to find an open slot and lock in your game."
                     action={
-                      <button type="button" onClick={onFindTurf} style={buttonStyle("primary", "md")}>
+                      <button type="button" onClick={onFindTurf} style={buttonStyle("primary", "sm")}>
                         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                          Explore Available Turfs <ArrowRight size={14} />
+                          Explore Available Turfs <ArrowRight size={13} />
                         </span>
                       </button>
                     }
                   />
                 ) : filter === "past" ? (
                   <EmptyState
+                    compact
                     icon="football"
                     title="No completed games yet"
                     subtitle="Matches you play will be archived here. After your match, you can leave ratings and reviews for the facility."
                     action={
-                      <button type="button" onClick={onFindTurf} style={buttonStyle("secondary", "md")}>
+                      <button type="button" onClick={onFindTurf} style={buttonStyle("secondary", "sm")}>
                         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                          Book Your First Match <ArrowRight size={14} />
+                          Book Your First Match <ArrowRight size={13} />
                         </span>
                       </button>
                     }
                   />
                 ) : filter === "cancelled" ? (
                   <EmptyState
+                    compact
                     icon="check"
                     title="No cancelled or declined bookings"
                     subtitle="You don't have any rejected or cancelled reservations on your record."
                   />
                 ) : (
                   <EmptyState
+                    compact
                     icon="stadium"
                     title="No bookings found"
                     subtitle="You haven't made any turf reservations yet."
                     action={
-                      <button type="button" onClick={onFindTurf} style={buttonStyle("primary", "md")}>
+                      <button type="button" onClick={onFindTurf} style={buttonStyle("primary", "sm")}>
                         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                          Find a Turf <ArrowRight size={14} />
+                          Find a Turf <ArrowRight size={13} />
                         </span>
                       </button>
                     }
@@ -3911,7 +4022,7 @@ function DashboardSection({ isLoading, bookings = [], matchesJoined = 0, joinedG
                 )}
               </div>
             ) : (
-              <div style={{ display: "grid", gap: 14 }}>
+              <div style={{ display: "grid", gap: 12 }}>
                 {currentList.map(b => {
                   const badge = statusBadge(b.status);
                   const isUpcoming = ["pending", "confirmed"].includes(b.status) && isUpcomingBooking(b, now);
@@ -3921,24 +4032,25 @@ function DashboardSection({ isLoading, bookings = [], matchesJoined = 0, joinedG
                   return (
                     <article
                       key={b.id}
+                      className="vt-booking-card"
                       style={{
                         ...panel(),
                         borderRadius: 16,
-                        padding: "20px 22px",
+                        padding: "18px 20px",
                         display: "flex",
                         justifyContent: "space-between",
                         alignItems: "center",
                         flexWrap: "wrap",
-                        gap: 16,
+                        gap: 14,
                         boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
                       }}
                     >
                       {/* Left: Venue & Timing Info */}
-                      <div style={{ display: "flex", gap: 16, alignItems: "center", minWidth: 260 }}>
+                      <div style={{ display: "flex", gap: 14, alignItems: "center", minWidth: 260 }}>
                         <div style={{
-                          width: 50,
-                          height: 50,
-                          borderRadius: 14,
+                          width: 48,
+                          height: 48,
+                          borderRadius: 12,
                           background: V.pitchCardRaised,
                           border: `1px solid ${V.line}`,
                           display: "flex",
@@ -3951,7 +4063,7 @@ function DashboardSection({ isLoading, bookings = [], matchesJoined = 0, joinedG
                         </div>
                         <div>
                           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                            <h3 style={{ color: V.chalk, fontWeight: 800, fontSize: 17, margin: 0, fontFamily: FONT_BODY }}>
+                            <h3 style={{ color: V.chalk, fontWeight: 800, fontSize: 16, margin: 0, fontFamily: FONT_BODY }}>
                               {b.turf}
                             </h3>
                             <span style={{
@@ -3970,13 +4082,13 @@ function DashboardSection({ isLoading, bookings = [], matchesJoined = 0, joinedG
                               {badge.label}
                             </span>
                           </div>
-                          <div style={{ color: V.chalkDim, fontSize: 13, marginTop: 4, fontFamily: FONT_BODY, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Calendar size={13} color={V.chalkFaint} /> {formatBookingDate(b.bookingDate)}</span>
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Clock size={13} color={V.chalkFaint} /> {b.time}</span>
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><SportIcon sport={b.sport} size={13} color={V.chalkFaint} /> {b.sport}</span>
+                          <div style={{ color: V.chalkDim, fontSize: 12.5, marginTop: 4, fontFamily: FONT_BODY, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Calendar size={12} color={V.chalkFaint} /> {formatBookingDate(b.bookingDate)}</span>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Clock size={12} color={V.chalkFaint} /> {b.time}</span>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><SportIcon sport={b.sport} size={12} color={V.chalkFaint} /> {b.sport}</span>
                           </div>
                           {isCancelled && (
-                            <div style={{ color: V.chalkFaint, fontSize: 11.5, marginTop: 4, fontFamily: FONT_BODY }}>
+                            <div style={{ color: V.chalkFaint, fontSize: 11, marginTop: 3, fontFamily: FONT_BODY }}>
                               Slot has been released back to public availability.
                             </div>
                           )}
@@ -3984,9 +4096,9 @@ function DashboardSection({ isLoading, bookings = [], matchesJoined = 0, joinedG
                       </div>
 
                       {/* Right: Pricing & Actions */}
-                      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                        <div style={{ textAlign: "right", marginRight: 6 }}>
-                          <span style={{ color: V.chalkFaint, fontSize: 11, display: "block" }}>Paid Amount</span>
+                      <div className="vt-booking-card-actions" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                        <div style={{ textAlign: "right", marginRight: 4 }}>
+                          <span style={{ color: V.chalkFaint, fontSize: 10.5, display: "block" }}>Paid Amount</span>
                           <span style={{ color: V.chalk, fontWeight: 800, fontSize: 17, fontFamily: FONT_BODY }}>
                             ₹{b.price}
                           </span>
@@ -4484,6 +4596,44 @@ export default function PlayerAppClient({ profile }) {
 
   const [featuresMenuOpen, setFeaturesMenuOpen] = useState(false);
   const featuresMenuRef = useRef(null);
+  const hubNavRef = useRef(null);
+  const [canScrollHubRight, setCanScrollHubRight] = useState(false);
+
+  const checkHubScroll = useCallback(() => {
+    const el = hubNavRef.current;
+    if (!el) return;
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    setCanScrollHubRight(maxScroll - el.scrollLeft > 6);
+  }, []);
+
+  useEffect(() => {
+    const el = hubNavRef.current;
+    if (!el) return;
+    checkHubScroll();
+
+    el.addEventListener("scroll", checkHubScroll, { passive: true });
+    window.addEventListener("resize", checkHubScroll, { passive: true });
+    return () => {
+      el.removeEventListener("scroll", checkHubScroll);
+      window.removeEventListener("resize", checkHubScroll);
+    };
+  }, [checkHubScroll, activeTab]);
+
+  useEffect(() => {
+    if (!hubNavRef.current) return;
+    const activeBtn = hubNavRef.current.querySelector(".vt-hub-nav-pill.active");
+    if (activeBtn) {
+      activeBtn.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+      const timer = setTimeout(checkHubScroll, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab, checkHubScroll]);
+
+  const handleHubScrollRight = () => {
+    if (hubNavRef.current) {
+      hubNavRef.current.scrollBy({ left: 110, behavior: "smooth" });
+    }
+  };
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -4990,14 +5140,19 @@ export default function PlayerAppClient({ profile }) {
         input::placeholder { color: ${V.chalkFaint}; }
 
         /* Exactly one nav renders at a time: top bar on desktop, tab bar on mobile. */
-        .vt-top-nav { display: flex; }
-        .vt-bottom-nav { display: none; }
-        .vt-mobile-topbar { display: none; }
+        .vt-top-nav { display: flex !important; }
+        .vt-bottom-nav { display: none !important; }
+        .vt-mobile-topbar { display: none !important; }
+        .vt-main-content { padding-top: 96px; padding-bottom: 32px; }
+        .vt-hub-nav-short { display: none; }
+        .vt-hub-nav-full { display: inline; }
         @media (max-width: 767px) {
           .vt-top-nav { display: none !important; }
           .vt-bottom-nav { display: flex !important; }
           .vt-mobile-topbar { display: flex !important; }
-          .vt-main-content { padding-top: 56px !important; padding-bottom: calc(max(var(--vt-bottom-nav-h, 72px), env(safe-area-inset-bottom, 0px)) + 24px) !important; }
+          .vt-main-content { padding-top: 56px !important; padding-bottom: calc(max(var(--vt-bottom-nav-h, 72px), env(safe-area-inset-bottom, 0px)) + var(--vt-pwa-banner-h, 0px) + 24px) !important; }
+          .vt-hub-nav-short { display: inline !important; }
+          .vt-hub-nav-full { display: none !important; }
         }
       `}</style>
 
@@ -5329,62 +5484,78 @@ export default function PlayerAppClient({ profile }) {
         />
 
         {/* MAIN CONTENT */}
-        <main className="vt-main-content" style={{ paddingTop: 88, paddingBottom: 80 }}>
+        <main className="vt-main-content">
           {/* Player Hub unified Sub-Navbar when viewing personal player sections */}
           {["dashboard", "groups", "teams", "packages", "loyalty"].includes(activeTab) && (
-            <div style={{ maxWidth: 1200, margin: "0 auto 20px", padding: "0 16px" }}>
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                overflowX: "auto",
-                scrollbarWidth: "none",
-                msOverflowStyle: "none",
-                background: "#FFFFFF",
-                padding: "8px 12px",
-                borderRadius: 14,
-                border: "1px solid rgba(24, 168, 224, 0.2)",
-                boxShadow: "0 4px 14px rgba(23, 105, 232, 0.05)",
-              }}>
-                <span style={{ fontSize: 11, fontWeight: 900, color: "#718096", textTransform: "uppercase", letterSpacing: "0.6px", paddingRight: 6, flexShrink: 0 }}>
-                  Player Hub
-                </span>
-                {[
-                  { id: "dashboard", label: "My Bookings", icon: "calendar" },
-                  { id: "groups", label: "Group Bookings & Split", icon: "users" },
-                  { id: "teams", label: "My Teams", icon: "users" },
-                  { id: "packages", label: "Passes", icon: "star" },
-                  { id: "loyalty", label: "Rewards & Wallet", icon: "gift" },
-                ].map((sub) => {
-                  const isCurrent = activeTab === sub.id;
-                  return (
-                    <button
-                      key={sub.id}
-                      onClick={() => setActiveTab(sub.id)}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                        padding: "7px 14px",
-                        borderRadius: 10,
-                        border: "none",
-                        background: isCurrent ? "linear-gradient(135deg, #18A8E0 0%, #1769E8 100%)" : "transparent",
-                        color: isCurrent ? "#FFFFFF" : "#4A5568",
-                        fontWeight: isCurrent ? 800 : 600,
-                        fontSize: 13,
-                        cursor: "pointer",
-                        transition: "all 0.18s ease",
-                        whiteSpace: "nowrap",
-                        fontFamily: FONT_BODY,
-                        flexShrink: 0,
-                        boxShadow: isCurrent ? "0 4px 12px rgba(23, 105, 232, 0.28)" : "none",
-                      }}
-                    >
-                      <Icon name={sub.icon} size={14} color={isCurrent ? "#FFFFFF" : "#718096"} />
-                      {sub.label}
-                    </button>
-                  );
-                })}
+            <div className="vt-player-hub-wrap" style={{ maxWidth: 1200, margin: "0 auto 14px", padding: "0 16px" }}>
+              <div className="vt-player-hub-container" style={{ position: "relative", width: "100%" }}>
+                <div
+                  ref={hubNavRef}
+                  className="vt-player-hub-nav"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    overflowX: "auto",
+                    scrollbarWidth: "none",
+                    msOverflowStyle: "none",
+                    WebkitOverflowScrolling: "touch",
+                    background: "#FFFFFF",
+                    padding: "8px 12px",
+                    borderRadius: 14,
+                    border: "1px solid rgba(24, 168, 224, 0.2)",
+                    boxShadow: "0 4px 14px rgba(23, 105, 232, 0.05)",
+                  }}
+                >
+                  <span className="vt-hub-eyebrow" style={{ fontSize: 11, fontWeight: 900, color: "#718096", textTransform: "uppercase", letterSpacing: "0.6px", paddingRight: 6, flexShrink: 0 }}>
+                    Player Hub
+                  </span>
+                  {[
+                    { id: "dashboard", shortLabel: "Bookings", fullLabel: "My Bookings", icon: "calendar" },
+                    { id: "groups", shortLabel: "Group Split", fullLabel: "Group Bookings & Split", icon: "users" },
+                    { id: "teams", shortLabel: "Teams", fullLabel: "My Teams", icon: "users" },
+                    { id: "packages", shortLabel: "Passes", fullLabel: "Passes", icon: "star" },
+                    { id: "loyalty", shortLabel: "Rewards", fullLabel: "Rewards & Wallet", icon: "gift" },
+                  ].map((sub) => {
+                    const isCurrent = activeTab === sub.id;
+                    return (
+                      <button
+                        key={sub.id}
+                        onClick={() => setActiveTab(sub.id)}
+                        className={`vt-hub-nav-pill ${isCurrent ? "active" : ""}`}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          padding: "7px 14px",
+                          borderRadius: 10,
+                          border: "none",
+                          background: isCurrent ? "linear-gradient(135deg, #18A8E0 0%, #1769E8 100%)" : "transparent",
+                          color: isCurrent ? "#FFFFFF" : "#4A5568",
+                          fontWeight: isCurrent ? 800 : 600,
+                          fontSize: 13,
+                          cursor: "pointer",
+                          transition: "all 0.18s ease",
+                          whiteSpace: "nowrap",
+                          fontFamily: FONT_BODY,
+                          flexShrink: 0,
+                          boxShadow: isCurrent ? "0 4px 12px rgba(23, 105, 232, 0.28)" : "none",
+                        }}
+                      >
+                        <Icon name={sub.icon} size={15} color={isCurrent ? "#FFFFFF" : "#718096"} />
+                        <span className="vt-hub-nav-short">{sub.shortLabel}</span>
+                        <span className="vt-hub-nav-full">{sub.fullLabel}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Right Edge Fade & Chevron Guidance Indicator on mobile */}
+                <HorizontalScrollHint
+                  canScrollRight={canScrollHubRight}
+                  onScrollRight={handleHubScrollRight}
+                  label="Scroll to see more tabs"
+                />
               </div>
             </div>
           )}
@@ -5481,7 +5652,6 @@ export default function PlayerAppClient({ profile }) {
           background: "rgba(255, 255, 255, 0.96)",
           backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
           borderTop: "1px solid rgba(24, 168, 224, 0.18)",
-          display: "flex",
           justifyContent: "space-around",
           alignItems: "center",
           padding: "6px 4px 10px",

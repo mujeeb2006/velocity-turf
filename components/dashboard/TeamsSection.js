@@ -149,12 +149,12 @@ export function TeamsSection({ profile, showToast, onSelectTeamForBooking }) {
   };
 
   return (
-    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 16px" }}>
+    <div className="vt-teams-section" style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 16px 80px" }}>
       {/* Header */}
-      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 16, marginBottom: 24 }}>
+      <div className="vt-teams-header" style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 16, marginBottom: 20 }}>
         <div>
           <h1 style={{ fontSize: 26, fontWeight: 800, color: V.chalk, margin: 0 }}>Team Management</h1>
-          <p style={{ fontSize: 14, color: V.chalkDim, marginTop: 4 }}>
+          <p style={{ fontSize: 13.5, color: V.chalkDim, marginTop: 4 }}>
             Create squads, manage rosters, share private invite links, and track team match bookings.
           </p>
         </div>
@@ -162,8 +162,8 @@ export function TeamsSection({ profile, showToast, onSelectTeamForBooking }) {
           <button
             onClick={() => setShowCreateModal(true)}
             style={{
-              background: V.flood, color: "#fff", border: "none", borderRadius: 10,
-              padding: "10px 18px", fontWeight: 700, fontSize: 13.5, cursor: "pointer",
+              background: V.flood, color: "#fff", border: "none", borderRadius: 8,
+              padding: "9px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer",
               display: "flex", alignItems: "center", gap: 6,
             }}
           >
@@ -173,15 +173,15 @@ export function TeamsSection({ profile, showToast, onSelectTeamForBooking }) {
       </div>
 
       {/* Join Team by Token Banner */}
-      <div style={{
+      <div className="vt-team-join-banner" style={{
         background: V.pitchCard, border: `1px solid ${V.line}`, borderRadius: 12,
-        padding: "16px 20px", marginBottom: 24, display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12,
+        padding: "14px 18px", marginBottom: 20, display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12,
       }}>
         <div>
-          <div style={{ fontWeight: 700, fontSize: 14, color: V.chalk }}>Have an invitation code or link?</div>
-          <div style={{ fontSize: 12.5, color: V.chalkDim, marginTop: 2 }}>Enter your captain’s invitation code below to join the squad.</div>
+          <div style={{ fontWeight: 700, fontSize: 13.5, color: V.chalk }}>Have an invitation code or link?</div>
+          <div style={{ fontSize: 12, color: V.chalkDim, marginTop: 2 }}>Enter your captain’s invitation code below to join the squad.</div>
         </div>
-        <div style={{ display: "flex", gap: 8, width: "100%", maxWidth: 380 }}>
+        <div className="vt-team-join-inputs" style={{ display: "flex", gap: 8, width: "100%", maxWidth: 380 }}>
           <input
             type="text"
             placeholder="Paste invite token here…"
@@ -198,6 +198,7 @@ export function TeamsSection({ profile, showToast, onSelectTeamForBooking }) {
             style={{
               background: V.aqua || V.flood, color: "#000", border: "none", borderRadius: 8,
               padding: "8px 16px", fontWeight: 700, fontSize: 13, cursor: joining ? "wait" : "pointer",
+              whiteSpace: "nowrap",
             }}
           >
             {joining ? "Joining…" : "Join"}
@@ -206,13 +207,14 @@ export function TeamsSection({ profile, showToast, onSelectTeamForBooking }) {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 12, borderBottom: `1px solid ${V.line}`, marginBottom: 20 }}>
+      <div style={{ display: "flex", gap: 10, borderBottom: `1px solid ${V.line}`, marginBottom: 18, overflowX: "auto", scrollbarWidth: "none" }}>
         <button
           onClick={() => { setSelectedTeam(null); setActiveTab("my"); }}
           style={{
-            padding: "10px 16px", background: "transparent", border: "none",
+            padding: "8px 14px", background: "transparent", border: "none",
             borderBottom: activeTab === "my" ? `2px solid ${V.flood}` : "2px solid transparent",
-            color: activeTab === "my" ? V.flood : V.chalkDim, fontWeight: 700, fontSize: 14, cursor: "pointer",
+            color: activeTab === "my" ? V.flood : V.chalkDim, fontWeight: 700, fontSize: 13.5, cursor: "pointer",
+            whiteSpace: "nowrap",
           }}
         >
           My Teams ({myTeams.length})
@@ -220,9 +222,10 @@ export function TeamsSection({ profile, showToast, onSelectTeamForBooking }) {
         <button
           onClick={() => { setSelectedTeam(null); setActiveTab("browse"); }}
           style={{
-            padding: "10px 16px", background: "transparent", border: "none",
+            padding: "8px 14px", background: "transparent", border: "none",
             borderBottom: activeTab === "browse" ? `2px solid ${V.flood}` : "2px solid transparent",
-            color: activeTab === "browse" ? V.flood : V.chalkDim, fontWeight: 700, fontSize: 14, cursor: "pointer",
+            color: activeTab === "browse" ? V.flood : V.chalkDim, fontWeight: 700, fontSize: 13.5, cursor: "pointer",
+            whiteSpace: "nowrap",
           }}
         >
           Community Teams ({otherTeams.length})
@@ -442,20 +445,26 @@ export function TeamsSection({ profile, showToast, onSelectTeamForBooking }) {
         /* Team Cards List */
         <div>
           {loading ? (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
+            <div className="vt-team-cards-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 }}>
               <SkeletonCard />
               <SkeletonCard />
             </div>
           ) : (activeTab === "my" ? myTeams : otherTeams).length === 0 ? (
             <EmptyState
+              compact
               icon="users"
               title={activeTab === "my" ? "You haven't joined any teams yet" : "No other teams found"}
-              description={activeTab === "my" ? "Create a team to manage rosters, generate invite links, and book grounds together." : "Be the first to create a public team for your favorite sport!"}
-              actionLabel={activeTab === "my" ? "Create Team" : undefined}
-              onAction={activeTab === "my" ? () => setShowCreateModal(true) : undefined}
+              subtitle={activeTab === "my" ? "Create a team to manage rosters, generate invite links, and book grounds together." : "Be the first to create a public team for your favorite sport!"}
+              action={
+                activeTab === "my" ? (
+                  <button onClick={() => setShowCreateModal(true)} style={buttonStyle("primary", "sm")}>
+                    Create Team
+                  </button>
+                ) : undefined
+              }
             />
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
+            <div className="vt-team-cards-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 }}>
               {(activeTab === "my" ? myTeams : otherTeams).map((team) => (
                 <div
                   key={team.id}

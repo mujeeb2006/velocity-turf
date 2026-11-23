@@ -466,6 +466,25 @@ export function Filter(props) {
   );
 }
 
+export function Edit(props) {
+  return (
+    <Svg {...props}>
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </Svg>
+  );
+}
+
+export function MoreVertical(props) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="1.5" />
+      <circle cx="12" cy="5" r="1.5" />
+      <circle cx="12" cy="19" r="1.5" />
+    </Svg>
+  );
+}
+
 export function LogOut(props) {
   return (
     <Svg {...props}>
@@ -887,6 +906,10 @@ const REGISTRY = {
   plus: Plus,
   minus: Minus,
   filter: Filter,
+  edit: Edit,
+  pencil: Edit,
+  moreVertical: MoreVertical,
+  more: MoreVertical,
   logout: LogOut,
   logOut: LogOut,
   grid: Grid,

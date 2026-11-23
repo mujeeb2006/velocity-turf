@@ -803,6 +803,7 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
   return (
     <div
       role="presentation"
+      className="vt-booking-modal-backdrop"
       style={{
         position: "fixed",
         inset: 0,
@@ -821,6 +822,7 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
         role="dialog"
         aria-modal="true"
         aria-labelledby="booking-modal-title"
+        className="vt-booking-modal"
         style={{
           ...panel(true),
           borderRadius: 20,
@@ -4684,6 +4686,7 @@ export default function PlayerAppClient({ profile }) {
       .from("turfs")
       .select("*")
       .eq("status", "live")
+      .is("archived_at", null)
       .order("rating", { ascending: false });
     if (error) {
       showToast("Couldn't load turfs. Try refreshing.", { type: "error" });

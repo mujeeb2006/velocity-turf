@@ -46,7 +46,17 @@ export function PwaRegister() {
   const pathname = usePathname();
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [manualInstallMethod, setManualInstallMethod] = useState(null);
-  const [isDismissed, setIsDismissed] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return (
+        window.localStorage.getItem(DISMISSED_LOCAL_KEY) === "true" ||
+        window.sessionStorage.getItem(DISMISSED_SESSION_KEY) === "true"
+      );
+    } catch {
+      return false;
+    }
+  });
   const [isInstalled, setIsInstalled] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
@@ -64,7 +74,7 @@ export function PwaRegister() {
 
     function apply() {
       frame = 0;
-      const nav = document.querySelector(".vt-bottom-nav");
+      const nav = document.querySelector(".vt-mobile-bottom-bar") || document.querySelector(".vt-bottom-nav");
       const visible = Boolean(nav) && window.getComputedStyle(nav).display !== "none";
       const height = visible ? Math.ceil(nav.getBoundingClientRect().height) : 0;
       root.style.setProperty("--vt-bottom-nav-h", `${height}px`);
@@ -218,6 +228,9 @@ export function PwaRegister() {
 
   function handleDismiss() {
     setIsDismissed(true);
+    if (typeof document !== "undefined") {
+      document.documentElement.style.setProperty("--vt-pwa-banner-h", "0px");
+    }
     try {
       window.localStorage.setItem(DISMISSED_LOCAL_KEY, "true");
       window.sessionStorage.setItem(DISMISSED_SESSION_KEY, "true");

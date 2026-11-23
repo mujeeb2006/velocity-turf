@@ -209,13 +209,13 @@ export function Card({ children, style, pad = 20, className }) {
 export function EmptyBlock({ icon = "inbox", emoji, title, subtitle, action }) {
   const iconName = emoji && icon === "inbox" ? undefined : icon;
   return (
-    <div style={{ ...panel(), borderRadius: 16, padding: "40px 24px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-      <div style={{ width: 52, height: 52, borderRadius: "50%", background: V.pitchCardRaised, border: `1px solid ${V.line}`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 8, color: V.chalk }}>
-        <Icon name={iconName} emoji={emoji} size={24} color={V.chalk} />
+    <div className="vt-empty-block" style={{ ...panel(), borderRadius: 16, padding: "32px 18px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+      <div style={{ width: 48, height: 48, borderRadius: "50%", background: V.pitchCardRaised, border: `1px solid ${V.line}`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 6, color: V.chalk }}>
+        <Icon name={iconName} emoji={emoji} size={22} color={V.chalk} />
       </div>
-      <div style={{ color: V.chalk, fontWeight: 800, fontSize: 15.5, fontFamily: font }}>{title}</div>
-      {subtitle && <div style={{ color: V.chalkDim, fontSize: 13, maxWidth: 360, lineHeight: 1.5 }}>{subtitle}</div>}
-      {action && <div style={{ marginTop: 12 }}>{action}</div>}
+      <div style={{ color: V.chalk, fontWeight: 800, fontSize: 15, fontFamily: font }}>{title}</div>
+      {subtitle && <div style={{ color: V.chalkDim, fontSize: 12.5, maxWidth: 360, lineHeight: 1.5 }}>{subtitle}</div>}
+      {action && <div style={{ marginTop: 10 }}>{action}</div>}
     </div>
   );
 }
@@ -487,7 +487,7 @@ export function Modal({ title, subtitle, onClose, children, footer, maxWidth = 5
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (
-    <div className="vt-modal-backdrop" style={{ position: "fixed", inset: 0, background: "rgba(23, 43, 77, 0.45)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 16 }} onClick={onClose}>
+    <div className="vt-modal-backdrop" style={{ position: "fixed", inset: 0, background: "rgba(23, 43, 77, 0.45)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 12 }} onClick={onClose}>
       <div
         ref={ref}
         role="dialog"
@@ -495,19 +495,20 @@ export function Modal({ title, subtitle, onClose, children, footer, maxWidth = 5
         aria-label={title}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        style={{ ...panel(), borderRadius: 20, width: "100%", maxWidth, maxHeight: "88vh", display: "flex", flexDirection: "column", outline: "none", boxShadow: "0 24px 60px rgba(23, 105, 232, 0.16)" }}
+        className="vt-modal"
+        style={{ ...panel(), borderRadius: 20, width: "100%", maxWidth: `min(${maxWidth}px, calc(100vw - 24px))`, maxHeight: "90vh", display: "flex", flexDirection: "column", outline: "none", boxShadow: "0 24px 60px rgba(23, 105, 232, 0.16)", overflow: "hidden" }}
       >
-        <div style={{ padding: "18px 22px 14px", borderBottom: `1px solid ${V.line}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+        <div className="vt-modal-header" style={{ padding: "16px 20px 12px", borderBottom: `1px solid ${V.line}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
           <div>
-            <h2 style={{ color: V.chalk, margin: 0, fontSize: 19, fontFamily: font, fontWeight: 800 }}>{title}</h2>
-            {subtitle && <p style={{ color: V.chalkDim, margin: "4px 0 0", fontSize: 13 }}>{subtitle}</p>}
+            <h2 style={{ color: V.chalk, margin: 0, fontSize: 18, fontFamily: font, fontWeight: 800 }}>{title}</h2>
+            {subtitle && <p style={{ color: V.chalkDim, margin: "3px 0 0", fontSize: 12.5 }}>{subtitle}</p>}
           </div>
           <button type="button" className="vt-btn" onClick={onClose} aria-label="Close" style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: V.chalk, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <Icon name="x" size={15} />
           </button>
         </div>
-        <div style={{ padding: 22, overflowY: "auto" }}>{children}</div>
-        {footer && <div style={{ padding: "14px 22px", borderTop: `1px solid ${V.line}`, display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>{footer}</div>}
+        <div className="vt-modal-body" style={{ padding: "16px 20px", overflowY: "auto", flex: 1, minHeight: 0 }}>{children}</div>
+        {footer && <div className="vt-modal-footer" style={{ padding: "12px 20px", borderTop: `1px solid ${V.line}`, display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>{footer}</div>}
       </div>
     </div>
   );
@@ -553,33 +554,112 @@ export function DetailRows({ rows }) {
 // ---------------------------------------------------------------- layout
 export function TopBar({ title, sub, action }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
-      <div>
-        <h1 style={{ color: V.chalk, fontFamily: font, fontSize: 26, fontWeight: 800, margin: 0, letterSpacing: -0.4 }}>{title}</h1>
-        {sub && <p style={{ color: V.chalkDim, margin: "4px 0 0", fontSize: 13.5 }}>{sub}</p>}
+    <div className="vt-topbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+      <div style={{ minWidth: 0 }}>
+        <h1 style={{ color: V.chalk, fontFamily: font, fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.4 }}>{title}</h1>
+        {sub && <p style={{ color: V.chalkDim, margin: "4px 0 0", fontSize: 13 }}>{sub}</p>}
       </div>
-      {action && <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>{action}</div>}
+      {action && <div className="vt-topbar-action" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>{action}</div>}
     </div>
   );
 }
 
 export function SideNav({ items, active, onSelect, roleLabel, roleIcon = "shield", roleColor, name, email, onSignOut, onSettings, unreadCount, onBell, bellRef }) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const activeTabRef = useRef(null);
   const initial = (name || email || "?").trim().charAt(0).toUpperCase();
+
+  useEffect(() => {
+    if (activeTabRef.current) {
+      activeTabRef.current.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    }
+  }, [active]);
+
   return (
     <nav aria-label="Dashboard" className="vt-dashboard-sidebar" style={{ width: 240, flexShrink: 0, minHeight: "100vh", position: "sticky", top: 0, alignSelf: "flex-start", background: "#FFFFFF", borderRight: `1px solid ${V.line}`, padding: "22px 14px", display: "flex", flexDirection: "column" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 6px", marginBottom: 18 }}>
-        <BrandLockup markSize={38} compact />
-        <button ref={bellRef} type="button" className="vt-btn" onClick={onBell} aria-label={unreadCount ? `Notifications, ${unreadCount} unread` : "Notifications"} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: V.chalk, display: "flex", alignItems: "center", justifyContent: "center", position: "relative", flexShrink: 0 }}>
-          <Icon name="notification" size={15} />
-          {unreadCount > 0 && (
-            <span style={{ position: "absolute", top: -5, right: -5, minWidth: 16, height: 16, padding: "0 4px", borderRadius: 8, background: "#1769E8", color: "#fff", fontSize: 9.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: font }}>
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </span>
-          )}
-        </button>
+      {/* Header Row: desktop and mobile */}
+      <div className="vt-dashboard-header-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 6px", marginBottom: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <BrandLockup markSize={38} compact />
+          <span className="vt-mobile-role-pill" style={{ display: "none" }}>
+            {roleLabel?.replace("PORTAL", "").trim()}
+          </span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button ref={bellRef} type="button" className="vt-btn" onClick={onBell} aria-label={unreadCount ? `Notifications, ${unreadCount} unread` : "Notifications"} style={{ background: "transparent", border: `1px solid ${V.line}`, borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: V.chalk, display: "flex", alignItems: "center", justifyContent: "center", position: "relative", flexShrink: 0 }}>
+            <Icon name="notification" size={15} />
+            {unreadCount > 0 && (
+              <span style={{ position: "absolute", top: -5, right: -5, minWidth: 16, height: 16, padding: "0 4px", borderRadius: 8, background: "#1769E8", color: "#fff", fontSize: 9.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: font }}>
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </button>
+          {/* Mobile Profile Toggle Button */}
+          <button
+            type="button"
+            className="vt-mobile-profile-btn"
+            onClick={() => setMobileMenuOpen((o) => !o)}
+            aria-label="User menu"
+            aria-expanded={mobileMenuOpen}
+          >
+            {initial}
+          </button>
+        </div>
       </div>
 
-      <div className="vt-dashboard-identity" style={{ display: "flex", alignItems: "center", gap: 10, background: "#EAF7FF", border: "1px solid rgba(24, 168, 224, 0.25)", borderRadius: 12, padding: "10px 12px", marginBottom: 18 }}>
+      {/* Mobile User Dropdown Popover */}
+      {mobileMenuOpen && (
+        <>
+          <div
+            className="vt-mobile-menu-backdrop"
+            onClick={() => setMobileMenuOpen(false)}
+            style={{ position: "fixed", inset: 0, zIndex: 998, background: "rgba(23,43,77,0.3)" }}
+          />
+          <div
+            className="vt-mobile-user-popover"
+            style={{
+              position: "absolute",
+              top: 52,
+              right: 12,
+              zIndex: 999,
+              background: "#FFFFFF",
+              border: `1px solid ${V.line}`,
+              borderRadius: 14,
+              boxShadow: "0 12px 32px rgba(23,105,232,0.18)",
+              padding: 12,
+              minWidth: 220,
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+              animation: "slideDown 0.15s ease",
+            }}
+          >
+            <div style={{ paddingBottom: 8, borderBottom: `1px solid ${V.line}` }}>
+              <div style={{ color: "#1769E8", fontSize: 10, fontWeight: 800, fontFamily: mono, letterSpacing: 0.4 }}>{roleLabel}</div>
+              <div style={{ color: V.chalk, fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name || email}</div>
+              {name && email && <div style={{ color: V.chalkFaint, fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{email}</div>}
+            </div>
+            <Btn
+              size="sm"
+              onClick={() => { setMobileMenuOpen(false); onSettings?.(); }}
+              style={{ justifyContent: "flex-start", fontWeight: 600, color: V.chalkDim, width: "100%" }}
+            >
+              Account settings
+            </Btn>
+            <Btn
+              size="sm"
+              onClick={() => { setMobileMenuOpen(false); onSignOut?.(); }}
+              icon="logout"
+              style={{ justifyContent: "flex-start", fontWeight: 600, color: V.danger, width: "100%" }}
+            >
+              Sign out
+            </Btn>
+          </div>
+        </>
+      )}
+
+      {/* Desktop Identity Box */}
+      <div className="vt-dashboard-identity vt-desktop-only" style={{ display: "flex", alignItems: "center", gap: 10, background: "#EAF7FF", border: "1px solid rgba(24, 168, 224, 0.25)", borderRadius: 12, padding: "10px 12px", marginBottom: 18 }}>
         <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, #18A8E0 0%, #1769E8 100%)", color: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, flexShrink: 0 }}>{initial}</div>
         <div style={{ minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 5, color: "#1769E8", fontSize: 10.5, fontWeight: 800, fontFamily: mono, letterSpacing: 0.4 }}>
@@ -591,34 +671,39 @@ export function SideNav({ items, active, onSelect, roleLabel, roleIcon = "shield
         </div>
       </div>
 
-      <div className="vt-dashboard-links" role="tablist" aria-orientation="vertical" style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
-        {items.map((it) => {
-          const on = active === it.id;
-          return (
-            <button
-              key={it.id}
-              type="button"
-              role="tab"
-              aria-selected={on}
-              className="vt-nav-item"
-              onClick={() => onSelect(it.id)}
-              style={{
-                display: "flex", alignItems: "center", gap: 11, padding: "10px 12px", borderRadius: 11,
-                background: on ? "#EAF7FF" : "transparent",
-                border: `1px solid ${on ? "rgba(23, 105, 232, 0.22)" : "transparent"}`,
-                color: on ? "#1769E8" : V.chalkDim, cursor: "pointer", fontSize: 13.5, fontWeight: on ? 800 : 600, fontFamily: font, textAlign: "left",
-                transition: "all 0.15s ease",
-              }}
-            >
-              <Icon name={it.icon} size={16} color={on ? "#1769E8" : V.chalkFaint} />
-              {it.label}
-              {it.badge ? <span style={{ marginLeft: "auto", background: "#1769E8", color: "#fff", fontSize: 10, fontWeight: 800, padding: "1px 7px", borderRadius: 10 }}>{it.badge}</span> : null}
-            </button>
-          );
-        })}
+      {/* Navigation tabs */}
+      <div className="vt-dashboard-links-wrap" style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column" }}>
+        <div className="vt-dashboard-links" role="tablist" aria-orientation="vertical" style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+          {items.map((it) => {
+            const on = active === it.id;
+            return (
+              <button
+                key={it.id}
+                ref={on ? activeTabRef : null}
+                type="button"
+                role="tab"
+                aria-selected={on}
+                className={`vt-nav-item ${on ? "active" : ""}`}
+                onClick={() => onSelect(it.id)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 11, padding: "10px 12px", borderRadius: 11,
+                  background: on ? "#EAF7FF" : "transparent",
+                  border: `1px solid ${on ? "rgba(23, 105, 232, 0.22)" : "transparent"}`,
+                  color: on ? "#1769E8" : V.chalkDim, cursor: "pointer", fontSize: 13.5, fontWeight: on ? 800 : 600, fontFamily: font, textAlign: "left",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <Icon name={it.icon} size={16} color={on ? "#1769E8" : V.chalkFaint} />
+                <span>{it.label}</span>
+                {it.badge ? <span style={{ marginLeft: "auto", background: "#1769E8", color: "#fff", fontSize: 10, fontWeight: 800, padding: "1px 7px", borderRadius: 10 }}>{it.badge}</span> : null}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="vt-dashboard-footer" style={{ display: "grid", gap: 8, marginTop: 14 }}>
+      {/* Desktop Footer with Account Settings and Sign Out */}
+      <div className="vt-dashboard-footer vt-desktop-only" style={{ display: "grid", gap: 8, marginTop: 14 }}>
         <Btn onClick={onSettings} style={{ justifyContent: "flex-start", fontWeight: 600, color: V.chalkDim }}>Account settings</Btn>
         <Btn onClick={onSignOut} icon="logout" style={{ justifyContent: "flex-start", fontWeight: 600, color: V.chalkDim }}>Sign out</Btn>
       </div>

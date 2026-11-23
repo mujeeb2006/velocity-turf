@@ -27,9 +27,11 @@ import { DemoNameWithBadge } from "@/components/ui/demo-badge";
 import { OwnerTournamentsSection } from "@/components/dashboard/OwnerTournamentsSection";
 import { MaintenanceSection } from "@/components/dashboard/MaintenanceSection";
 import { StaffSection } from "@/components/dashboard/StaffSection";
+import { OwnerQrCheckinSection } from "@/components/dashboard/OwnerQrCheckinSection";
 import { SmartNotificationCenter } from "@/components/dashboard/SmartNotificationCenter";
 import { extractErrorMessage } from "@/lib/api-response";
 import { X, Camera, Star, StadiumIcon } from "@/components/ui/icons";
+import MobileProfileSection from "@/components/dashboard/MobileProfileSection";
 import {
   ManagePricingModal,
   EditTurfModal,
@@ -38,7 +40,7 @@ import {
 } from "@/components/dashboard/OwnerPricingAndWalkinModals";
 import { calculateSlotPrice, generateDemandInsights } from "@/lib/turf/pricing";
 
-const TABS = ["overview", "turfs", "tournaments", "games", "bookings", "maintenance", "staff", "analytics", "payouts", "reviews"];
+const TABS = ["overview", "turfs", "tournaments", "games", "bookings", "checkin", "maintenance", "staff", "analytics", "payouts", "reviews"];
 const AMENITY_OPTIONS = ["Floodlights", "Parking", "Cafeteria", "Showers", "AC Hall", "Lockers", "WiFi", "Turf"];
 const BOOKING_SELECT = "*";
 const OWNER_COLOR = V.aqua;
@@ -862,8 +864,10 @@ export default function OwnerDashboardClient({ profile }) {
   const [archivingTurf, setArchivingTurf] = useState(null);
   const [archivingTurfId, setArchivingTurfId] = useState(null);
   const [gamesRaw, setGamesRaw] = useState([]);
+  const [mobileProfileOpen, setMobileProfileOpen] = useState(false);
   const [showCreateGame, setShowCreateGame] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [selectedBookingForModal, setSelectedBookingForModal] = useState(null);
 
   const [isStaff, setIsStaff] = useState(profile?.role === "staff");
   const [staffRole, setStaffRole] = useState(null);
@@ -1158,6 +1162,7 @@ export default function OwnerDashboardClient({ profile }) {
     { id: "tournaments", label: "Tournaments", icon: "star" },
     { id: "games", label: "Community Games", icon: "users" },
     { id: "bookings", label: "Bookings", icon: "clock", badge: pendingCount || undefined },
+    { id: "checkin", label: "QR Check-in", icon: "qr" },
     { id: "maintenance", label: "Maintenance", icon: "shield" },
     ...(!isStaff ? [{ id: "staff", label: "Staff", icon: "users" }] : []),
     { id: "analytics", label: "Analytics", icon: "chart" },
@@ -1168,6 +1173,10 @@ export default function OwnerDashboardClient({ profile }) {
   const refreshButton = <Btn icon="refresh" size="sm" onClick={fetchAll}>{updatedAt ? `Refreshed ${updatedAt}` : "Refresh"}</Btn>;
   const addTurfButton = <Btn variant="primary" icon="plus" onClick={() => setShowAddTurf(true)}>Add a turf</Btn>;
   const skeletonStats = <StatGrid>{[...Array(5)].map((_, i) => <SkeletonCard key={i} lines={1} />)}</StatGrid>;
+
+  const firstName = (profile?.full_name || profile?.email || "Owner").trim().split(" ")[0];
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning," : hour < 17 ? "Good afternoon," : "Good evening,";
 
   return (
     <div className="vt-dashboard-shell" style={{ display: "flex", position: "relative" }}>
@@ -1187,6 +1196,182 @@ export default function OwnerDashboardClient({ profile }) {
       <main className="vt-dashboard-main" style={{ flex: 1, minWidth: 0, padding: "32px 36px" }}>
         <ErrorBanner message={loadError} onRetry={fetchAll} />
 
+        {/* Mobile App Header & 4x2 Quick Action Icons Grid (matches mobile native app UI, shown on Home/Overview only) */}
+        {tab === "overview" && (
+          <div className="vt-mobile-app-header">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+              <div>
+                <div style={{ color: "#718096", fontSize: 13, fontWeight: 600 }}>{greeting}</div>
+                <div style={{ color: "#172B4D", fontSize: 24, fontWeight: 900, display: "flex", alignItems: "center", gap: 6, marginTop: 1, letterSpacing: -0.5 }}>
+                  {firstName} <span style={{ fontSize: 22 }}>👋</span>
+                </div>
+                <div style={{ color: "#1769E8", fontSize: 11.5, fontWeight: 700, display: "flex", alignItems: "center", gap: 5, marginTop: 4 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10B981", display: "inline-block" }} />
+                  Make the most of your day!
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <button
+                  type="button"
+                  className="vt-btn"
+                  onClick={() => notes.setOpen((o) => !o)}
+                  style={{
+                    background: "#FFFFFF",
+                    border: "1px solid #E5EDF5",
+                    borderRadius: 12,
+                    width: 42,
+                    height: 42,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    position: "relative",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                    cursor: "pointer",
+                  }}
+                  aria-label={notes.unreadCount ? `Notifications, ${notes.unreadCount} unread` : "Notifications"}
+                >
+                  <Icon name="notification" size={19} color="#172B4D" />
+                  {notes.unreadCount > 0 && (
+                    <span style={{ position: "absolute", top: -4, right: -4, minWidth: 17, height: 17, padding: "0 4px", borderRadius: 9, background: "#1769E8", color: "#fff", fontSize: 9.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {notes.unreadCount > 9 ? "9+" : notes.unreadCount}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => selectTab("profile")}
+                  style={{
+                    width: 42,
+                    height: 42,
+                    borderRadius: "50%",
+                    background: "linear-gradient(135deg, #18A8E0 0%, #1769E8 100%)",
+                    color: "#FFFFFF",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: 900,
+                    fontSize: 16,
+                    border: "2px solid #FFFFFF",
+                    boxShadow: "0 4px 12px rgba(23,105,232,0.28)",
+                    cursor: "pointer",
+                  }}
+                  aria-label="User Profile"
+                >
+                  {(profile?.full_name || profile?.email || "O").trim().charAt(0).toUpperCase()}
+                </button>
+              </div>
+            </div>
+
+            {/* 4x2 Quick Action Icons Grid */}
+            <div className="vt-app-grid">
+              <button
+                type="button"
+                className={`vt-app-card ${tab === "turfs" ? "active" : ""}`}
+                onClick={() => selectTab("turfs")}
+              >
+                <div className="vt-app-icon-wrap" style={{ background: "#EAF7FF", color: "#1769E8" }}>
+                  <Icon name="building" size={20} />
+                </div>
+                <span className="vt-app-label">My Turfs</span>
+              </button>
+
+              <button
+                type="button"
+                className={`vt-app-card ${tab === "bookings" ? "active" : ""}`}
+                onClick={() => selectTab("bookings")}
+              >
+                <div className="vt-app-icon-wrap" style={{ background: "#EEF2FF", color: "#4F46E5", position: "relative" }}>
+                  <Icon name="clock" size={20} />
+                  {pendingCount > 0 && <span className="vt-app-badge">{pendingCount}</span>}
+                </div>
+                <span className="vt-app-label">Bookings</span>
+              </button>
+
+              <button
+                type="button"
+                className="vt-app-card"
+                onClick={() => {
+                  setWalkInTurf(null);
+                  setWalkInSlot(null);
+                  setShowWalkInModal(true);
+                }}
+              >
+                <div className="vt-app-icon-wrap" style={{ background: "#ECFDF5", color: "#10B981" }}>
+                  <Icon name="plus" size={20} />
+                </div>
+                <span className="vt-app-label">Walk-in</span>
+              </button>
+
+              <button
+                type="button"
+                className={`vt-app-card ${tab === "checkin" ? "active" : ""}`}
+                onClick={() => selectTab("checkin")}
+              >
+                <div className="vt-app-icon-wrap" style={{ background: "#F5F3FF", color: "#7C3AED" }}>
+                  <Icon name="qr" size={20} />
+                </div>
+                <span className="vt-app-label">QR Scan</span>
+              </button>
+
+              <button
+                type="button"
+                className={`vt-app-card ${tab === "tournaments" ? "active" : ""}`}
+                onClick={() => selectTab("tournaments")}
+              >
+                <div className="vt-app-icon-wrap" style={{ background: "#FFFBEB", color: "#D97706" }}>
+                  <Icon name="star" size={20} />
+                </div>
+                <span className="vt-app-label">Tourneys</span>
+              </button>
+
+              <button
+                type="button"
+                className={`vt-app-card ${tab === "games" ? "active" : ""}`}
+                onClick={() => selectTab("games")}
+              >
+                <div className="vt-app-icon-wrap" style={{ background: "#F0F9FF", color: "#0284C7" }}>
+                  <Icon name="users" size={20} />
+                </div>
+                <span className="vt-app-label">Matches</span>
+              </button>
+
+              <button
+                type="button"
+                className={`vt-app-card ${tab === "maintenance" ? "active" : ""}`}
+                onClick={() => selectTab("maintenance")}
+              >
+                <div className="vt-app-icon-wrap" style={{ background: "#FFF1F2", color: "#E11D48" }}>
+                  <Icon name="shield" size={20} />
+                </div>
+                <span className="vt-app-label">Maintain</span>
+              </button>
+
+              <button
+                type="button"
+                className={`vt-app-card ${tab === "analytics" ? "active" : ""}`}
+                onClick={() => selectTab("analytics")}
+              >
+                <div className="vt-app-icon-wrap" style={{ background: "#FAF5FF", color: "#9333EA" }}>
+                  <Icon name="chart" size={20} />
+                </div>
+                <span className="vt-app-label">Analytics</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Mobile subnav back button if on subtab */}
+        {tab !== "overview" && tab !== "profile" && (
+          <div className="vt-mobile-subnav-bar">
+            <button type="button" className="vt-mobile-subnav-back" onClick={() => selectTab("overview")}>
+              ← Home
+            </button>
+            <span className="vt-mobile-subnav-title">
+              {items.find((it) => it.id === tab)?.label || tab}
+            </span>
+          </div>
+        )}
+
         {/* ------------------------------------------------------------ overview */}
         {tab === "overview" && (() => {
           const m = d.month;
@@ -1197,28 +1382,30 @@ export default function OwnerDashboardClient({ profile }) {
           const requestToReview = firstOverdueRequest || d.requests[0];
           return (
             <>
-              <TopBar
-                title={`Welcome back, ${profile?.full_name || "Owner"}`}
-                sub="Here's how your turfs are doing today."
-                action={
-                  <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                    <Btn
-                      icon="plus"
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => {
-                        setWalkInTurf(null);
-                        setWalkInSlot(null);
-                        setShowWalkInModal(true);
-                      }}
-                    >
-                      + Walk-in Booking
-                    </Btn>
-                    {refreshButton}
-                    {addTurfButton}
-                  </div>
-                }
-              />
+              <div className="vt-desktop-only">
+                <TopBar
+                  title={`Welcome back, ${profile?.full_name || "Owner"}`}
+                  sub="Here's how your turfs are doing today."
+                  action={
+                    <div className="vt-topbar-action-row" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                      <Btn
+                        icon="plus"
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => {
+                          setWalkInTurf(null);
+                          setWalkInSlot(null);
+                          setShowWalkInModal(true);
+                        }}
+                      >
+                        Walk-in Booking
+                      </Btn>
+                      {addTurfButton}
+                      {refreshButton}
+                    </div>
+                  }
+                />
+              </div>
               {loading ? skeletonStats : activeTurfs.length === 0 ? (
                 <div style={{ marginBottom: 28 }}>
                   <EmptyBlock icon="stadium" title="No turfs yet" subtitle="List your first turf to start receiving bookings and managing schedules."
@@ -1316,18 +1503,23 @@ export default function OwnerDashboardClient({ profile }) {
                       setShowWalkInModal(true);
                     }}
                   >
-                    + Walk-in Booking
+                    Walk-in Booking
                   </Btn>
                   {addTurfButton}
                 </div>
               }
             />
             {loading ? (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 18 }}>{[...Array(2)].map((_, i) => <SkeletonCard key={i} lines={3} />)}</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 280px), 1fr))", gap: 14 }}>{[...Array(2)].map((_, i) => <SkeletonCard key={i} lines={3} />)}</div>
             ) : activeTurfs.length === 0 ? (
-              <EmptyBlock icon="stadium" title="No turfs listed yet" subtitle="Add your first turf to start taking bookings. New listings need admin approval before they go live." />
+              <EmptyBlock
+                icon="stadium"
+                title="No turfs listed yet"
+                subtitle="Add your first turf to start taking bookings. New listings need admin approval before they go live."
+                action={<Btn variant="primary" icon="plus" onClick={() => setShowAddTurf(true)}>Add your first turf</Btn>}
+              />
             ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 18 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 300px), 1fr))", gap: 16 }}>
                 {d.turfRows.filter((t) => !t.archived_at).map((t) => {
                   const imgData = getTurfImages(t);
                   const hasCustomPricing = Array.isArray(t.pricing_rules?.timeBands) && t.pricing_rules.timeBands.length > 0;
@@ -1399,11 +1591,11 @@ export default function OwnerDashboardClient({ profile }) {
 
                       {/* Turf Management Actions */}
                       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 14 }}>
-                        <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 8 }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 8 }}>
                           <Btn icon="calendar" size="sm" onClick={() => setSlotsTurf(t)}>Manage Slots</Btn>
                           <Btn icon="wallet" size="sm" variant="secondary" onClick={() => setPricingTurf(t)}>Pricing</Btn>
                         </div>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(80px, 1fr))", gap: 6 }}>
                           <Btn size="sm" variant="ghost" onClick={() => { setAnalyticsTurfFilter(t.id); selectTab("analytics"); }}>Analytics</Btn>
                           <Btn size="sm" variant="ghost" onClick={() => setEditingTurf(t)}>Settings</Btn>
                           <Btn size="sm" variant="ghost" style={{ color: V.danger }} onClick={() => setArchivingTurf(t)}>Archive</Btn>
@@ -1472,7 +1664,7 @@ export default function OwnerDashboardClient({ profile }) {
               <TopBar title="Bookings" sub={`${pendingCount} requests to review · ${d.upcoming.length} upcoming confirmed bookings`} action={
                 <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                   <Btn icon="plus" size="sm" variant="primary" onClick={() => { setWalkInTurf(null); setWalkInSlot(null); setShowWalkInModal(true); }}>
-                    + Walk-in Booking
+                    Walk-in Booking
                   </Btn>
                   {refreshButton}
                   <Btn icon="download" size="sm" variant="secondary" onClick={() => setShowExportModal(true)}>
@@ -1506,6 +1698,28 @@ export default function OwnerDashboardClient({ profile }) {
             </>
           );
         })()}
+
+        {/* ------------------------------------------------------------ checkin / qr */}
+        {tab === "checkin" && (
+          <OwnerQrCheckinSection
+            turfs={activeTurfs}
+            bookings={bookings}
+            onRefresh={fetchAll}
+            onViewBookingDetail={(b) => setSelectedBookingForModal(b)}
+            profile={profile}
+          />
+        )}
+
+        {/* ------------------------------------------------------------ profile */}
+        {tab === "profile" && (
+          <MobileProfileSection
+            profile={profile}
+            roleLabel={isStaff ? `STAFF (${(staffRole || "staff").replace("_", " ").toUpperCase()})` : "TURF OWNER"}
+            onSignOut={handleSignOut}
+            onNotifications={() => notes.setOpen((o) => !o)}
+            unreadCount={notes.unreadCount}
+          />
+        )}
 
         {/* ------------------------------------------------------------ analytics */}
         {tab === "analytics" && (() => {
@@ -1865,6 +2079,59 @@ export default function OwnerDashboardClient({ profile }) {
         />
       )}
       {showExportModal && <OwnerBookingExportModal turfs={turfs} onClose={() => setShowExportModal(false)} showToast={showToast} />}
+      {selectedBookingForModal && (
+        <BookingDetailModal
+          booking={selectedBookingForModal}
+          onClose={() => setSelectedBookingForModal(null)}
+        />
+      )}
+
+      {/* Mobile Fixed Bottom Navigation Bar (app-like navigation) */}
+      <nav className="vt-mobile-bottom-bar" aria-label="Quick Navigation">
+        <button
+          type="button"
+          className={`vt-bottom-bar-btn ${tab === "overview" ? "active" : ""}`}
+          onClick={() => selectTab("overview")}
+        >
+          <Icon name="building" size={20} />
+          <span>Home</span>
+        </button>
+        <button
+          type="button"
+          className={`vt-bottom-bar-btn ${tab === "turfs" ? "active" : ""}`}
+          onClick={() => selectTab("turfs")}
+        >
+          <StadiumIcon size={20} />
+          <span>Turfs</span>
+        </button>
+        <button
+          type="button"
+          className={`vt-bottom-bar-btn ${tab === "bookings" ? "active" : ""}`}
+          onClick={() => selectTab("bookings")}
+        >
+          <div style={{ position: "relative", display: "inline-flex" }}>
+            <Icon name="clock" size={20} />
+            {pendingCount > 0 && <span className="vt-bottom-bar-dot" />}
+          </div>
+          <span>Bookings</span>
+        </button>
+        <button
+          type="button"
+          className={`vt-bottom-bar-btn ${tab === "checkin" ? "active" : ""}`}
+          onClick={() => selectTab("checkin")}
+        >
+          <Icon name="qr" size={20} />
+          <span>Scanner</span>
+        </button>
+        <button
+          type="button"
+          className={`vt-bottom-bar-btn ${tab === "profile" ? "active" : ""}`}
+          onClick={() => selectTab("profile")}
+        >
+          <Icon name="user" size={20} />
+          <span>Profile</span>
+        </button>
+      </nav>
     </div>
   );
 }

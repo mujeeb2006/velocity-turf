@@ -31,6 +31,11 @@ function SetupPasswordForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isPending, startTransition] = useTransition();
 
+  // Expired invitation self-service resend state
+  const [resendEmail, setResendEmail] = useState("");
+  const [resendStatus, setResendStatus] = useState(""); // "" | "sending" | "sent" | "error"
+  const [resendMsg, setResendMsg] = useState("");
+
   useEffect(() => {
     let isMounted = true;
 
@@ -47,7 +52,43 @@ function SetupPasswordForm() {
         return;
       }
 
-      // 2. Check for hash fragment errors or implicit tokens (e.g. #error=access_denied or #access_token=...)
+      // 2. Check for PKCE authorization code (?code=...)
+      const code = searchParams?.get("code");
+      if (code) {
+        try {
+          const { data, error: codeErr } = await supabase.auth.exchangeCodeForSession(code);
+          if (!codeErr && data?.user) {
+            if (!isMounted) return;
+            setUserEmail(data.user.email || "");
+            setStatus("ready");
+            return;
+          }
+        } catch (err) {
+          console.warn("Could not exchange code on setup-password:", err);
+        }
+      }
+
+      // 3. Check for token_hash / OTP verification parameters (?token_hash=...&type=...)
+      const tokenHash = searchParams?.get("token_hash");
+      const otpType = searchParams?.get("type") || "invite";
+      if (tokenHash) {
+        try {
+          const { data, error: otpErr } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: otpType,
+          });
+          if (!otpErr && data?.user) {
+            if (!isMounted) return;
+            setUserEmail(data.user.email || "");
+            setStatus("ready");
+            return;
+          }
+        } catch (err) {
+          console.warn("Could not verify OTP on setup-password:", err);
+        }
+      }
+
+      // 4. Check for hash fragment errors or implicit tokens (e.g. #error=access_denied or #access_token=...)
       if (typeof window !== "undefined" && window.location.hash) {
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const hashError = hashParams.get("error");
@@ -84,7 +125,7 @@ function SetupPasswordForm() {
         }
       }
 
-      // 3. Check for existing active session (PKCE or server-established cookies)
+      // 5. Check for existing active session (PKCE or server-established cookies)
       try {
         const {
           data: { session },
@@ -154,7 +195,7 @@ function SetupPasswordForm() {
 
             setStatus("invalid");
             setErrorMessage(
-              "No active invitation session found. Please open the link directly from your invitation email or contact your administrator."
+              "No active invitation session found. Please open the link directly from your invitation email or request a fresh invitation link below."
             );
           }
         }, 1200);
@@ -167,7 +208,7 @@ function SetupPasswordForm() {
         if (!isMounted) return;
         setStatus("invalid");
         setErrorMessage(
-          "Could not verify your invitation. Please check your connection or request a replacement invitation."
+          "Could not verify your invitation. Please check your connection or request a replacement invitation below."
         );
       }
     }
@@ -196,34 +237,39 @@ function SetupPasswordForm() {
     setStatus("submitting");
 
     try {
-      // 1. Establish session or update password
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const { error: updateError } = await supabase.auth.updateUser({ password });
-        if (updateError) {
-          setStatus("error");
-          setErrorMessage(updateError.message || "Failed to update your password. Please try again.");
-          return;
-        }
-      } else if (userEmail) {
-        const { error: signInErr } = await supabase.auth.signInWithPassword({
-          email: userEmail,
-          password,
-        });
-        if (signInErr) {
-          const { error: signUpErr } = await supabase.auth.signUp({
-            email: userEmail,
-            password,
-          });
-          if (signUpErr && !signUpErr.message.includes("already registered")) {
-            setStatus("error");
-            setErrorMessage(signUpErr.message || "Failed to activate your account. Please try again.");
+      // 1. Authoritative server-side password setup & role assignment
+      const response = await fetch("/api/auth/setup-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        // Fallback: try client session updateUser if server-session cookie hadn't arrived
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const { error: clientUpdateErr } = await supabase.auth.updateUser({ password });
+          if (!clientUpdateErr) {
+            await fetch("/api/auth/complete-invite", { method: "POST" });
+            setStatus("success");
+            setTimeout(() => {
+              window.location.href = "/owner";
+            }, 1600);
             return;
           }
         }
+        setStatus("error");
+        setErrorMessage(data.error || "Failed to set your password. Please verify your invitation link.");
+        return;
       }
 
-      // 2. Finalize server-side role confirmation or staff invitation acceptance
+      // Also sync client-side session state
+      try {
+        await supabase.auth.updateUser({ password });
+      } catch (_) {}
+
+      // 2. Finalize staff invitation acceptance if applicable
       const isStaffType = searchParams?.get("type") === "staff";
       const staffToken = searchParams?.get("token");
 
@@ -238,16 +284,6 @@ function SetupPasswordForm() {
           setStatus("error");
           setErrorMessage(acceptData.error || "Failed to accept staff invitation.");
           return;
-        }
-      } else {
-        const response = await fetch("/api/auth/complete-invite", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          console.warn("Server confirmation notice:", errorData.error);
         }
       }
 
@@ -332,14 +368,74 @@ function SetupPasswordForm() {
             color: "rgba(255,255,255,0.6)",
             fontSize: 13,
             lineHeight: 1.6,
-            marginBottom: 24,
+            marginBottom: 20,
             textAlign: "center",
             fontFamily: FONT_BODY,
           }}
         >
           For security, invitation links are single-use and expire within 24 hours.
-          Please contact your Velocity Turf platform administrator to issue a fresh invitation link.
+          Enter your email below to receive a fresh activation link.
         </p>
+
+        {/* Self-serve Resend Invitation Form */}
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            if (!resendEmail.trim()) return;
+            setResendStatus("sending");
+            setResendMsg("");
+            try {
+              const res = await fetch("/api/auth/resend-invite", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: resendEmail.trim() }),
+              });
+              const d = await res.json().catch(() => ({}));
+              setResendStatus("sent");
+              setResendMsg(d.message || "A fresh link has been sent to your email.");
+            } catch {
+              setResendStatus("error");
+              setResendMsg("Network error. Please try again.");
+            }
+          }}
+          style={{ display: "grid", gap: 10, marginBottom: 20 }}
+        >
+          <input
+            type="email"
+            value={resendEmail}
+            onChange={(e) => setResendEmail(e.target.value)}
+            placeholder="Enter your registered owner email"
+            required
+            style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }}
+          />
+          <button
+            type="submit"
+            disabled={resendStatus === "sending" || resendStatus === "sent"}
+            style={{
+              ...buttonStyle,
+              background: "linear-gradient(135deg, #158051, #0EA5E9)",
+              opacity: resendStatus === "sending" ? 0.7 : 1,
+            }}
+          >
+            {resendStatus === "sending"
+              ? "Sending replacement link…"
+              : resendStatus === "sent"
+                ? "Link Sent! Check your email"
+                : "Send Me a New Invitation Link"}
+          </button>
+          {resendMsg && (
+            <div
+              style={{
+                fontSize: 12.5,
+                color: resendStatus === "error" ? "#EF4444" : "#22C55E",
+                textAlign: "center",
+                lineHeight: 1.4,
+              }}
+            >
+              {resendMsg}
+            </div>
+          )}
+        </form>
 
         <div style={{ display: "grid", gap: 10 }}>
           <Link
@@ -353,7 +449,7 @@ function SetupPasswordForm() {
               width: "100%",
             }}
           >
-            Go to Sign In
+            Return to Sign In
           </Link>
           <p
             style={{

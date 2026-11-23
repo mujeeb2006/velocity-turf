@@ -2,15 +2,20 @@
 
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { normalizeEmail, isValidEmail, isStrongPassword } from "@/lib/auth/validation";
-import AuthShell from "../auth-shell";
-import { inputStyle, buttonStyle, errorStyle, linkStyle } from "../auth-styles";
-import { COLORS as V } from "@/lib/design-tokens";
-import { SportIcon, Calendar, ArrowRight } from "@/components/ui/icons";
-
+import { isStrongPassword, isValidEmail, normalizeEmail } from "@/lib/auth/validation";
 import { sanitizeRedirectPath } from "@/lib/auth/url";
+import AuthShell from "@/app/auth-shell";
+import {
+  inputStyle,
+  buttonStyle,
+  errorStyle,
+  linkStyle,
+  successStyle,
+} from "@/app/auth-styles";
+import { COLORS as V } from "@/lib/design-tokens";
+import { ArrowRight, Calendar, SportIcon } from "@/components/ui/icons";
 import {
   buildResumeHref,
   decodeBookingIntent,
@@ -36,11 +41,16 @@ function LoginForm() {
   const rawBookingIntentParam = searchParams?.get("bookingIntent");
   const rawMatchIntentParam = searchParams?.get("matchIntent");
   const rawNextParam = searchParams?.get("next");
-  // searchParams.get() already decodes; decoding again can throw on a literal "%".
   const [error, setError] = useState(urlError || "");
+  const [successInfo, setSuccessInfo] = useState("");
   const [loading, setLoading] = useState(false);
   const [bookingIntent, setBookingIntent] = useState(null);
   const [matchIntent, setMatchIntent] = useState(null);
+
+  // Modes: "login" | "forgot" | "resendInvite"
+  const [mode, setMode] = useState("login");
+  const [resetEmail, setResetEmail] = useState(emailParam);
+  const [inviteEmail, setInviteEmail] = useState(emailParam);
 
   useEffect(() => {
     const decodedBooking = decodeBookingIntent(rawBookingIntentParam) || getStoredBookingIntent();
@@ -59,6 +69,7 @@ function LoginForm() {
     e.preventDefault();
     if (loading) return; // ignore double submits
     setError("");
+    setSuccessInfo("");
 
     const normalizedEmail = normalizeEmail(email);
     if (!isValidEmail(normalizedEmail)) {
@@ -79,7 +90,7 @@ function LoginForm() {
     } catch {
       setLoading(false);
       setError("We couldn't reach the server. Check your connection and try again.");
-      return; // booking intent stays in state + sessionStorage
+      return;
     }
 
     if (signInError) {
@@ -87,20 +98,17 @@ function LoginForm() {
       const message = signInError.message.toLowerCase();
       if (message.includes("invalid login credentials")) {
         setError(
-          "Invalid login credentials. If you are an invited turf owner, please click the invitation link in your email to set your password."
+          "Invalid email or password. Please verify your credentials and try again."
         );
       } else if (message.includes("email not confirmed")) {
         setError("Please confirm your email first. Open the verification link we sent you, then sign in.");
       } else {
         setError(signInError.message);
       }
-      return; // booking intent is kept so the user can retry
+      return;
     }
 
     // Hard navigation ensures the session cookie is fresh on the server.
-    // Signing in never creates a booking: "/" routes players to /player with
-    // the intent (the booking modal reopens for explicit confirmation) and
-    // owners/admins to their own dashboards.
     if (matchIntent) {
       window.location.href = buildResumeMatchHref(matchIntent);
     } else if (bookingIntent) {
@@ -112,22 +120,102 @@ function LoginForm() {
     }
   }
 
+  async function handleResetPassword(e) {
+    e.preventDefault();
+    if (loading) return;
+    setError("");
+    setSuccessInfo("");
+
+    const targetEmail = normalizeEmail(resetEmail || email);
+    if (!isValidEmail(targetEmail)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: targetEmail }),
+      });
+      const data = await res.json().catch(() => ({}));
+      setLoading(false);
+      if (!res.ok) {
+        setError(data.error || "Failed to request password reset.");
+        return;
+      }
+      setSuccessInfo(
+        data.message || "If an account exists for this email, we have sent password reset instructions."
+      );
+    } catch {
+      setLoading(false);
+      setError("Network error. Please try again.");
+    }
+  }
+
+  async function handleResendInvite(e) {
+    e.preventDefault();
+    if (loading) return;
+    setError("");
+    setSuccessInfo("");
+
+    const targetEmail = normalizeEmail(inviteEmail || email);
+    if (!isValidEmail(targetEmail)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/resend-invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: targetEmail }),
+      });
+      const data = await res.json().catch(() => ({}));
+      setLoading(false);
+      if (!res.ok) {
+        setError(data.error || "Failed to resend activation link.");
+        return;
+      }
+      setSuccessInfo(
+        data.message || "If this email belongs to an invited Turf Owner, a new invitation has been sent."
+      );
+    } catch {
+      setLoading(false);
+      setError("Network error. Please try again.");
+    }
+  }
+
   const signupHref = matchIntent
     ? `/signup?matchIntent=${encodeMatchIntent(matchIntent)}${rawNextParam ? `&next=${encodeURIComponent(rawNextParam)}` : ""}`
     : (bookingIntent
       ? `/signup?bookingIntent=${encodeBookingIntent(bookingIntent)}${rawNextParam ? `&next=${encodeURIComponent(rawNextParam)}` : ""}`
       : (rawNextParam ? `/signup?next=${encodeURIComponent(rawNextParam)}` : "/signup"));
 
-  const subtitleText = matchIntent
-    ? "Sign in to confirm your spot in the match."
-    : (bookingIntent ? "Sign in to complete your booking." : "Sign in and book your next game.");
+  const subtitleText =
+    mode === "forgot"
+      ? "Enter your email to receive password reset instructions."
+      : mode === "resendInvite"
+        ? "Enter your email to receive a replacement activation link."
+        : matchIntent
+          ? "Sign in to confirm your spot in the match."
+          : (bookingIntent ? "Sign in to complete your booking." : "Sign in and book your next game.");
+
+  const titleText =
+    mode === "forgot"
+      ? "Reset Password"
+      : mode === "resendInvite"
+        ? "Owner Activation"
+        : "Welcome back";
 
   return (
     <AuthShell
-      title="Welcome back"
+      title={titleText}
       subtitle={subtitleText}
     >
-      {matchIntent && (
+      {matchIntent && mode === "login" && (
         <div
           role="status"
           style={{
@@ -155,7 +243,7 @@ function LoginForm() {
         </div>
       )}
 
-      {bookingIntent && !matchIntent && (
+      {bookingIntent && !matchIntent && mode === "login" && (
         <div
           role="status"
           style={{
@@ -184,66 +272,209 @@ function LoginForm() {
       )}
 
       {error && <div role="alert" style={{ ...errorStyle, marginBottom: 16 }}>{error}</div>}
+      {successInfo && <div role="status" style={{ ...successStyle, marginBottom: 16, textAlign: "center" }}>{successInfo}</div>}
 
-      <form onSubmit={handleLogin} style={{ display: "grid", gap: 14 }}>
-        <input
-          type="email"
-          aria-label="Email address"
-          placeholder="Email address"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          autoComplete="email"
-          style={inputStyle}
-        />
-        <input
-          type="password"
-          aria-label="Password"
-          placeholder="Your password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          autoComplete="current-password"
-          style={inputStyle}
-        />
-        <button
-          type="submit"
-          disabled={loading}
-          aria-busy={loading}
-          style={{
-            ...buttonStyle,
-            opacity: loading ? 0.7 : 1,
-            cursor: loading ? "progress" : "pointer",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-          }}
-        >
-          {loading ? (
-            "Signing in…"
-          ) : bookingIntent ? (
-            <>
-              <span>Sign in & Continue Booking</span>
-              <ArrowRight size={16} />
-            </>
-          ) : (
-            "Sign in"
-          )}
-        </button>
-      </form>
+      {/* Mode 1: Standard Login Form */}
+      {mode === "login" && (
+        <form onSubmit={handleLogin} style={{ display: "grid", gap: 14 }}>
+          <input
+            type="email"
+            aria-label="Email address"
+            placeholder="Email address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+            style={inputStyle}
+          />
+          <input
+            type="password"
+            aria-label="Password"
+            placeholder="Your password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            autoComplete="current-password"
+            style={inputStyle}
+          />
 
-      <div style={{ marginTop: 22, textAlign: "center", display: "grid", gap: 8 }}>
-        <p style={{ color: V.chalkDim, fontSize: 13.5, margin: 0, fontFamily: "'Manrope', sans-serif" }}>
-          New here?{" "}
-          <Link href={signupHref} style={linkStyle}>
-            Create your account
-          </Link>
-        </p>
-        <p style={{ color: V.chalkFaint, fontSize: 12.5, margin: 0, fontFamily: "'Manrope', sans-serif" }}>
-          Invited turf owner? Check your email to set your password.
-        </p>
-      </div>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <button
+              type="button"
+              onClick={() => {
+                setError("");
+                setSuccessInfo("");
+                setResetEmail(email);
+                setMode("forgot");
+              }}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#38BDF8",
+                fontSize: 12.5,
+                fontWeight: 600,
+                cursor: "pointer",
+                padding: "2px 0",
+                textDecoration: "underline",
+              }}
+            >
+              Forgot password?
+            </button>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            aria-busy={loading}
+            style={{
+              ...buttonStyle,
+              opacity: loading ? 0.7 : 1,
+              cursor: loading ? "progress" : "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+            }}
+          >
+            {loading ? (
+              "Signing in…"
+            ) : bookingIntent ? (
+              <>
+                <span>Sign in & Continue Booking</span>
+                <ArrowRight size={16} />
+              </>
+            ) : (
+              "Sign in"
+            )}
+          </button>
+        </form>
+      )}
+
+      {/* Mode 2: Forgot Password Form */}
+      {mode === "forgot" && (
+        <form onSubmit={handleResetPassword} style={{ display: "grid", gap: 14 }}>
+          <input
+            type="email"
+            aria-label="Email address"
+            placeholder="Enter your registered email"
+            value={resetEmail}
+            onChange={(e) => setResetEmail(e.target.value)}
+            required
+            autoComplete="email"
+            style={inputStyle}
+          />
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              ...buttonStyle,
+              background: "linear-gradient(135deg, #158051, #0EA5E9)",
+              opacity: loading ? 0.7 : 1,
+            }}
+          >
+            {loading ? "Sending instructions…" : "Send Password Reset Link"}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setError("");
+              setSuccessInfo("");
+              setMode("login");
+            }}
+            style={{
+              background: "none",
+              border: "none",
+              color: "rgba(255,255,255,0.7)",
+              fontSize: 13,
+              cursor: "pointer",
+              marginTop: 4,
+            }}
+          >
+            ← Back to Sign In
+          </button>
+        </form>
+      )}
+
+      {/* Mode 3: Resend Owner Activation Link */}
+      {mode === "resendInvite" && (
+        <form onSubmit={handleResendInvite} style={{ display: "grid", gap: 14 }}>
+          <input
+            type="email"
+            aria-label="Owner email address"
+            placeholder="Enter your owner email"
+            value={inviteEmail}
+            onChange={(e) => setInviteEmail(e.target.value)}
+            required
+            autoComplete="email"
+            style={inputStyle}
+          />
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              ...buttonStyle,
+              background: "linear-gradient(135deg, #158051, #0EA5E9)",
+              opacity: loading ? 0.7 : 1,
+            }}
+          >
+            {loading ? "Sending activation link…" : "Resend Owner Activation Link"}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setError("");
+              setSuccessInfo("");
+              setMode("login");
+            }}
+            style={{
+              background: "none",
+              border: "none",
+              color: "rgba(255,255,255,0.7)",
+              fontSize: 13,
+              cursor: "pointer",
+              marginTop: 4,
+            }}
+          >
+            ← Back to Sign In
+          </button>
+        </form>
+      )}
+
+      {/* Bottom Guidance */}
+      {mode === "login" && (
+        <div style={{ marginTop: 22, textAlign: "center", display: "grid", gap: 10 }}>
+          <p style={{ color: V.chalkDim, fontSize: 13.5, margin: 0, fontFamily: "'Manrope', sans-serif" }}>
+            New here?{" "}
+            <Link href={signupHref} style={linkStyle}>
+              Create your account
+            </Link>
+          </p>
+          <div style={{ color: V.chalkFaint, fontSize: 12.5, margin: 0, fontFamily: "'Manrope', sans-serif" }}>
+            Invited turf owner?{" "}
+            <button
+              type="button"
+              onClick={() => {
+                setError("");
+                setSuccessInfo("");
+                setInviteEmail(email);
+                setMode("resendInvite");
+              }}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#38BDF8",
+                fontSize: 12.5,
+                fontWeight: 600,
+                cursor: "pointer",
+                padding: 0,
+                textDecoration: "underline",
+              }}
+            >
+              Need a new activation link?
+            </button>
+          </div>
+        </div>
+      )}
     </AuthShell>
   );
 }

@@ -15,6 +15,7 @@ export default function AuthShell({ title, subtitle, children }) {
       }}
     >
       <div
+        className="vt-auth-shell-card"
         style={{
           width: "100%",
           maxWidth: 960,
@@ -24,12 +25,13 @@ export default function AuthShell({ title, subtitle, children }) {
           boxShadow: "0 20px 60px rgba(23, 105, 232, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04)",
           border: "1px solid #E5EDF5",
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))",
           minHeight: 560,
         }}
       >
         {/* Left Side: Sports Photography & Brand Atmosphere */}
         <div
+          className="vt-auth-hero"
           style={{
             position: "relative",
             background: "linear-gradient(135deg, #18A8E0 0%, #1769E8 100%)",
@@ -112,6 +114,7 @@ export default function AuthShell({ title, subtitle, children }) {
 
         {/* Right Side: Form Card */}
         <div
+          className="vt-auth-form-side"
           style={{
             padding: "44px 38px",
             display: "flex",

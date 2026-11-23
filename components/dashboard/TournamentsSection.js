@@ -319,7 +319,7 @@ export function TournamentsSection({ profile, showToast }) {
         /* Tournament Cards Grid */
         <div>
           {loading ? (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 280px), 1fr))", gap: 16 }}>
               <SkeletonCard />
               <SkeletonCard />
             </div>
@@ -334,7 +334,7 @@ export function TournamentsSection({ profile, showToast }) {
               onAction={canHostTournament ? () => setShowCreateModal(true) : undefined}
             />
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(330px, 1fr))", gap: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 300px), 1fr))", gap: 16 }}>
               {tournaments.map((t) => (
                 <div
                   key={t.id}

@@ -32,7 +32,8 @@ import { AdminDemoDataSection } from "@/components/dashboard/AdminDemoDataSectio
 import { AdminRewardsSection } from "@/components/dashboard/AdminRewardsSection";
 import { AdminGroupBookingsSection } from "@/components/dashboard/AdminGroupBookingsSection";
 import { DemoNameWithBadge } from "@/components/ui/demo-badge";
-import { Check, AlertTriangle, Key, Lock, ArrowRight, CheckCircle } from "@/components/ui/icons";
+import { Check, AlertTriangle, Key, Lock, ArrowRight, CheckCircle, StadiumIcon } from "@/components/ui/icons";
+import MobileProfileSection from "@/components/dashboard/MobileProfileSection";
 
 const TABS = ["overview", "approvals", "game-approvals", "tournaments", "packages", "turfs", "bookings", "groups", "users", "payouts", "disputes", "rewards", "demo-data"];
 const ROLE_COLORS = { Admin: V.violet, "Turf Owner": V.sky, Player: V.flood };
@@ -883,6 +884,194 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
 
       <main className="vt-dashboard-main" style={{ flex: 1, minWidth: 0, padding: "32px 36px" }}>
         <ErrorBanner message={loadError} onRetry={fetchAll} />
+
+        {/* Mobile Native App-Style Header (visible on mobile only via CSS, shown on Home/Overview only) */}
+        {tab === "overview" && (
+          <div className="vt-mobile-app-header">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div>
+                <div style={{ color: "#718096", fontSize: 13, fontWeight: 600 }}>
+                  {(() => {
+                    const h = new Date().getHours();
+                    if (h < 12) return "Good morning,";
+                    if (h < 17) return "Good afternoon,";
+                    return "Good evening,";
+                  })()}
+                </div>
+                <div style={{ color: "#172B4D", fontSize: 20, fontWeight: 900, display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+                  <span>{profile?.full_name ? profile.full_name.split(" ")[0] : "Admin"}</span>
+                  <span role="img" aria-label="wave">👋</span>
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => notes.setOpen((o) => !o)}
+                  style={{
+                    background: "#FFFFFF",
+                    border: "1px solid #E5EDF5",
+                    borderRadius: "50%",
+                    width: 42,
+                    height: 42,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    position: "relative",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                    cursor: "pointer",
+                  }}
+                  aria-label={notes.unreadCount ? `Notifications, ${notes.unreadCount} unread` : "Notifications"}
+                >
+                  <Icon name="notification" size={19} color="#172B4D" />
+                  {notes.unreadCount > 0 && (
+                    <span style={{ position: "absolute", top: -4, right: -4, minWidth: 17, height: 17, padding: "0 4px", borderRadius: 9, background: "#1769E8", color: "#fff", fontSize: 9.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {notes.unreadCount > 9 ? "9+" : notes.unreadCount}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => selectTab("profile")}
+                  style={{
+                    width: 42,
+                    height: 42,
+                    borderRadius: "50%",
+                    background: "linear-gradient(135deg, #18A8E0 0%, #1769E8 100%)",
+                    color: "#FFFFFF",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: 900,
+                    fontSize: 16,
+                    border: "2px solid #FFFFFF",
+                    boxShadow: "0 4px 12px rgba(23,105,232,0.28)",
+                    cursor: "pointer",
+                  }}
+                  aria-label="Admin Profile"
+                >
+                  {(profile?.full_name || profile?.email || "A").trim().charAt(0).toUpperCase()}
+                </button>
+              </div>
+            </div>
+
+            {/* 4x2 Quick Action Icons Grid */}
+            <div className="vt-app-grid">
+              <button
+                type="button"
+                className={`vt-app-card ${tab === "approvals" ? "active" : ""}`}
+                onClick={() => selectTab("approvals")}
+              >
+                <div className="vt-app-icon-wrap" style={{ background: "#FEF3C7", color: "#D97706", position: "relative" }}>
+                  <Icon name="building" size={20} />
+                  {pendingTurfs.length > 0 && <span className="vt-app-badge">{pendingTurfs.length}</span>}
+                </div>
+                <span className="vt-app-label">Approvals</span>
+              </button>
+
+              <button
+                type="button"
+                className={`vt-app-card ${tab === "bookings" ? "active" : ""}`}
+                onClick={() => selectTab("bookings")}
+              >
+                <div className="vt-app-icon-wrap" style={{ background: "#EEF2FF", color: "#4F46E5" }}>
+                  <Icon name="clock" size={20} />
+                </div>
+                <span className="vt-app-label">Bookings</span>
+              </button>
+
+              <button
+                type="button"
+                className={`vt-app-card ${tab === "users" ? "active" : ""}`}
+                onClick={() => selectTab("users")}
+              >
+                <div className="vt-app-icon-wrap" style={{ background: "#F0F9FF", color: "#0284C7" }}>
+                  <Icon name="users" size={20} />
+                </div>
+                <span className="vt-app-label">Users</span>
+              </button>
+
+              <button
+                type="button"
+                className={`vt-app-card ${tab === "turfs" ? "active" : ""}`}
+                onClick={() => selectTab("turfs")}
+              >
+                <div className="vt-app-icon-wrap" style={{ background: "#ECFDF5", color: "#059669" }}>
+                  <StadiumIcon size={20} />
+                </div>
+                <span className="vt-app-label">All Turfs</span>
+              </button>
+
+              <button
+                type="button"
+                className={`vt-app-card ${tab === "payouts" ? "active" : ""}`}
+                onClick={() => selectTab("payouts")}
+              >
+                <div className="vt-app-icon-wrap" style={{ background: "#ECFDF5", color: "#10B981", position: "relative" }}>
+                  <Icon name="wallet" size={20} />
+                  {processingPayoutsCount > 0 && <span className="vt-app-badge">{processingPayoutsCount}</span>}
+                </div>
+                <span className="vt-app-label">Payouts</span>
+              </button>
+
+              <button
+                type="button"
+                className={`vt-app-card ${tab === "disputes" ? "active" : ""}`}
+                onClick={() => selectTab("disputes")}
+              >
+                <div className="vt-app-icon-wrap" style={{ background: "#FFF1F2", color: "#E11D48", position: "relative" }}>
+                  <Icon name="alert" size={20} />
+                  {openDisputes.length > 0 && <span className="vt-app-badge">{openDisputes.length}</span>}
+                </div>
+                <span className="vt-app-label">Disputes</span>
+              </button>
+
+              <button
+                type="button"
+                className={`vt-app-card ${tab === "rewards" ? "active" : ""}`}
+                onClick={() => selectTab("rewards")}
+              >
+                <div className="vt-app-icon-wrap" style={{ background: "#FAF5FF", color: "#9333EA" }}>
+                  <Icon name="gift" size={20} />
+                </div>
+                <span className="vt-app-label">Rewards</span>
+              </button>
+
+              <button
+                type="button"
+                className={`vt-app-card ${tab === "tournaments" ? "active" : ""}`}
+                onClick={() => selectTab("tournaments")}
+              >
+                <div className="vt-app-icon-wrap" style={{ background: "#FFFBEB", color: "#B45309" }}>
+                  <Icon name="trophy" size={20} />
+                </div>
+                <span className="vt-app-label">Tourneys</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Mobile subnav back button if on subtab */}
+        {tab !== "overview" && tab !== "profile" && (
+          <div className="vt-mobile-subnav-bar">
+            <button type="button" className="vt-mobile-subnav-back" onClick={() => selectTab("overview")}>
+              ← Home
+            </button>
+            <span className="vt-mobile-subnav-title">
+              {items.find((it) => it.id === tab)?.label || tab}
+            </span>
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------ profile */}
+        {tab === "profile" && (
+          <MobileProfileSection
+            profile={profile}
+            roleLabel="SYSTEM ADMIN"
+            onSignOut={handleSignOut}
+            onNotifications={() => notes.setOpen((o) => !o)}
+            unreadCount={notes.unreadCount}
+          />
+        )}
 
         {tab === "overview" && (
           <OverviewTab
@@ -1979,6 +2168,53 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
           showToast={showToast}
         />
       )}
+
+      {/* Mobile Fixed Bottom Navigation Bar (app-like navigation) */}
+      <nav className="vt-mobile-bottom-bar" aria-label="Quick Navigation">
+        <button
+          type="button"
+          className={`vt-bottom-bar-btn ${tab === "overview" ? "active" : ""}`}
+          onClick={() => selectTab("overview")}
+        >
+          <Icon name="building" size={20} />
+          <span>Home</span>
+        </button>
+        <button
+          type="button"
+          className={`vt-bottom-bar-btn ${tab === "approvals" ? "active" : ""}`}
+          onClick={() => selectTab("approvals")}
+        >
+          <div style={{ position: "relative", display: "inline-flex" }}>
+            <Icon name="shield" size={20} />
+            {pendingTurfs.length > 0 && <span className="vt-bottom-bar-dot" />}
+          </div>
+          <span>Approvals</span>
+        </button>
+        <button
+          type="button"
+          className={`vt-bottom-bar-btn ${tab === "bookings" ? "active" : ""}`}
+          onClick={() => selectTab("bookings")}
+        >
+          <Icon name="clock" size={20} />
+          <span>Bookings</span>
+        </button>
+        <button
+          type="button"
+          className={`vt-bottom-bar-btn ${tab === "users" ? "active" : ""}`}
+          onClick={() => selectTab("users")}
+        >
+          <Icon name="users" size={20} />
+          <span>Users</span>
+        </button>
+        <button
+          type="button"
+          className={`vt-bottom-bar-btn ${tab === "profile" ? "active" : ""}`}
+          onClick={() => selectTab("profile")}
+        >
+          <Icon name="user" size={20} />
+          <span>Profile</span>
+        </button>
+      </nav>
     </div>
   );
 }
@@ -1994,7 +2230,9 @@ function OverviewTab({ profile, view, loading, range, setRange, refreshButton, g
 
   return (
     <>
-      <TopBar title={`Welcome, ${profile?.full_name || "Admin"}`} sub="Everything happening across Velocity Turf." action={refreshButton} />
+      <div className="vt-desktop-only">
+        <TopBar title={`Welcome, ${profile?.full_name || "Admin"}`} sub="Everything happening across Velocity Turf." action={refreshButton} />
+      </div>
 
       {loading ? (
         <StatGrid>{[...Array(6)].map((_, i) => <SkeletonCard key={i} lines={1} />)}</StatGrid>

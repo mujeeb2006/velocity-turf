@@ -11,7 +11,7 @@ export default function AuthShell({ title, subtitle, children }) {
         padding: "24px 16px",
         background: "linear-gradient(135deg, #EAF7FF 0%, #E9F9ED 50%, #F1EEFF 100%)",
         position: "relative",
-        fontFamily: "'Manrope', -apple-system, BlinkMacSystemFont, sans-serif",
+        fontFamily: "var(--font-body)",
       }}
     >
       <div

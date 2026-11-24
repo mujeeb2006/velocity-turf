@@ -281,7 +281,7 @@ export function AdminGamesTab({
                         <Clock size={14} color={V.chalkDim} /> Schedule: <strong style={{ color: V.chalk }}>{formatTime12(g.start_time)} – {formatTime12(g.end_time || g.start_time)}</strong>
                       </span>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-                        <Users size={14} color={V.chalkDim} /> Capacity: <strong style={{ color: V.chalk, fontFamily: mono }}>{g.max_players} players</strong>
+                        <Users size={14} color={V.chalkDim} /> Capacity: <strong style={{ color: V.chalk, fontFamily: font }}>{g.max_players} players</strong>
                       </span>
                     </div>
 
@@ -326,7 +326,7 @@ export function AdminGamesTab({
                       </div>
                       <div>
                         <span style={{ color: V.chalkFaint }}>Joined Players: </span>
-                        <strong style={{ color: V.chalk, fontFamily: mono }}>{g.participant_count || 0}/{g.max_players}</strong>
+                        <strong style={{ color: V.chalk, fontFamily: font }}>{g.participant_count || 0}/{g.max_players}</strong>
                       </div>
                     </div>
                   </div>

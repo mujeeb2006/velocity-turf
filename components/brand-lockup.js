@@ -16,14 +16,14 @@ export default function BrandLockup({ markSize = 46, compact = false, dark = fal
       <span style={{ display: "grid", gap: compact ? 1 : 2, lineHeight: 0.92 }}>
         <span style={{
           color: textColor,
-          fontFamily: "'Manrope', sans-serif",
+          fontFamily: "var(--font-body)",
           fontSize,
           fontWeight: 800,
           letterSpacing: compact ? 0.35 : 0.65,
         }}>VELOCITY</span>
         <span style={{
           color: "#1769E8",
-          fontFamily: "'Manrope', sans-serif",
+          fontFamily: "var(--font-body)",
           fontSize,
           fontWeight: 800,
           letterSpacing: compact ? 0.35 : 0.65,
@@ -32,7 +32,7 @@ export default function BrandLockup({ markSize = 46, compact = false, dark = fal
           className="vt-brand-tagline"
           style={{
             color: taglineColor,
-            fontFamily: "'Manrope', sans-serif",
+            fontFamily: "var(--font-body)",
             fontSize: taglineSize,
             fontWeight: 700,
             letterSpacing: compact ? 0.75 : 1.6,

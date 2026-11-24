@@ -588,7 +588,7 @@ export function OwnerGamesTab({
                     <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginTop: 12, fontSize: 13 }}>
                       <div>
                         <span style={{ color: V.chalkFaint }}>Spots: </span>
-                        <strong style={{ color: V.chalk, fontFamily: mono }}>{g.participant_count || 0}/{g.max_players}</strong>
+                        <strong style={{ color: V.chalk, fontFamily: font }}>{g.participant_count || 0}/{g.max_players}</strong>
                       </div>
                       <div>
                         <span style={{ color: V.chalkFaint }}>Fee per Player: </span>

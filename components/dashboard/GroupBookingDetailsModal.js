@@ -366,7 +366,7 @@ export function GroupBookingDetailsModal({
               </div>
             </div>
             <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 18, fontWeight: 900, color: isUrgent ? "#EF4444" : V.flood, fontFamily: "monospace" }}>
+              <div style={{ fontSize: 18, fontWeight: 900, color: isUrgent ? "#EF4444" : V.flood, fontFamily: "var(--font-mono)" }}>
                 {formatCountdown(secondsRemaining)}
               </div>
               <div style={{ fontSize: 10, color: V.chalkFaint, textTransform: "uppercase" }}>Time Left</div>
@@ -469,7 +469,7 @@ export function GroupBookingDetailsModal({
               {isInstant ? "Invite Friends to Join & Reimburse" : "Invite Friends to Split the Bill"}
             </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <div style={{ flex: 1, background: V.pitchCard, border: `1px solid ${V.line}`, borderRadius: 8, padding: "8px 12px", fontSize: 14, fontWeight: 800, color: V.flood, fontFamily: "monospace" }}>
+              <div style={{ flex: 1, background: V.pitchCard, border: `1px solid ${V.line}`, borderRadius: 8, padding: "8px 12px", fontSize: 14, fontWeight: 800, color: V.flood, fontFamily: "var(--font-mono)" }}>
                 {group?.invitation_code}
               </div>
               <button onClick={handleCopyLink} style={{ ...buttonStyle("secondary", "sm"), display: "inline-flex", alignItems: "center", gap: 4 }}>

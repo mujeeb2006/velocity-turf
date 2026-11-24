@@ -25,7 +25,7 @@ export default function GlobalErrorPage({ error, reset }) {
         padding: "24px",
         background: V.pitchDark,
         color: V.chalk,
-        fontFamily: "'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        fontFamily: "var(--font-body)",
       }}
     >
       <div

@@ -3427,7 +3427,7 @@ function LoyaltySection({ isLoading, leaderboard, myPoints, gamesPlayed }) {
             {/* My Points Card */}
             <div style={{ ...panel(true), borderRadius: 16, padding: 28 }}>
               <div style={{ color: V.chalkFaint, fontSize: 13, marginBottom: 8, fontFamily: FONT_BODY }}>Your points</div>
-              <div style={{ color: V.chalk, fontFamily: FONT_DATA, fontSize: 44, fontWeight: 700, lineHeight: 1 }}>
+              <div style={{ color: V.chalk, fontFamily: FONT_BODY, fontSize: 44, fontWeight: 700, lineHeight: 1 }}>
                 {myPoints.toLocaleString()}
                 <span style={{ fontSize: 16, color: V.flood, marginLeft: 8 }}>pts</span>
               </div>
@@ -3449,7 +3449,7 @@ function LoyaltySection({ isLoading, leaderboard, myPoints, gamesPlayed }) {
                 ].map(s => (
                   <div key={s.label} style={{ background: V.pitchCardRaised, borderRadius: 10, padding: 12, border: `1px solid ${V.line}` }}>
                     <div style={{ color: V.chalkFaint, fontSize: 11, fontFamily: FONT_BODY }}>{s.label}</div>
-                    <div style={{ color: V.chalk, fontWeight: 700, fontSize: 15, marginTop: 4, fontFamily: FONT_DATA }}>{s.value}</div>
+                    <div style={{ color: V.chalk, fontWeight: 700, fontSize: 15, marginTop: 4, fontFamily: FONT_BODY }}>{s.value}</div>
                   </div>
                 ))}
               </div>
@@ -3477,7 +3477,7 @@ function LoyaltySection({ isLoading, leaderboard, myPoints, gamesPlayed }) {
                       <div style={{ flex: 1 }}>
                         <div style={{ color: p.isYou ? V.flood : V.chalk, fontWeight: 600, fontSize: 14, fontFamily: FONT_BODY }}>{p.name}</div>
                       </div>
-                      <div style={{ color: V.chalk, fontWeight: 800, fontFamily: FONT_DATA, fontSize: 14 }}>
+                      <div style={{ color: V.chalk, fontWeight: 800, fontFamily: FONT_BODY, fontSize: 14 }}>
                         {p.points.toLocaleString()}
                       </div>
                     </div>
@@ -3652,7 +3652,7 @@ function DashboardSection({ isLoading, bookings = [], matchesJoined = 0, joinedG
                       <Icon name={s.icon} size={18} color={s.color} />
                     </div>
                   </div>
-                  <div className="vt-stat-val" style={{ color: "#172B4D", fontWeight: 900, fontSize: 24, fontFamily: typeof s.value === "string" && s.value.startsWith("₹") ? FONT_BODY : FONT_DATA }}>
+                  <div className="vt-stat-val" style={{ color: "#172B4D", fontWeight: 900, fontSize: 24, fontFamily: FONT_BODY }}>
                     {s.value}
                   </div>
                   <div className="vt-stat-lbl" style={{ color: "#718096", fontSize: 13, marginTop: 4, fontFamily: FONT_BODY, fontWeight: 700 }}>
@@ -4118,7 +4118,7 @@ function DashboardSection({ isLoading, bookings = [], matchesJoined = 0, joinedG
                   <div style={{ fontSize: 10, fontWeight: 700, color: "#718096", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 3 }}>
                     Your Referral Code
                   </div>
-                  <div style={{ fontSize: 20, fontWeight: 900, color: "#1769E8", letterSpacing: 3, fontFamily: "monospace" }}>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: "#1769E8", letterSpacing: 3, fontFamily: "var(--font-mono)" }}>
                     {referralLoading ? "..." : (refCode || "—")}
                   </div>
                 </div>
@@ -5056,7 +5056,6 @@ export default function PlayerAppClient({ profile }) {
         }}>
           <BrandLockup markSize={34} compact />
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <PwaInstallButton role="player" variant="pill" />
             {profile?.id ? (
               <>
                 <button onClick={toggleNotifications} aria-label="Notifications" style={{ background: "transparent", border: "1px solid rgba(24, 168, 224, 0.2)", borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: "#172B4D", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
@@ -5323,7 +5322,6 @@ export default function PlayerAppClient({ profile }) {
 
           {/* Right side */}
           <div style={{ display: "flex", alignItems: "center", gap: 12, position: "relative" }}>
-            <PwaInstallButton role="player" variant="pill" />
             {profile?.id ? (
               <>
                 <button onClick={toggleNotifications} style={{ background: "#FFFFFF", border: "1px solid rgba(24, 168, 224, 0.2)", borderRadius: 10, width: 38, height: 38, cursor: "pointer", color: "#172B4D", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", transition: "border-color 0.2s" }}>

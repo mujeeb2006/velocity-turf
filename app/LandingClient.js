@@ -114,7 +114,7 @@ export default function LandingClient() {
         html { scroll-behavior: smooth; }
         body { background: #f1f1ee; }
         a { color: inherit; }
-        button, input, select { font: inherit; }
+        button, input, select, textarea { font-family: inherit; }
         .vt-professional-page {
           min-height: 100vh;
           background: #f3f4f1;
@@ -548,11 +548,7 @@ export default function LandingClient() {
           <Link href="#">Games</Link>
           <Link href="#">Venues</Link>
           <Link href="#">Trainers</Link>
-          <Link href="/download" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 700, color: "#1769E8", textDecoration: "none" }}>
-            <span style={{ fontSize: 13, background: "#EAF2FF", padding: "4px 10px", borderRadius: 8, border: "1px solid rgba(23,105,232,0.25)" }}>
-              📲 Download Apps
-            </span>
-          </Link>
+          <Link href="#">Partner with us</Link>
         </nav>
 
         <Link href="/login" className="nav-button">LOGIN</Link>
@@ -636,6 +632,46 @@ export default function LandingClient() {
           ))}
         </section>
       </main>
+
+      <footer style={{ borderTop: "1px solid rgba(17,24,39,0.08)", background: "#FFFFFF", padding: "32px 24px", marginTop: 40 }}>
+        <div style={{ maxWidth: 1240, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <BrandLockup markSize={32} />
+            <span suppressHydrationWarning style={{ fontSize: 13, color: "#718096" }}>© {new Date().getFullYear()} Velocity Turf. All rights reserved.</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+            <Link
+              href="/privacy"
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: "#718096",
+                textDecoration: "none",
+              }}
+            >
+              Privacy Policy
+            </Link>
+            <Link
+              href="/download"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "10px 18px",
+                borderRadius: 10,
+                background: "#1769E8",
+                color: "#FFFFFF",
+                fontSize: 13,
+                fontWeight: 700,
+                textDecoration: "none",
+                boxShadow: "0 2px 10px rgba(23, 105, 232, 0.25)",
+              }}
+            >
+              <span>📲 Download Apps</span>
+            </Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

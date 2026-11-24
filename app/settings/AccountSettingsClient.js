@@ -273,6 +273,24 @@ export default function AccountSettingsClient({ profile }) {
             </div>
             <ChevronRight size={18} color="#A0AEC0" />
           </button>
+
+          {/* Help & Support Card */}
+          <button
+            type="button"
+            className="vt-settings-mobile-card"
+            onClick={() => setActiveEditModal("support")}
+          >
+            <div className="vt-settings-card-left">
+              <div className="vt-settings-icon-wrap" style={{ background: "#FAF5FF" }}>
+                <SettingIcon name="shield" />
+              </div>
+              <div className="vt-settings-card-texts">
+                <span className="vt-settings-card-label">Help & Support</span>
+                <span className="vt-settings-card-val">Contact Desk & Hotline</span>
+              </div>
+            </div>
+            <ChevronRight size={18} color="#A0AEC0" />
+          </button>
         </div>
 
         {/* Footer */}
@@ -316,7 +334,8 @@ export default function AccountSettingsClient({ profile }) {
               <span className="vt-settings-overline">SETTINGS</span>
               <a href="#profile"><SettingIcon name="profile" /><span>Profile details</span><i /></a>
               <a href="#email"><SettingIcon name="email" /><span>Email address</span><i /></a>
-              <a href="#password"><SettingIcon name="password" /><span>Password</span><i /></a>
+              <a href="#password"><SettingIcon name="password" /><span>Privacy & Security</span><i /></a>
+              <a href="#support"><SettingIcon name="shield" /><span>Help & Support</span><i /></a>
             </nav>
 
             <div className="vt-settings-private-note">
@@ -366,7 +385,7 @@ export default function AccountSettingsClient({ profile }) {
               <section className="vt-settings-card" id="password" style={{ "--settings-accent": V.coral }}>
                 <div className="vt-settings-card-heading">
                   <span className="vt-settings-icon"><SettingIcon name="password" /></span>
-                  <div><h2>Change password</h2><p>Use at least 8 characters.</p></div>
+                  <div><h2>Privacy & Security</h2><p>Update your password and manage account protection.</p></div>
                 </div>
                 <form onSubmit={changePassword} className="vt-settings-form vt-settings-password-form">
                   <Field label="New password" type="password" placeholder="Enter new password" autoComplete="new-password" minLength={8} value={newPassword} onChange={e => setNewPassword(e.target.value)} required />
@@ -377,6 +396,36 @@ export default function AccountSettingsClient({ profile }) {
                     </button>
                   </div>
                 </form>
+              </section>
+
+              <section className="vt-settings-card" id="support" style={{ "--settings-accent": V.violet }}>
+                <div className="vt-settings-card-heading">
+                  <span className="vt-settings-icon"><SettingIcon name="shield" /></span>
+                  <div><h2>Help & Support</h2><p>Priority customer desk and direct contact support.</p></div>
+                </div>
+                <div style={{ display: "grid", gap: 14 }}>
+                  <div style={{ background: "#F4F9FF", border: "1px solid #D2E7FF", borderRadius: 12, padding: "14px 16px" }}>
+                    <div style={{ fontWeight: 800, fontSize: 14, color: "#172B4D" }}>Velocity Turf Support Desk</div>
+                    <div style={{ fontSize: 12.5, color: "#505F79", marginTop: 2 }}>Direct assistance for players, venue owners and platform operators.</div>
+                  </div>
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    <div style={{ flex: 1, minWidth: 200, background: "#FAFCFE", padding: "12px 14px", borderRadius: 10, border: "1px solid #E5EDF5", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <div style={{ fontSize: 11, color: "#718096", fontWeight: 700, textTransform: "uppercase" }}>Email Support</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "#172B4D", marginTop: 2 }}>support@velocityturf.com</div>
+                      </div>
+                      <a href="mailto:support@velocityturf.com?subject=Support%20Request" style={{ ...buttonStyle("primary", "sm"), textDecoration: "none" }}>Email Us</a>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 200, background: "#FAFCFE", padding: "12px 14px", borderRadius: 10, border: "1px solid #E5EDF5", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <div style={{ fontSize: 11, color: "#718096", fontWeight: 700, textTransform: "uppercase" }}>Phone Hotline</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "#172B4D", marginTop: 2 }}>+91 98765 43210</div>
+                      </div>
+                      <a href="tel:+919876543210" style={{ ...buttonStyle("secondary", "sm"), textDecoration: "none" }}>Call Now</a>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: "#718096" }}>Available 7 days a week · 6:00 AM – 11:00 PM IST</div>
+                </div>
               </section>
             </div>
             <footer className="vt-settings-footer">VELOCITY TURF <span>·</span> ACCOUNT SECURITY</footer>
@@ -473,6 +522,39 @@ export default function AccountSettingsClient({ profile }) {
               </Btn>
             </div>
           </form>
+        </Modal>
+      )}
+
+      {activeEditModal === "support" && (
+        <Modal
+          title="Help & Support Desk"
+          subtitle="Direct assistance for venue owners, operators, and platform managers."
+          onClose={() => setActiveEditModal(null)}
+          maxWidth={440}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ background: "#F4F9FF", border: "1px solid #D2E7FF", borderRadius: 12, padding: "14px 16px" }}>
+              <div style={{ fontWeight: 800, fontSize: 14, color: "#172B4D" }}>Velocity Turf Support Desk</div>
+              <div style={{ fontSize: 12.5, color: "#505F79", marginTop: 2 }}>Priority response for bookings, venue management and account assistance.</div>
+            </div>
+            <div style={{ display: "grid", gap: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", background: "#FAFCFE", borderRadius: 10, border: "1px solid #E5EDF5" }}>
+                <div>
+                  <div style={{ fontSize: 11, color: "#718096", fontWeight: 700, textTransform: "uppercase" }}>Email Support</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#172B4D", marginTop: 2 }}>support@velocityturf.com</div>
+                </div>
+                <Btn size="sm" variant="primary" onClick={() => window.location.href = "mailto:support@velocityturf.com?subject=Support%20Request"}>Email Us</Btn>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", background: "#FAFCFE", borderRadius: 10, border: "1px solid #E5EDF5" }}>
+                <div>
+                  <div style={{ fontSize: 11, color: "#718096", fontWeight: 700, textTransform: "uppercase" }}>Phone Hotline</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#172B4D", marginTop: 2 }}>+91 98765 43210</div>
+                </div>
+                <Btn size="sm" variant="secondary" onClick={() => window.location.href = "tel:+919876543210"}>Call Now</Btn>
+              </div>
+            </div>
+            <div style={{ fontSize: 11.5, color: "#718096", textAlign: "center" }}>Available 7 days a week · 6:00 AM – 11:00 PM IST</div>
+          </div>
         </Modal>
       )}
     </main>

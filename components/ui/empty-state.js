@@ -46,7 +46,7 @@ export function EmptyState({ icon = "inbox", title, subtitle, action, accent = "
       >
         {renderedIcon}
       </div>
-      <div style={{ color: V.chalk, fontWeight: 800, fontSize: compact ? 15 : 16, fontFamily: "'Manrope', sans-serif" }}>
+      <div style={{ color: V.chalk, fontWeight: 800, fontSize: compact ? 15 : 16, fontFamily: "var(--font-body)" }}>
         {title}
       </div>
       {subtitle && (

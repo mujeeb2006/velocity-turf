@@ -8,7 +8,7 @@ export default function InstallPlayerPage() {
         minHeight: "100vh",
         background: "linear-gradient(180deg, #0A192F 0%, #1769E8 100%)",
         color: "#FFFFFF",
-        fontFamily: "'Manrope', -apple-system, BlinkMacSystemFont, sans-serif",
+        fontFamily: "var(--font-body)",
         padding: "48px 16px 80px",
         display: "flex",
         alignItems: "center",

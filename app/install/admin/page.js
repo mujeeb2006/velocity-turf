@@ -8,7 +8,7 @@ export default function InstallAdminPage() {
         minHeight: "100vh",
         background: "linear-gradient(180deg, #0F172A 0%, #172B4D 100%)",
         color: "#FFFFFF",
-        fontFamily: "'Manrope', -apple-system, BlinkMacSystemFont, sans-serif",
+        fontFamily: "var(--font-body)",
         padding: "48px 16px 80px",
         display: "flex",
         alignItems: "center",

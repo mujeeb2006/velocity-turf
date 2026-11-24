@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { COLORS as V, FONT_BODY, FONT_DATA, FONT_DISPLAY, panel } from "@/lib/design-tokens";
 import { formatDelta, formatNotificationBody, formatNotificationTitle, relativeTime, toCSV } from "@/lib/dashboard/format";
 import BrandLockup from "@/components/brand-lockup";
-import { Icon as BaseIcon, SportIcon, Check, Clock, X, Users, RefreshCw, ArrowLeft } from "@/components/ui/icons";
+import { Icon as BaseIcon, SportIcon, Check, Clock, X, Users, RefreshCw, ArrowLeft, ChevronRight } from "@/components/ui/icons";
 
 export const font = FONT_BODY;
 export const mono = FONT_DATA;
@@ -156,12 +156,11 @@ export function Btn({ children, variant = "secondary", size = "md", busy = false
 export function StatCard({ label, value, icon, color, sub, delta }) {
   const text = formatDelta(delta);
   const up = delta > 0;
-  const valueFont = typeof value === "string" && value.startsWith("₹") ? font : mono;
   return (
-    <div className="vt-stat" style={{ ...panel(), borderRadius: 16, padding: "18px 20px" }}>
+    <div className="vt-stat" style={{ ...panel(), borderRadius: 18, padding: "20px 22px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-        <div style={{ background: color + "18", borderRadius: 10, padding: 8, display: "inline-flex" }}>
-          <Icon name={icon} size={17} color={color} />
+        <div style={{ background: color + "18", borderRadius: 12, padding: 9, display: "inline-flex" }}>
+          <Icon name={icon} size={18} color={color} />
         </div>
         {text && (
           <span
@@ -176,9 +175,9 @@ export function StatCard({ label, value, icon, color, sub, delta }) {
           </span>
         )}
       </div>
-      <div style={{ color: V.chalk, fontWeight: 800, fontSize: 24, fontFamily: valueFont, letterSpacing: -0.5 }}>{value}</div>
-      <div style={{ color: V.chalkDim, fontSize: 12.5, marginTop: 4 }}>{label}</div>
-      {sub && <div style={{ color: V.chalkFaint, fontSize: 11.5, marginTop: 6, fontWeight: 600 }}>{sub}</div>}
+      <div style={{ color: V.chalk, fontWeight: 900, fontSize: 26, fontFamily: font, letterSpacing: -0.5 }}>{value}</div>
+      <div style={{ color: V.chalkDim, fontSize: 13, fontWeight: 600, marginTop: 4 }}>{label}</div>
+      {sub && <div style={{ color: V.chalkFaint, fontSize: 11.5, fontWeight: 500, marginTop: 6 }}>{sub}</div>}
     </div>
   );
 }
@@ -294,7 +293,7 @@ export function Segmented({ options, value, onChange, label }) {
           >
             {o.label}
             {o.count !== undefined && (
-              <span style={{ fontFamily: mono, fontSize: 10.5, fontWeight: 700, color: active ? V.flood : V.chalkFaint }}>{o.count}</span>
+              <span style={{ fontFamily: font, fontSize: 10.5, fontWeight: 700, color: active ? V.flood : V.chalkFaint }}>{o.count}</span>
             )}
           </button>
         );
@@ -386,12 +385,12 @@ export function BarChart({ data, height = 170, color = V.flood, formatValue = (v
       <div style={{ minHeight: 40, marginBottom: 10 }}>
         {shown ? (
           <>
-            <div style={{ color: V.chalk, fontFamily: typeof shownDisplay === "string" && shownDisplay.startsWith("₹") ? font : mono, fontWeight: 800, fontSize: 20 }}>{shownDisplay}</div>
+            <div style={{ color: V.chalk, fontFamily: font, fontWeight: 800, fontSize: 20 }}>{shownDisplay}</div>
             <div style={{ color: V.chalkDim, fontSize: 12 }}>{shown.tooltip || shown.label}</div>
           </>
         ) : (
           <>
-            <div style={{ color: V.chalk, fontFamily: typeof totalDisplay === "string" && totalDisplay.startsWith("₹") ? font : mono, fontWeight: 800, fontSize: 20 }}>{totalDisplay}</div>
+            <div style={{ color: V.chalk, fontFamily: font, fontWeight: 800, fontSize: 20 }}>{totalDisplay}</div>
             <div style={{ color: V.chalkDim, fontSize: 12 }}>Total for this period. Hover a bar to see the day.</div>
           </>
         )}
@@ -447,7 +446,7 @@ export function BarList({ items, color = V.flood, formatValue = (v) => v, empty 
                 {item.label}
                 {item.sub && <span style={{ color: V.chalkFaint, fontWeight: 500 }}> · {item.sub}</span>}
               </span>
-              <span style={{ color: V.chalk, fontFamily: typeof value === "string" && value.startsWith("₹") ? font : mono, fontWeight: 700, fontSize: 12.5, flexShrink: 0 }}>{value}</span>
+              <span style={{ color: V.chalk, fontFamily: font, fontWeight: 700, fontSize: 12.5, flexShrink: 0 }}>{value}</span>
             </div>
             <div style={{ height: 6, background: V.line, borderRadius: 3 }}>
               <div style={{ height: "100%", width: `${Math.round((item.value / max) * 100)}%`, background: color, borderRadius: 3, minWidth: item.value ? 4 : 0 }} />
@@ -588,7 +587,7 @@ export function SideNav({ items, active, onSelect, roleLabel, roleIcon = "shield
   }, [active]);
 
   return (
-    <nav aria-label="Dashboard" className="vt-dashboard-sidebar" style={{ width: 240, flexShrink: 0, minHeight: "100vh", position: "sticky", top: 0, alignSelf: "flex-start", background: "#FFFFFF", borderRight: `1px solid ${V.line}`, padding: "22px 14px", display: "flex", flexDirection: "column" }}>
+    <nav aria-label="Dashboard" className="vt-dashboard-sidebar" style={{ width: 240, flexShrink: 0, height: "100vh", maxHeight: "100vh", position: "sticky", top: 0, alignSelf: "flex-start", background: "#FFFFFF", borderRight: `1px solid ${V.line}`, padding: "20px 14px", display: "flex", flexDirection: "column" }}>
       {/* Header Row: desktop and mobile */}
       <div className="vt-dashboard-header-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 6px", marginBottom: 18 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -647,7 +646,7 @@ export function SideNav({ items, active, onSelect, roleLabel, roleIcon = "shield
             }}
           >
             <div style={{ paddingBottom: 8, borderBottom: `1px solid ${V.line}` }}>
-              <div style={{ color: "#1769E8", fontSize: 10, fontWeight: 800, fontFamily: mono, letterSpacing: 0.4 }}>{roleLabel}</div>
+              <div style={{ color: "#1769E8", fontSize: 10, fontWeight: 800, fontFamily: font, letterSpacing: 0.4 }}>{roleLabel}</div>
               <div style={{ color: V.chalk, fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name || email}</div>
               {name && email && <div style={{ color: V.chalkFaint, fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{email}</div>}
             </div>
@@ -670,22 +669,36 @@ export function SideNav({ items, active, onSelect, roleLabel, roleIcon = "shield
         </>
       )}
 
-      {/* Desktop Identity Box */}
-      <div className="vt-dashboard-identity vt-desktop-only" style={{ display: "flex", alignItems: "center", gap: 10, background: "#EAF7FF", border: "1px solid rgba(24, 168, 224, 0.25)", borderRadius: 12, padding: "10px 12px", marginBottom: 18 }}>
+      {/* Desktop Identity Box (clickable to open Profile) */}
+      <button
+        type="button"
+        onClick={() => onSelect?.("profile")}
+        className={`vt-dashboard-identity vt-desktop-only ${active === "profile" ? "active" : ""}`}
+        style={{
+          display: "flex", alignItems: "center", gap: 10,
+          background: active === "profile" ? "#DDF1FF" : "#EAF7FF",
+          border: `1px solid ${active === "profile" ? "#1769E8" : "rgba(24, 168, 224, 0.25)"}`,
+          borderRadius: 12, padding: "10px 12px", marginBottom: 18,
+          cursor: "pointer", width: "100%", textAlign: "left",
+          transition: "all 0.15s ease", outline: "none",
+        }}
+        title="View Profile and Settings"
+      >
         <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, #18A8E0 0%, #1769E8 100%)", color: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, flexShrink: 0 }}>{initial}</div>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 5, color: "#1769E8", fontSize: 10.5, fontWeight: 800, fontFamily: mono, letterSpacing: 0.4 }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 5, color: "#1769E8", fontSize: 10.5, fontWeight: 800, fontFamily: font, letterSpacing: 0.4 }}>
             <Icon name={roleIcon} size={11} color="#1769E8" />
             {roleLabel}
           </div>
           <div style={{ color: V.chalk, fontSize: 12.5, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name || email}</div>
           {name && email && <div style={{ color: V.chalkFaint, fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{email}</div>}
         </div>
-      </div>
+        <ChevronRight size={14} color="#718096" />
+      </button>
 
       {/* Navigation tabs */}
-      <div className="vt-dashboard-links-wrap" style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column" }}>
-        <div className="vt-dashboard-links" role="tablist" aria-orientation="vertical" style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+      <div className="vt-dashboard-links-wrap" style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
+        <div className="vt-dashboard-links" role="tablist" aria-orientation="vertical" style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1, overflowY: "auto", paddingRight: 4 }}>
           {items.map((it) => {
             const on = active === it.id;
             return (
@@ -714,9 +727,8 @@ export function SideNav({ items, active, onSelect, roleLabel, roleIcon = "shield
         </div>
       </div>
 
-      {/* Desktop Footer with Account Settings and Sign Out */}
+      {/* Desktop Footer with Sign Out */}
       <div className="vt-dashboard-footer vt-desktop-only" style={{ display: "grid", gap: 8, marginTop: 14 }}>
-        <Btn onClick={onSettings} style={{ justifyContent: "flex-start", fontWeight: 600, color: V.chalkDim }}>Account settings</Btn>
         <Btn onClick={onSignOut} icon="logout" style={{ justifyContent: "flex-start", fontWeight: 600, color: V.chalkDim }}>Sign out</Btn>
       </div>
     </nav>

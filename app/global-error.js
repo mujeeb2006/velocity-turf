@@ -15,7 +15,7 @@ export default function GlobalError({ error, reset }) {
           padding: 0,
           background: "#0c1316",
           color: "#f5f8fa",
-          fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+          fontFamily: "'Exo 2', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
           display: "flex",
           minHeight: "100vh",
           alignItems: "center",

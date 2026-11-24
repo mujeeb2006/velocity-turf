@@ -1,3 +1,8 @@
+:root {
+  --font-body: 'Exo 2', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Space Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -5,20 +10,19 @@
 }
 
 html,
-body,
+body {
+  font-family: var(--font-body);
+  background: #FFFFFF;
+  color: #172B4D;
+  color-scheme: light;
+}
+
 button,
 input,
 optgroup,
 select,
 textarea {
-  font-family: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-}
-
-html,
-body {
-  background: #FFFFFF;
-  color: #172B4D;
-  color-scheme: light;
+  font-family: inherit;
 }
 
 ::selection {
@@ -190,6 +194,42 @@ button:active {
   padding: 18px;
   margin-bottom: 14px;
   box-shadow: 0 2px 10px rgba(23, 105, 232, 0.03);
+}
+
+.vt-desktop-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.vt-desktop-quick-card {
+  background: #FFFFFF;
+  border: 1px solid #E5EDF5;
+  border-radius: 16px;
+  padding: 14px 6px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(23, 105, 232, 0.03);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+  font-family: inherit;
+  outline: none;
+}
+
+.vt-desktop-quick-card:hover {
+  transform: translateY(-2px);
+  border-color: #1769E8;
+  box-shadow: 0 6px 18px rgba(23, 105, 232, 0.1);
+}
+
+.vt-desktop-quick-card.active {
+  border-color: #1769E8;
+  background: #F4F9FF;
+  box-shadow: 0 4px 14px rgba(23, 105, 232, 0.12);
 }
 
 /* ---- Native Mobile App Dashboard Header & 4x2 Quick Action Grid ---- */
@@ -397,6 +437,190 @@ button:active {
     border-radius: 50%;
     background: #EF4444;
   }
+}
+
+/* ---- Profile Section Layout (Desktop & Mobile) ---- */
+.vt-profile-container {
+  width: 100%;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.vt-profile-desktop-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 22px;
+  align-items: flex-start;
+}
+
+.vt-profile-left-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.vt-profile-card-box {
+  background: #FFFFFF;
+  border: 1px solid #E5EDF5;
+  border-radius: 18px;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(23, 105, 232, 0.04);
+}
+
+.vt-profile-camera-btn {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #1769E8;
+  border: 2.5px solid #FFFFFF;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(23, 105, 232, 0.35);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.vt-profile-camera-btn:hover {
+  transform: scale(1.08);
+  background: #1255C0;
+}
+
+.vt-profile-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 14px;
+  background: #F8FAFD;
+  border: 1px solid #E5EDF5;
+  border-radius: 12px;
+  color: #172B4D;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  font-family: inherit;
+  text-align: left;
+}
+
+.vt-profile-action-btn:hover {
+  background: #EAF7FF;
+  border-color: #1769E8;
+  color: #1769E8;
+}
+
+.vt-profile-logout-full-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  background: #FFF1F2;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 12px;
+  color: #EF4444;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  font-family: inherit;
+}
+
+.vt-profile-logout-full-btn:hover {
+  background: #FEE2E2;
+}
+
+.vt-profile-right-col {
+  display: grid;
+  gap: 16px;
+}
+
+.vt-profile-section-card {
+  background: #FFFFFF;
+  border: 1px solid #E5EDF5;
+  border-radius: 18px;
+  padding: 22px 24px;
+  box-shadow: 0 4px 16px rgba(23, 105, 232, 0.04);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.vt-profile-section-card:hover {
+  border-color: rgba(23, 105, 232, 0.35);
+  box-shadow: 0 6px 20px rgba(23, 105, 232, 0.07);
+}
+
+.vt-profile-section-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.vt-profile-section-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.vt-profile-section-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #172B4D;
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.vt-profile-section-sub {
+  font-size: 12.5px;
+  color: #718096;
+  margin: 3px 0 0;
+}
+
+.vt-profile-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid #F0F4F8;
+}
+
+.vt-profile-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vt-profile-meta-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.vt-profile-meta-value {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #172B4D;
+}
+
+@media (max-width: 767px) {
+  .vt-profile-desktop-layout {
+    display: block;
+  }
+}
 
   /* Native Mobile App-Style Profile Screen */
   .vt-mobile-profile-screen {
@@ -568,6 +792,7 @@ button:active {
     background: #FFF1F2;
   }
 
+@media (max-width: 767px) {
   /* Native Mobile Account Settings Screen (matches mobile profile style) */
   .vt-settings-desktop-view {
     display: none !important;
@@ -956,7 +1181,7 @@ button:active {
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.38), 0 0 16px rgba(42, 185, 122, 0.12);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  font-family: Manrope, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-body);
   animation: vt-pwa-slide-up 240ms ease-out both;
 }
 
@@ -1040,7 +1265,7 @@ body {
   border-radius: 7px;
   box-shadow: 0 2px 8px rgba(42, 185, 122, 0.25);
   cursor: pointer;
-  font: 800 11.5px Manrope, -apple-system, BlinkMacSystemFont, sans-serif;
+  font: 800 11.5px var(--font-body);
   white-space: nowrap;
 }
 
@@ -1195,7 +1420,7 @@ body {
   color: #172B4D;
   background-color: #EAF7FF;
   background-image: linear-gradient(135deg, rgba(24, 168, 224, 0.08), transparent 45%), linear-gradient(315deg, rgba(200, 245, 66, 0.12), transparent 45%);
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-body);
 }
 
 .vt-settings-topbar {
@@ -1213,7 +1438,7 @@ body {
   align-items: center;
   gap: 10px;
   color: #172B4D;
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-body);
   font-size: 14px;
   font-weight: 800;
   letter-spacing: 0.7px;
@@ -1295,7 +1520,7 @@ body {
   border-radius: 13px;
   background: linear-gradient(135deg, #18A8E0 0%, #1769E8 100%);
   color: #FFFFFF;
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-body);
   font-size: 20px;
   font-weight: 800;
   box-shadow: 0 4px 14px rgba(23, 105, 232, 0.25);
@@ -1323,7 +1548,7 @@ body {
 
 .vt-settings-overline {
   color: #1769E8;
-  font-family: "Space Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 9.5px;
   font-weight: 800;
   letter-spacing: 0.8px;
@@ -1440,7 +1665,7 @@ body {
 .vt-settings-page-heading h1 {
   margin: 8px 0 5px;
   color: #172B4D;
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-body);
   font-size: 36px;
   font-weight: 800;
   line-height: 1.1;
@@ -1559,7 +1784,7 @@ body {
 .vt-settings-footer {
   margin-top: 20px;
   color: #718096;
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-body);
   font-size: 11px;
   text-align: right;
 }
@@ -1811,7 +2036,7 @@ body {
   gap: 11px;
   width: fit-content;
   color: #18221f;
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-body);
   font-size: 14px;
   font-weight: 800;
   letter-spacing: 0.8px;
@@ -1849,7 +2074,7 @@ body {
   align-items: center;
   gap: 9px;
   color: rgba(19, 32, 30, 0.72);
-  font-family: "Space Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 1.2px;
@@ -1866,7 +2091,7 @@ body {
 .vt-auth-art-title {
   margin: 17px 0 12px;
   color: #172B4D;
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-body);
   font-size: 76px;
   font-weight: 800;
   line-height: 0.88;
@@ -1893,7 +2118,7 @@ body {
   border-top: 1px solid rgba(17, 24, 39, 0.12);
   padding-top: 14px;
   color: rgba(23, 33, 38, 0.7);
-  font-family: "Space Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 9px;
   letter-spacing: 0.4px;
 }
@@ -1918,7 +2143,7 @@ body {
 .vt-auth-heading h1 {
   margin: 0 0 7px;
   color: #162125;
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-body);
   font-size: 25px;
   font-weight: 800;
   line-height: 1.2;
@@ -1981,7 +2206,7 @@ body {
 .vt-auth-panel-footer {
   margin-top: 34px;
   color: rgba(23, 33, 38, 0.65);
-  font-family: "Space Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 9px;
   letter-spacing: 0.8px;
   text-align: center;
@@ -2037,7 +2262,7 @@ body {
   gap: 10px;
   margin-bottom: 20px;
   color: #d4ff4f;
-  font-family: "Space Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 1.4px;
@@ -2053,7 +2278,7 @@ body {
 .vt-landing-title {
   margin: 0 0 18px;
   color: #f5f7f2;
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-body);
   font-size: 76px;
   font-weight: 700;
   line-height: 0.88;
@@ -2091,7 +2316,7 @@ body {
 
 .vt-landing-stat-value {
   color: #f5f7f2;
-  font-family: "Space Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 19px;
   font-weight: 700;
 }
@@ -2285,6 +2510,23 @@ body {
   isolation: isolate;
 }
 
+.vt-dashboard-links::-webkit-scrollbar {
+  width: 4px;
+}
+
+.vt-dashboard-links::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.vt-dashboard-links::-webkit-scrollbar-thumb {
+  background: #E5EDF5;
+  border-radius: 4px;
+}
+
+.vt-dashboard-links::-webkit-scrollbar-thumb:hover {
+  background: #CBD5E1;
+}
+
 .vt-dashboard-sidebar::after {
   position: absolute;
   top: 0;
@@ -2350,7 +2592,7 @@ body {
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.12em;
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-body);
 }
 
 .vt-player-hero-kicker {
@@ -2368,7 +2610,7 @@ body {
 .vt-player-hero h1 {
   margin: 0;
   color: #172B4D;
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-body);
   font-size: clamp(48px, 5.5vw, 70px);
   font-weight: 800;
   letter-spacing: -0.04em;
@@ -2410,7 +2652,7 @@ body {
   outline: 0;
   background: transparent;
   color: #17231f;
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-body);
   font-size: 14px;
 }
 
@@ -2431,7 +2673,7 @@ body {
   background: #C8F542;
   color: #172B4D;
   cursor: pointer;
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-body);
   font-size: 13px;
   font-weight: 800;
   white-space: nowrap;
@@ -2645,7 +2887,7 @@ body {
   background: #C8F542;
   color: #172B4D;
   cursor: pointer;
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-body);
   font-size: 12px;
   font-weight: 800;
   white-space: nowrap;
@@ -2682,7 +2924,7 @@ body {
 .vt-discover-heading h2 {
   margin: 7px 0 5px;
   color: #172B4D;
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-body);
   font-size: clamp(28px, 3vw, 38px);
   font-weight: 800;
   letter-spacing: -0.03em;
@@ -2801,7 +3043,7 @@ body {
   background: #FFFFFF;
   color: #718096;
   cursor: pointer;
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-body);
   font-size: 13px;
   font-weight: 700;
   display: inline-flex;
@@ -2868,7 +3110,7 @@ body {
   outline: 0;
   background: transparent;
   color: #17231f;
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-body);
   font-size: 13px;
   padding: 8px 0;
 }
@@ -3189,7 +3431,7 @@ body {
 .vt-venue-name {
   margin: 0;
   color: #172B4D;
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-body);
   font-size: 19px;
   font-weight: 800;
   letter-spacing: -0.02em;

@@ -159,7 +159,7 @@ export function AdminGroupBookingsSection({ showToast }) {
                 const paidCount = participants.filter((p) => p.payment_status === "paid").length;
                 return (
                   <tr key={g.id} style={{ borderBottom: `1px solid ${V.line}`, color: V.chalk }}>
-                    <td style={{ padding: "12px 16px", fontWeight: 800, fontFamily: "monospace", color: V.flood }}>
+                    <td style={{ padding: "12px 16px", fontWeight: 800, fontFamily: "var(--font-mono)", color: V.flood }}>
                       {g.invitation_code}
                     </td>
                     <td style={{ padding: "12px 16px" }}>

@@ -100,7 +100,7 @@ function ToastViewport({ toasts, onDismiss }) {
               minWidth: 260,
               maxWidth: 420,
               boxShadow: "0 12px 40px rgba(23, 105, 232, 0.14)",
-              fontFamily: "'Manrope', sans-serif",
+              fontFamily: "var(--font-body)",
               animation: "toastIn 0.25s ease",
             }}
           >

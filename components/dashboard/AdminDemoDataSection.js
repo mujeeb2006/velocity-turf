@@ -249,12 +249,12 @@ export function AdminDemoDataSection({ showToast, onDataChanged }) {
               )}
             </div>
             <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-              <span style={{ fontSize: 24, fontWeight: 900, fontFamily: mono, color: V.chalk }}>
+              <span style={{ fontSize: 24, fontWeight: 900, fontFamily: font, color: V.chalk }}>
                 {stats.total}
               </span>
               <span style={{ fontSize: 11, color: V.chalkDim }}>total</span>
             </div>
-            <div style={{ display: "flex", gap: 12, marginTop: 8, fontSize: 11, fontFamily: mono }}>
+            <div style={{ display: "flex", gap: 12, marginTop: 8, fontSize: 11, fontFamily: font }}>
               <span style={{ color: "#c084fc" }}>{stats.demo} demo</span>
               <span style={{ color: V.chalkFaint }}>•</span>
               <span style={{ color: V.confirmed }}>{stats.real} real</span>

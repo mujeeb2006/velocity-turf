@@ -305,7 +305,7 @@ export function GroupBookingsSection({ profile, showToast, onFindTurf }) {
                 placeholder="GRP-XXXXXX"
                 value={joinCodeInput}
                 onChange={(e) => setJoinCodeInput(e.target.value.toUpperCase())}
-                style={{ width: "100%", padding: "12px 14px", background: V.pitch, border: `1px solid ${V.lineStrong}`, borderRadius: 10, color: V.flood, fontSize: 18, fontWeight: 800, letterSpacing: 2, textAlign: "center", fontFamily: "monospace", marginBottom: 16 }}
+                style={{ width: "100%", padding: "12px 14px", background: V.pitch, border: `1px solid ${V.lineStrong}`, borderRadius: 10, color: V.flood, fontSize: 18, fontWeight: 800, letterSpacing: 2, textAlign: "center", fontFamily: "var(--font-mono)", marginBottom: 16 }}
               />
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>

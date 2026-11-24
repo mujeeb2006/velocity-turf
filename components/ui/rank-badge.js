@@ -30,7 +30,7 @@ export function RankBadge({ rank, size = 28 }) {
           justifyContent: "center",
           fontSize: size * 0.42,
           fontWeight: 700,
-          fontFamily: "'Manrope', sans-serif",
+          fontFamily: "var(--font-body)",
           flexShrink: 0,
         }}
       >

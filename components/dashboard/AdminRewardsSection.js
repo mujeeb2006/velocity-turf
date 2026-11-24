@@ -416,7 +416,7 @@ export function AdminRewardsSection({ showToast }) {
                         {r.referred?.full_name || "New Player"}
                         <div style={{ color: V.chalkFaint, fontSize: 11 }}>{r.referred?.email}</div>
                       </td>
-                      <td style={{ padding: "14px", color: V.flood, fontFamily: "monospace", fontWeight: 700 }}>
+                      <td style={{ padding: "14px", color: V.flood, fontFamily: "var(--font-mono)", fontWeight: 700 }}>
                         {r.referral_code}
                       </td>
                       <td style={{ padding: "14px" }}>
@@ -504,7 +504,7 @@ export function AdminRewardsSection({ showToast }) {
                             {w.profile?.role || "player"}
                           </span>
                         </td>
-                        <td style={{ padding: "14px", color: V.flood, fontFamily: "monospace", fontWeight: 700 }}>
+                        <td style={{ padding: "14px", color: V.flood, fontFamily: "var(--font-mono)", fontWeight: 700 }}>
                           {w.profile?.referral_code || "—"}
                         </td>
                         <td style={{ padding: "14px", color: V.flood, fontWeight: 800, fontSize: 15 }}>
@@ -594,7 +594,7 @@ export function AdminRewardsSection({ showToast }) {
                         <td style={{ padding: "14px", color: V.chalkDim, maxWidth: 300 }}>
                           {tx.description}
                         </td>
-                        <td style={{ padding: "14px", color: V.chalkFaint, fontSize: 11, fontFamily: "monospace" }}>
+                        <td style={{ padding: "14px", color: V.chalkFaint, fontSize: 11, fontFamily: "var(--font-mono)" }}>
                           {tx.reference_id ? tx.reference_id.slice(0, 10) + "…" : "—"}
                         </td>
                       </tr>

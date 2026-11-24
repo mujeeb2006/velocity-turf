@@ -33,7 +33,6 @@ import { SmartNotificationCenter } from "@/components/dashboard/SmartNotificatio
 import { extractErrorMessage } from "@/lib/api-response";
 import { X, Camera, Star, ArrowLeft, StadiumIcon } from "@/components/ui/icons";
 import MobileProfileSection from "@/components/dashboard/MobileProfileSection";
-import { PwaInstallButton } from "@/components/PwaInstallButton";
 import {
   ManagePricingModal,
   EditTurfModal,
@@ -42,7 +41,7 @@ import {
 } from "@/components/dashboard/OwnerPricingAndWalkinModals";
 import { calculateSlotPrice, generateDemandInsights } from "@/lib/turf/pricing";
 
-const TABS = ["overview", "turfs", "tournaments", "games", "bookings", "checkin", "maintenance", "staff", "analytics", "payouts", "reviews"];
+const TABS = ["overview", "turfs", "tournaments", "games", "bookings", "checkin", "maintenance", "staff", "analytics", "payouts", "reviews", "profile"];
 const AMENITY_OPTIONS = ["Floodlights", "Parking", "Cafeteria", "Showers", "AC Hall", "Lockers", "WiFi", "Turf"];
 const BOOKING_SELECT = "*";
 const OWNER_COLOR = V.aqua;
@@ -1172,6 +1171,7 @@ export default function OwnerDashboardClient({ profile }) {
     { id: "analytics", label: "Analytics", icon: "chart" },
     ...(!isStaff ? [{ id: "payouts", label: "Payouts", icon: "wallet" }] : []),
     { id: "reviews", label: "Reviews", icon: "star" },
+    { id: "profile", label: "Profile", icon: "user" },
   ];
 
   const refreshButton = <Btn icon="refresh" size="sm" onClick={fetchAll}>{updatedAt ? `Refreshed ${updatedAt}` : "Refresh"}</Btn>;
@@ -1179,8 +1179,12 @@ export default function OwnerDashboardClient({ profile }) {
   const skeletonStats = <StatGrid>{[...Array(5)].map((_, i) => <SkeletonCard key={i} lines={1} />)}</StatGrid>;
 
   const firstName = (profile?.full_name || profile?.email || "Owner").trim().split(" ")[0];
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning," : hour < 17 ? "Good afternoon," : "Good evening,";
+  const [greeting, setGreeting] = useState("Good day,");
+
+  useEffect(() => {
+    const hour = new Date().getHours();
+    setGreeting(hour < 12 ? "Good morning," : hour < 17 ? "Good afternoon," : "Good evening,");
+  }, []);
 
   return (
     <div className="vt-dashboard-shell" style={{ display: "flex", position: "relative" }}>
@@ -1215,7 +1219,6 @@ export default function OwnerDashboardClient({ profile }) {
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <PwaInstallButton role="owner" variant="pill" />
                 <button
                   type="button"
                   className="vt-btn"
@@ -1375,30 +1378,88 @@ export default function OwnerDashboardClient({ profile }) {
           const requestToReview = firstOverdueRequest || d.requests[0];
           return (
             <>
-              <div className="vt-desktop-only">
-                <TopBar
-                  title={`Welcome back, ${profile?.full_name || "Owner"}`}
-                  sub="Here's how your turfs are doing today."
-                  action={
-                    <div className="vt-topbar-action-row" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                      <PwaInstallButton role="owner" variant="pill" />
-                      <Btn
-                        icon="plus"
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => {
-                          setWalkInTurf(null);
-                          setWalkInSlot(null);
-                          setShowWalkInModal(true);
-                        }}
-                      >
-                        Walk-in Booking
-                      </Btn>
-                      {addTurfButton}
-                      {refreshButton}
+              <div className="vt-desktop-only" style={{ marginBottom: 20 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 14 }}>
+                  <div>
+                    <div style={{ color: "#718096", fontSize: 13, fontWeight: 600 }}>{greeting}</div>
+                    <h1 style={{ color: "#172B4D", fontFamily: font, fontSize: 26, fontWeight: 900, margin: "2px 0 0", letterSpacing: -0.5, display: "flex", alignItems: "center", gap: 8 }}>
+                      {firstName} <span style={{ fontSize: 24 }}>👋</span>
+                    </h1>
+                    <div style={{ color: "#1769E8", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+                      <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#10B981", display: "inline-block" }} />
+                      Make the most of your day! Here's how your turfs are doing today.
                     </div>
-                  }
-                />
+                  </div>
+                  <div className="vt-topbar-action-row" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                    <Btn
+                      icon="plus"
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => {
+                        setWalkInTurf(null);
+                        setWalkInSlot(null);
+                        setShowWalkInModal(true);
+                      }}
+                    >
+                      Walk-in Booking
+                    </Btn>
+                    {addTurfButton}
+                    {refreshButton}
+                  </div>
+                </div>
+
+                {/* Desktop 8-Action Quick Row (mirrors mobile view quick actions) */}
+                <div className="vt-desktop-quick-grid" style={{ marginTop: 20 }}>
+                  <button type="button" className={`vt-desktop-quick-card ${tab === "turfs" ? "active" : ""}`} onClick={() => selectTab("turfs")}>
+                    <div className="vt-app-icon-wrap" style={{ background: "#EAF7FF", color: "#1769E8" }}>
+                      <Icon name="building" size={20} />
+                    </div>
+                    <span className="vt-app-label">My Turfs</span>
+                  </button>
+                  <button type="button" className={`vt-desktop-quick-card ${tab === "bookings" ? "active" : ""}`} onClick={() => selectTab("bookings")}>
+                    <div className="vt-app-icon-wrap" style={{ background: "#EEF2FF", color: "#4F46E5", position: "relative" }}>
+                      <Icon name="clock" size={20} />
+                      {pendingCount > 0 && <span className="vt-app-badge">{pendingCount}</span>}
+                    </div>
+                    <span className="vt-app-label">Bookings</span>
+                  </button>
+                  <button type="button" className="vt-desktop-quick-card" onClick={() => { setWalkInTurf(null); setWalkInSlot(null); setShowWalkInModal(true); }}>
+                    <div className="vt-app-icon-wrap" style={{ background: "#0E7050", color: "#FFFFFF" }}>
+                      <Icon name="plus" size={20} color="#FFFFFF" />
+                    </div>
+                    <span className="vt-app-label">Walk-in</span>
+                  </button>
+                  <button type="button" className={`vt-desktop-quick-card ${tab === "checkin" ? "active" : ""}`} onClick={() => selectTab("checkin")}>
+                    <div className="vt-app-icon-wrap" style={{ background: "#F5F3FF", color: "#7C3AED" }}>
+                      <Icon name="qr" size={20} />
+                    </div>
+                    <span className="vt-app-label">QR Scan</span>
+                  </button>
+                  <button type="button" className={`vt-desktop-quick-card ${tab === "tournaments" ? "active" : ""}`} onClick={() => selectTab("tournaments")}>
+                    <div className="vt-app-icon-wrap" style={{ background: "#FFFBEB", color: "#D97706" }}>
+                      <Icon name="star" size={20} />
+                    </div>
+                    <span className="vt-app-label">Tourneys</span>
+                  </button>
+                  <button type="button" className={`vt-desktop-quick-card ${tab === "games" ? "active" : ""}`} onClick={() => selectTab("games")}>
+                    <div className="vt-app-icon-wrap" style={{ background: "#F0F9FF", color: "#0284C7" }}>
+                      <Icon name="users" size={20} />
+                    </div>
+                    <span className="vt-app-label">Matches</span>
+                  </button>
+                  <button type="button" className={`vt-desktop-quick-card ${tab === "maintenance" ? "active" : ""}`} onClick={() => selectTab("maintenance")}>
+                    <div className="vt-app-icon-wrap" style={{ background: "#FFF1F2", color: "#E11D48" }}>
+                      <Icon name="shield" size={20} />
+                    </div>
+                    <span className="vt-app-label">Maintain</span>
+                  </button>
+                  <button type="button" className={`vt-desktop-quick-card ${tab === "analytics" ? "active" : ""}`} onClick={() => selectTab("analytics")}>
+                    <div className="vt-app-icon-wrap" style={{ background: "#FAF5FF", color: "#9333EA" }}>
+                      <Icon name="chart" size={20} />
+                    </div>
+                    <span className="vt-app-label">Analytics</span>
+                  </button>
+                </div>
               </div>
               {/* DESKTOP-ONLY OVERVIEW CONTENT */}
               <div className="vt-desktop-only">
@@ -1452,7 +1513,7 @@ export default function OwnerDashboardClient({ profile }) {
                           <div style={{ display: "grid", maxHeight: 290, overflowY: "auto" }}>
                             {d.todaySchedule.map((r, i) => (
                               <div key={r.id} style={{ display: "flex", gap: 12, alignItems: "center", padding: "10px 0", borderBottom: i < d.todaySchedule.length - 1 ? `1px solid ${V.line}` : "none" }}>
-                                <span style={{ fontFamily: mono, fontSize: 12, fontWeight: 700, color: V.chalk, width: 66, flexShrink: 0 }}>{formatTime12(r.time)}</span>
+                                <span style={{ fontFamily: font, fontSize: 12, fontWeight: 700, color: V.chalk, width: 66, flexShrink: 0 }}>{formatTime12(r.time)}</span>
                                 <div style={{ minWidth: 0, flex: 1 }}>
                                   <div style={{ color: V.chalk, fontWeight: 700, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.player}</div>
                                   <div style={{ color: V.chalkFaint, fontSize: 11.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.turf} · {r.sport}</div>
@@ -1759,7 +1820,7 @@ export default function OwnerDashboardClient({ profile }) {
                         <>
                           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 12 }}>
                             <span style={{ color: V.chalkDim }}>Occupancy today</span>
-                            <span style={{ color: V.chalk, fontWeight: 800, fontFamily: mono }}>{t.occupancy}%</span>
+                            <span style={{ color: V.chalk, fontWeight: 800, fontFamily: font }}>{t.occupancy}%</span>
                           </div>
                           <div style={{ height: 6, background: V.line, borderRadius: 3, marginBottom: 14 }}>
                             <div style={{ height: "100%", width: `${t.occupancy}%`, background: V.flood, borderRadius: 3 }} />
@@ -2154,8 +2215,8 @@ export default function OwnerDashboardClient({ profile }) {
                 )}
 
                 {/* Footer text */}
-                <div style={{ textAlign: "center", fontSize: 12, color: "#718096", marginTop: 8 }}>
-                  Updated {new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} · New bookings are confirmed automatically
+                <div suppressHydrationWarning style={{ textAlign: "center", fontSize: 12, color: "#718096", marginTop: 8 }}>
+                  {updatedAt ? `Updated ${updatedAt} · ` : ""}New bookings are confirmed automatically
                 </div>
               </div>
             </>
@@ -2182,6 +2243,7 @@ export default function OwnerDashboardClient({ profile }) {
             onSignOut={handleSignOut}
             onNotifications={() => notes.setOpen((o) => !o)}
             unreadCount={notes.unreadCount}
+            onBack={() => selectTab("overview")}
           />
         )}
 
@@ -2393,16 +2455,16 @@ export default function OwnerDashboardClient({ profile }) {
                   <Card style={{ marginBottom: 18 }}>
                     <div style={{ display: "flex", gap: 32, flexWrap: "wrap", alignItems: "center" }}>
                       <div>
-                        <div style={{ fontFamily: mono, fontWeight: 800, fontSize: 40, color: V.chalk, lineHeight: 1 }}>{d.rating.average.toFixed(1)}</div>
+                        <div style={{ fontFamily: font, fontWeight: 800, fontSize: 40, color: V.chalk, lineHeight: 1 }}>{d.rating.average.toFixed(1)}</div>
                         <div style={{ margin: "8px 0 4px" }}><Stars value={Math.round(d.rating.average)} size={15} /></div>
                         <div style={{ color: V.chalkFaint, fontSize: 12 }}>{d.rating.total} review{d.rating.total === 1 ? "" : "s"}</div>
                       </div>
                       <div style={{ flex: 1, minWidth: 220, display: "grid", gap: 7 }}>
                         {d.rating.distribution.map((row) => (
                           <div key={row.stars} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12, color: V.chalkDim }}>
-                            <span style={{ width: 28, fontFamily: mono, display: "inline-flex", alignItems: "center" }}>{row.stars}<Star size={11} filled color={V.pending} style={{ marginLeft: 2 }} /></span>
+                            <span style={{ width: 28, fontFamily: font, display: "inline-flex", alignItems: "center" }}>{row.stars}<Star size={11} filled color={V.pending} style={{ marginLeft: 2 }} /></span>
                             <div style={{ flex: 1, height: 6, background: V.line, borderRadius: 3 }}><div style={{ width: `${row.pct}%`, height: "100%", background: V.pending, borderRadius: 3 }} /></div>
-                            <span style={{ width: 28, textAlign: "right", fontFamily: mono }}>{row.count}</span>
+                            <span style={{ width: 28, textAlign: "right", fontFamily: font }}>{row.count}</span>
                           </div>
                         ))}
                       </div>

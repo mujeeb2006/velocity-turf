@@ -168,7 +168,7 @@ function SignupForm() {
   if (done) {
     return (
       <AuthShell title="Check your inbox" subtitle="One more step to activate your account">
-        <p style={{ color: V.chalkDim, fontSize: 14.5, textAlign: "center", fontFamily: "'Manrope', sans-serif", lineHeight: 1.5 }}>
+        <p style={{ color: V.chalkDim, fontSize: 14.5, textAlign: "center", fontFamily: "var(--font-body)", lineHeight: 1.5 }}>
           Open the confirmation link sent to <strong>{email}</strong>.
           {matchIntent && (
             <span style={{ display: "block", marginTop: 8, color: "#22C55E", fontWeight: 700 }}>
@@ -229,10 +229,10 @@ function SignupForm() {
             <SportIcon sport={matchIntent.sport} size={18} color="#38BDF8" />
           </div>
           <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
-            <div style={{ color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "'Manrope', sans-serif" }}>
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "var(--font-body)" }}>
               Resuming game participation
             </div>
-            <div style={{ color: "rgba(255,255,255,0.72)", fontSize: 12, marginTop: 2, fontFamily: "'Manrope', sans-serif" }}>
+            <div style={{ color: "rgba(255,255,255,0.72)", fontSize: 12, marginTop: 2, fontFamily: "var(--font-body)" }}>
               {matchIntent.sport} match at {matchIntent.turfName} · {matchIntent.date} at {matchIntent.time}
             </div>
           </div>
@@ -257,10 +257,10 @@ function SignupForm() {
             <Calendar size={18} color={V.flood} />
           </div>
           <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
-            <div style={{ color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "'Manrope', sans-serif" }}>
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "var(--font-body)" }}>
               Resuming your booking
             </div>
-            <div style={{ color: "rgba(255,255,255,0.72)", fontSize: 12, marginTop: 2, fontFamily: "'Manrope', sans-serif" }}>
+            <div style={{ color: "rgba(255,255,255,0.72)", fontSize: 12, marginTop: 2, fontFamily: "var(--font-body)" }}>
               {bookingIntent.turfName || "Selected pitch"} · {bookingIntent.bookingDate} at {bookingIntent.timeLabel || bookingIntent.startTime}
             </div>
           </div>
@@ -270,7 +270,7 @@ function SignupForm() {
       {error && <div role="alert" style={{ ...errorStyle, marginBottom: 18 }}>{error}</div>}
 
       <form onSubmit={handleSignup} style={{ display: "grid", gap: 14 }}>
-        <p style={{ color: V.chalkDim, fontSize: 13, lineHeight: 1.5, fontFamily: "'Manrope', sans-serif", margin: 0 }}>
+        <p style={{ color: V.chalkDim, fontSize: 13, lineHeight: 1.5, fontFamily: "var(--font-body)", margin: 0 }}>
           Player accounts are open to everyone. Turf owner access is provided by an administrator.
         </p>
         <input
@@ -430,7 +430,7 @@ function SignupForm() {
         </button>
       </form>
 
-      <p style={{ color: V.chalkDim, fontSize: 13.5, lineHeight: 1.6, marginTop: 22, textAlign: "center", fontFamily: "'Manrope', sans-serif" }}>
+      <p style={{ color: V.chalkDim, fontSize: 13.5, lineHeight: 1.6, marginTop: 22, textAlign: "center", fontFamily: "var(--font-body)" }}>
         Already have an account?{" "}
         <Link href={loginHref} style={linkStyle}>
           Sign in

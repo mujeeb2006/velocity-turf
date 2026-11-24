@@ -8,7 +8,7 @@ export default function InstallOwnerPage() {
         minHeight: "100vh",
         background: "linear-gradient(180deg, #064E3B 0%, #0E7050 100%)",
         color: "#FFFFFF",
-        fontFamily: "'Manrope', -apple-system, BlinkMacSystemFont, sans-serif",
+        fontFamily: "var(--font-body)",
         padding: "48px 16px 80px",
         display: "flex",
         alignItems: "center",

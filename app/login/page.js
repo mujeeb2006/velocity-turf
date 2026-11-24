@@ -234,10 +234,10 @@ function LoginForm() {
             <SportIcon sport={matchIntent.sport} size={18} color="#38BDF8" />
           </div>
           <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
-            <div style={{ color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "'Manrope', sans-serif" }}>
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "var(--font-body)" }}>
               Resuming game participation
             </div>
-            <div style={{ color: "rgba(255,255,255,0.72)", fontSize: 12, marginTop: 2, fontFamily: "'Manrope', sans-serif" }}>
+            <div style={{ color: "rgba(255,255,255,0.72)", fontSize: 12, marginTop: 2, fontFamily: "var(--font-body)" }}>
               {matchIntent.sport} match at {matchIntent.turfName} · {matchIntent.date} at {matchIntent.time}
             </div>
           </div>
@@ -262,10 +262,10 @@ function LoginForm() {
             <Calendar size={18} color={V.flood} />
           </div>
           <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
-            <div style={{ color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "'Manrope', sans-serif" }}>
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "var(--font-body)" }}>
               Resuming your booking
             </div>
-            <div style={{ color: "rgba(255,255,255,0.72)", fontSize: 12, marginTop: 2, fontFamily: "'Manrope', sans-serif" }}>
+            <div style={{ color: "rgba(255,255,255,0.72)", fontSize: 12, marginTop: 2, fontFamily: "var(--font-body)" }}>
               {bookingIntent.turfName || "Selected pitch"} · {bookingIntent.bookingDate} at {bookingIntent.timeLabel || bookingIntent.startTime}
             </div>
           </div>
@@ -489,13 +489,13 @@ function LoginForm() {
       {/* Bottom Guidance */}
       {mode === "login" && (
         <div style={{ marginTop: 22, textAlign: "center", display: "grid", gap: 10 }}>
-          <p style={{ color: V.chalkDim, fontSize: 13.5, margin: 0, fontFamily: "'Manrope', sans-serif" }}>
+          <p style={{ color: V.chalkDim, fontSize: 13.5, margin: 0, fontFamily: "var(--font-body)" }}>
             New here?{" "}
             <Link href={signupHref} style={linkStyle}>
               Create your account
             </Link>
           </p>
-          <div style={{ color: V.chalkFaint, fontSize: 12.5, margin: 0, fontFamily: "'Manrope', sans-serif" }}>
+          <div style={{ color: V.chalkFaint, fontSize: 12.5, margin: 0, fontFamily: "var(--font-body)" }}>
             Invited turf owner?{" "}
             <button
               type="button"

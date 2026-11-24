@@ -35,11 +35,18 @@ import { AdminGroupBookingsSection } from "@/components/dashboard/AdminGroupBook
 import { DemoNameWithBadge } from "@/components/ui/demo-badge";
 import { Check, AlertTriangle, Key, Lock, ArrowLeft, ArrowRight, CheckCircle, StadiumIcon } from "@/components/ui/icons";
 import MobileProfileSection from "@/components/dashboard/MobileProfileSection";
-import { PwaInstallButton } from "@/components/PwaInstallButton";
 
-const TABS = ["overview", "approvals", "game-approvals", "tournaments", "packages", "turfs", "bookings", "groups", "users", "payouts", "disputes", "rewards", "demo-data"];
+const TABS = ["overview", "approvals", "game-approvals", "tournaments", "packages", "turfs", "bookings", "groups", "users", "payouts", "disputes", "rewards", "demo-data", "profile"];
 const ROLE_COLORS = { Admin: V.violet, "Turf Owner": V.sky, Player: V.flood };
 const PAGE_SIZE = 50;
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function formatJoinedDate(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "—";
+  return `${MONTH_NAMES[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+}
 
 function formatCityName(value) {
   return String(value || "")
@@ -184,6 +191,14 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
   const [usersRaw, setUsersRaw] = useState(initialUsers);
   const [gamesRaw, setGamesRaw] = useState([]);
   const [usersFailed, setUsersFailed] = useState(usersError);
+  const [greeting, setGreeting] = useState("Good day,");
+
+  useEffect(() => {
+    const h = new Date().getHours();
+    if (h < 12) setGreeting("Good morning,");
+    else if (h < 17) setGreeting("Good afternoon,");
+    else setGreeting("Good evening,");
+  }, []);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [updatedAt, setUpdatedAt] = useState(null);
@@ -572,7 +587,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
     const users = usersRaw.map((u) => ({
       id: u.id, name: u.full_name || "—", email: u.email || "—", role: normalizeAdminRole(u.role),
       createdTs: new Date(u.created_at).getTime() || 0,
-      joined: new Date(u.created_at).toLocaleDateString(undefined, { month: "short", year: "numeric" }),
+      joined: formatJoinedDate(u.created_at),
       bookings: getUserBookingCount(bookings, u.id), spent: getUserSpend(bookings, u.id),
       // Fields from loadAdminUsers (service-role enriched)
       status: u.status || "Active",
@@ -955,6 +970,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
     { id: "payouts", label: "Payouts & Banks", icon: "wallet", badge: processingPayoutsCount || undefined },
     { id: "disputes", label: "Disputes & Refunds", icon: "alert", badge: openDisputes.length || undefined },
     { id: "demo-data", label: "Demo Data", icon: "refresh" },
+    { id: "profile", label: "Profile", icon: "user" },
   ];
 
   const refreshButton = <Btn icon="refresh" size="sm" onClick={refreshAll}>{updatedAt ? `Updated ${updatedAt}` : "Refresh"}</Btn>;
@@ -981,12 +997,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <div>
                 <div style={{ color: "#718096", fontSize: 13, fontWeight: 600 }}>
-                  {(() => {
-                    const h = new Date().getHours();
-                    if (h < 12) return "Good morning,";
-                    if (h < 17) return "Good afternoon,";
-                    return "Good evening,";
-                  })()}
+                  {greeting}
                 </div>
                 <div style={{ color: "#172B4D", fontSize: 20, fontWeight: 900, display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
                   <span>{profile?.full_name ? profile.full_name.split(" ")[0] : "Admin"}</span>
@@ -994,7 +1005,6 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <PwaInstallButton role="admin" variant="pill" />
                 <button
                   type="button"
                   onClick={() => notes.setOpen((o) => !o)}
@@ -1055,6 +1065,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
             onSignOut={handleSignOut}
             onNotifications={() => notes.setOpen((o) => !o)}
             unreadCount={notes.unreadCount}
+            onBack={() => selectTab("overview")}
           />
         )}
 
@@ -1063,6 +1074,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
             profile={profile} view={view} loading={loading} range={range} setRange={setRange} refreshButton={refreshButton}
             goTo={selectTab}
             processingPayoutsCount={processingPayoutsCount}
+            greeting={greeting}
           />
         )}
 
@@ -1292,7 +1304,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
             { key: "owner", label: "Owner", width: "1.1fr", sortable: true },
             { key: "city", label: "City", width: "0.9fr", sortable: true },
             { key: "status", label: "Status", width: "0.8fr", sortable: true, render: (t) => <StatusPill status={t.status} /> },
-            { key: "bookings", label: "Bookings", width: "0.8fr", align: "right", sortable: true, render: (t) => <span style={{ fontFamily: mono }}>{t.bookings}</span> },
+            { key: "bookings", label: "Bookings", width: "0.8fr", align: "right", sortable: true, render: (t) => <span style={{ fontFamily: font }}>{t.bookings}</span> },
             { key: "revenue", label: "Revenue", width: "1fr", align: "right", sortable: true, render: (t) => <span style={{ fontFamily: font, color: V.chalk, fontWeight: 700 }}>{formatINR(t.revenue)}</span> },
             { key: "rating", label: "Rating", width: "0.9fr", align: "right", sortable: true, render: (t) => (
               t.reviewCount ? (
@@ -1735,7 +1747,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
               <Pill color={STATUS_COLORS[u.status] || V.chalkDim}>{u.status}</Pill>
             ) },
             { key: "createdTs", label: "Joined", width: "0.8fr", sortable: true, render: (u) => u.joined },
-            { key: "bookings", label: "Bookings", width: "0.7fr", align: "right", sortable: true, render: (u) => <span style={{ fontFamily: mono }}>{u.bookings}</span> },
+            { key: "bookings", label: "Bookings", width: "0.7fr", align: "right", sortable: true, render: (u) => <span style={{ fontFamily: font }}>{u.bookings}</span> },
             { key: "spent", label: "Spent", width: "0.9fr", align: "right", sortable: true, render: (u) => <span style={{ fontFamily: font, color: V.chalk, fontWeight: 700 }}>{formatINR(u.spent)}</span> },
             { key: "actions", label: "Actions", width: "1.8fr", align: "right", render: (u) => {
               const isSelf = u.id === profile?.id;
@@ -2865,7 +2877,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
 }
 
 // ------------------------------------------------------------------ overview
-function OverviewTab({ profile, view, loading, range, setRange, refreshButton, goTo, processingPayoutsCount = 0 }) {
+function OverviewTab({ profile, view, loading, range, setRange, refreshButton, goTo, processingPayoutsCount = 0, greeting }) {
   const { month, pendingTurfs, openDisputes, userCounts, series, turfs, cityList, bookingRows, liveTurfs, avgResolve, revenueBreakdown, bookingCounts } = view;
   const topTurfs = [...turfs].sort((a, b) => b.revenue - a.revenue).filter((t) => t.revenue > 0).slice(0, 5)
     .map((t) => ({ key: t.id, label: t.name, sub: t.city, value: t.revenue }));
@@ -2877,16 +2889,23 @@ function OverviewTab({ profile, view, loading, range, setRange, refreshButton, g
     <>
       {/* DESKTOP-ONLY OVERVIEW CONTENT */}
       <div className="vt-desktop-only">
-        <TopBar
-          title={`Welcome, ${profile?.full_name || "Admin"}`}
-          sub="Everything happening across Velocity Turf."
-          action={
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <PwaInstallButton role="admin" variant="pill" />
-              {refreshButton}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 22, flexWrap: "wrap", gap: 14 }}>
+          <div>
+            <div style={{ color: "#718096", fontSize: 13, fontWeight: 600 }}>
+              {greeting}
             </div>
-          }
-        />
+            <h1 style={{ color: "#172B4D", fontFamily: font, fontSize: 26, fontWeight: 900, margin: "2px 0 0", letterSpacing: -0.5, display: "flex", alignItems: "center", gap: 8 }}>
+              {profile?.full_name ? profile.full_name.split(" ")[0] : "Admin"} <span style={{ fontSize: 24 }}>👋</span>
+            </h1>
+            <div style={{ color: "#1769E8", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#10B981", display: "inline-block" }} />
+              Make the most of your day! Everything happening across Velocity Turf.
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {refreshButton}
+          </div>
+        </div>
 
         {loading ? (
           <StatGrid>{[...Array(6)].map((_, i) => <SkeletonCard key={i} lines={1} />)}</StatGrid>

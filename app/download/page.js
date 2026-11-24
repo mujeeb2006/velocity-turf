@@ -88,7 +88,7 @@ export default function DownloadPage() {
         minHeight: "100vh",
         background: "linear-gradient(180deg, #F4F7FC 0%, #FFFFFF 100%)",
         color: "#172B4D",
-        fontFamily: "'Manrope', -apple-system, BlinkMacSystemFont, sans-serif",
+        fontFamily: "var(--font-body)",
         padding: "40px 16px 80px",
       }}
     >

@@ -15,7 +15,7 @@ import {
   successStyle,
 } from "@/app/auth-styles";
 import { COLORS as V } from "@/lib/design-tokens";
-import { ArrowRight, Calendar, SportIcon } from "@/components/ui/icons";
+import { ArrowRight, Calendar, SportIcon, Eye, EyeOff } from "@/components/ui/icons";
 import {
   buildResumeHref,
   decodeBookingIntent,
@@ -37,6 +37,7 @@ function LoginForm() {
   const emailParam = searchParams?.get("email") || "";
   const [email, setEmail] = useState(emailParam);
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const urlError = searchParams?.get("error");
   const rawBookingIntentParam = searchParams?.get("bookingIntent");
   const rawMatchIntentParam = searchParams?.get("matchIntent");
@@ -276,27 +277,66 @@ function LoginForm() {
 
       {/* Mode 1: Standard Login Form */}
       {mode === "login" && (
-        <form onSubmit={handleLogin} style={{ display: "grid", gap: 14 }}>
-          <input
-            type="email"
-            aria-label="Email address"
-            placeholder="Email address"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoComplete="email"
-            style={inputStyle}
-          />
-          <input
-            type="password"
-            aria-label="Password"
-            placeholder="Your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoComplete="current-password"
-            style={inputStyle}
-          />
+        <form onSubmit={handleLogin} style={{ display: "grid", gap: 16 }}>
+          <div style={{ display: "grid", gap: 6 }}>
+            <label style={{ fontSize: 13, fontWeight: 700, color: "#172B4D" }}>Email address</label>
+            <input
+              type="email"
+              aria-label="Email address"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+              style={inputStyle}
+            />
+          </div>
+          <div style={{ display: "grid", gap: 6 }}>
+            <label style={{ fontSize: 13, fontWeight: 700, color: "#172B4D" }}>Password</label>
+            <div style={{ position: "relative", width: "100%" }}>
+              <input
+                type={showPassword ? "text" : "password"}
+                aria-label="Password"
+                placeholder="Your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                style={{
+                  ...inputStyle,
+                  width: "100%",
+                  boxSizing: "border-box",
+                  paddingRight: password.length > 0 ? 44 : (inputStyle.paddingRight || 15),
+                }}
+              />
+              {password.length > 0 && (
+                <button
+                  type="button"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  title={showPassword ? "Hide password" : "Show password"}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: "absolute",
+                    right: 8,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 8,
+                    color: "#718096",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: 6,
+                  }}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              )}
+            </div>
+          </div>
 
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <button
@@ -310,12 +350,11 @@ function LoginForm() {
               style={{
                 background: "none",
                 border: "none",
-                color: "#38BDF8",
-                fontSize: 12.5,
+                color: "#1769E8",
+                fontSize: 13,
                 fontWeight: 600,
                 cursor: "pointer",
                 padding: "2px 0",
-                textDecoration: "underline",
               }}
             >
               Forgot password?
@@ -328,12 +367,19 @@ function LoginForm() {
             aria-busy={loading}
             style={{
               ...buttonStyle,
+              background: "#C8F542",
+              color: "#111C2E",
+              fontWeight: 800,
+              fontSize: 15,
+              padding: "14px",
+              borderRadius: 12,
               opacity: loading ? 0.7 : 1,
               cursor: loading ? "progress" : "pointer",
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
               gap: 8,
+              boxShadow: "none",
             }}
           >
             {loading ? (
@@ -462,12 +508,11 @@ function LoginForm() {
               style={{
                 background: "none",
                 border: "none",
-                color: "#38BDF8",
-                fontSize: 12.5,
-                fontWeight: 600,
+                color: "#1769E8",
+                fontSize: 13,
+                fontWeight: 700,
                 cursor: "pointer",
                 padding: 0,
-                textDecoration: "underline",
               }}
             >
               Need a new activation link?

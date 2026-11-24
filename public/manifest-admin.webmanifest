@@ -1,0 +1,72 @@
+{
+  "name": "Velocity Turf Admin",
+  "short_name": "VT Admin",
+  "description": "Velocity Turf Administrator Console - Platform Governance, Approvals, Bookings & Financial Settlement",
+  "id": "velocity-turf-admin",
+  "start_url": "/admin?source=pwa-admin",
+  "scope": "/admin",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "dir": "ltr",
+  "lang": "en-US",
+  "background_color": "#0F172A",
+  "theme_color": "#172B4D",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/icons/admin/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/admin/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/admin/icon-192x192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/admin/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/admin/icon-512x512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Approvals",
+      "short_name": "Approvals",
+      "description": "Review pending turf submissions",
+      "url": "/admin?tab=approvals",
+      "icons": [{ "src": "/icons/admin/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Users",
+      "short_name": "Users",
+      "description": "Manage players, owners, and roles",
+      "url": "/admin?tab=users",
+      "icons": [{ "src": "/icons/admin/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Payouts",
+      "short_name": "Payouts",
+      "description": "Process owner revenue settlements",
+      "url": "/admin?tab=payouts",
+      "icons": [{ "src": "/icons/admin/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ],
+  "prefer_related_applications": false
+}

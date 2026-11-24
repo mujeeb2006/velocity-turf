@@ -7,7 +7,7 @@ import { normalizeUserRole } from "@/lib/auth/validation";
 import { useToast } from "@/components/ui/toast";
 import { COLORS as V, FONT_BODY, buttonStyle } from "@/lib/design-tokens";
 import BrandLockup from "@/components/brand-lockup";
-import { ArrowLeft, User, Mail, Lock, ChevronRight } from "@/components/ui/icons";
+import { ArrowLeft, User, Mail, Lock, ChevronRight, Eye, EyeOff } from "@/components/ui/icons";
 import { Modal, Btn } from "@/components/dashboard/kit";
 
 const inputStyle = {
@@ -22,11 +22,55 @@ const inputStyle = {
   fontFamily: FONT_BODY,
 };
 
-function Field({ label, ...props }) {
+function Field({ label, type, value, onChange, ...props }) {
+  const [showPassword, setShowPassword] = useState(false);
+  const isPassword = type === "password";
+  const hasValue = typeof value === "string" && value.length > 0;
+  const inputType = isPassword ? (showPassword ? "text" : "password") : type;
+
   return (
     <label className="vt-settings-field">
       {label}
-      <input {...props} style={inputStyle} />
+      <div style={{ position: "relative", width: "100%" }}>
+        <input
+          {...props}
+          type={inputType}
+          value={value}
+          onChange={onChange}
+          style={{
+            ...inputStyle,
+            paddingRight: isPassword && hasValue ? 44 : 13,
+            width: "100%",
+            boxSizing: "border-box",
+          }}
+        />
+        {isPassword && hasValue && (
+          <button
+            type="button"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            title={showPassword ? "Hide password" : "Show password"}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => setShowPassword(!showPassword)}
+            style={{
+              position: "absolute",
+              right: 8,
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              padding: 8,
+              color: "#718096",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: 6,
+            }}
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        )}
+      </div>
     </label>
   );
 }

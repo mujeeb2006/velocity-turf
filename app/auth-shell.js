@@ -95,19 +95,19 @@ export default function AuthShell({ title, subtitle, children }) {
               <span style={{ color: "#C8F542" }}>Every Single Game.</span>
             </h2>
             <p style={{ fontSize: 14, color: "rgba(255, 255, 255, 0.9)", lineHeight: 1.6, margin: 0 }}>
-              Join Bengaluru&apos;s most active sports network with instant turf slot booking and community games.
+              Instant turf slot booking and community games across Bengaluru.
             </p>
           </div>
 
           {/* Bottom stats / features */}
-          <div style={{ position: "relative", zIndex: 2, display: "flex", gap: 16, marginTop: 40, flexWrap: "wrap" }}>
-            <div style={{ background: "rgba(255, 255, 255, 0.15)", backdropFilter: "blur(8px)", borderRadius: 12, padding: "10px 14px" }}>
-              <div style={{ fontSize: 18, fontWeight: 900, color: "#FFFFFF" }}>18+</div>
-              <div style={{ fontSize: 11, color: "rgba(255, 255, 255, 0.8)", fontWeight: 700 }}>Premier Venues</div>
+          <div style={{ position: "relative", zIndex: 2, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 32 }}>
+            <div style={{ background: "rgba(255, 255, 255, 0.18)", backdropFilter: "blur(8px)", borderRadius: 14, padding: "12px 16px" }}>
+              <div style={{ fontSize: 20, fontWeight: 900, color: "#FFFFFF" }}>18+</div>
+              <div style={{ fontSize: 11.5, color: "rgba(255, 255, 255, 0.85)", fontWeight: 700, marginTop: 2 }}>Premier venues</div>
             </div>
-            <div style={{ background: "rgba(255, 255, 255, 0.15)", backdropFilter: "blur(8px)", borderRadius: 12, padding: "10px 14px" }}>
-              <div style={{ fontSize: 18, fontWeight: 900, color: "#C8F542" }}>&lt; 15s</div>
-              <div style={{ fontSize: 11, color: "rgba(255, 255, 255, 0.8)", fontWeight: 700 }}>Instant Slot Lock</div>
+            <div style={{ background: "rgba(255, 255, 255, 0.18)", backdropFilter: "blur(8px)", borderRadius: 14, padding: "12px 16px" }}>
+              <div style={{ fontSize: 20, fontWeight: 900, color: "#C8F542" }}>&lt; 15s</div>
+              <div style={{ fontSize: 11.5, color: "rgba(255, 255, 255, 0.85)", fontWeight: 700, marginTop: 2 }}>Instant slot lock</div>
             </div>
           </div>
         </div>
@@ -122,14 +122,14 @@ export default function AuthShell({ title, subtitle, children }) {
             justifyContent: "center",
           }}
         >
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
+          <div className="vt-desktop-only" style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
             <BrandLockup markSize={40} compact />
           </div>
 
-          <h1 style={{ color: "#172B4D", fontSize: 22, fontWeight: 800, textAlign: "center", margin: "0 0 6px" }}>
+          <h1 style={{ color: "#172B4D", fontSize: 24, fontWeight: 800, textAlign: "center", margin: "0 0 6px", letterSpacing: "-0.01em" }}>
             {title}
           </h1>
-          <p style={{ color: "#718096", fontSize: 13.5, textAlign: "center", margin: "0 0 24px" }}>
+          <p style={{ color: "#718096", fontSize: 14, textAlign: "center", margin: "0 0 24px" }}>
             {subtitle}
           </p>
 

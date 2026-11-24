@@ -173,18 +173,17 @@ export function QrCameraScanner({ onScan, onError, isScanning, onStopScan, onSta
       <div
         style={{
           width: "100%",
-          maxWidth: 420,
-          background: "#0E1526",
-          borderRadius: 16,
+          background: "#111C2E",
+          borderRadius: 20,
           overflow: "hidden",
           position: "relative",
-          minHeight: isScanning ? 320 : 180,
+          minHeight: isScanning ? 320 : 260,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          border: `1px solid ${V.line}`,
           boxShadow: "0 8px 30px rgba(0,0,0,0.12)",
+          padding: isScanning ? 0 : "36px 20px",
         }}
       >
         <div
@@ -194,6 +193,16 @@ export function QrCameraScanner({ onScan, onError, isScanning, onStopScan, onSta
             display: isScanning && !cameraError ? "block" : "none",
           }}
         />
+
+        {/* Viewfinder lime corner brackets */}
+        {!isScanning && (
+          <>
+            <div style={{ position: "absolute", top: 20, left: 20, width: 28, height: 28, borderTop: "3.5px solid #C8F542", borderLeft: "3.5px solid #C8F542", borderTopLeftRadius: 8, pointerEvents: "none" }} />
+            <div style={{ position: "absolute", top: 20, right: 20, width: 28, height: 28, borderTop: "3.5px solid #C8F542", borderRight: "3.5px solid #C8F542", borderTopRightRadius: 8, pointerEvents: "none" }} />
+            <div style={{ position: "absolute", bottom: 20, left: 20, width: 28, height: 28, borderBottom: "3.5px solid #C8F542", borderLeft: "3.5px solid #C8F542", borderBottomLeftRadius: 8, pointerEvents: "none" }} />
+            <div style={{ position: "absolute", bottom: 20, right: 20, width: 28, height: 28, borderBottom: "3.5px solid #C8F542", borderRight: "3.5px solid #C8F542", borderBottomRightRadius: 8, pointerEvents: "none" }} />
+          </>
+        )}
 
         {loadingCamera && isScanning && (
           <div style={{ padding: 24, textAlign: "center", color: "#FFFFFF" }}>
@@ -211,29 +220,43 @@ export function QrCameraScanner({ onScan, onError, isScanning, onStopScan, onSta
         )}
 
         {!isScanning && (
-          <div style={{ padding: "36px 20px", textAlign: "center" }}>
+          <div style={{ textAlign: "center", width: "100%", maxWidth: 280, display: "flex", flexDirection: "column", alignItems: "center" }}>
             <div
               style={{
-                width: 60,
-                height: 60,
-                borderRadius: "50%",
-                background: "rgba(34, 197, 94, 0.15)",
+                width: 52,
+                height: 52,
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#22C55E",
-                marginBottom: 14,
+                color: "#6EE7B7",
+                marginBottom: 12,
               }}
             >
-              <Icon name="camera" size={28} />
+              <Icon name="camera" size={36} />
             </div>
-            <div style={{ color: "#FFFFFF", fontWeight: 800, fontSize: 16, marginBottom: 6 }}>Camera is Idle</div>
-            <div style={{ color: "#94A3B8", fontSize: 13, maxWidth: 300, marginBottom: 18, lineHeight: 1.4 }}>
-              Tap below to activate device camera and scan players' QR tickets.
+            <div style={{ color: "#FFFFFF", fontWeight: 800, fontSize: 17, marginBottom: 6 }}>Camera is idle</div>
+            <div style={{ color: "#94A3B8", fontSize: 13, marginBottom: 22, lineHeight: 1.4 }}>
+              Tap to scan a player’s QR ticket.
             </div>
-            <Btn variant="primary" icon="camera" onClick={onStartScan}>
-              Open Camera Scanner
-            </Btn>
+            <button
+              type="button"
+              onClick={onStartScan}
+              style={{
+                width: "100%",
+                background: "#C8F542",
+                color: "#172B4D",
+                border: "none",
+                borderRadius: 999,
+                padding: "13px 24px",
+                fontSize: 14,
+                fontWeight: 800,
+                cursor: "pointer",
+                boxShadow: "0 2px 10px rgba(200, 245, 66, 0.3)",
+                transition: "transform 0.15s ease",
+              }}
+            >
+              Open camera
+            </button>
           </div>
         )}
       </div>

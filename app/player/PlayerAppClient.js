@@ -15,6 +15,7 @@ import { RankBadge } from "@/components/ui/rank-badge";
 import { COLORS as V, NAV_ACCENTS, FONT_DISPLAY, FONT_BODY, FONT_DATA, panel, floodGlow, buttonStyle, statusBadge } from "@/lib/design-tokens";
 import StadiumScene from "@/components/StadiumScene";
 import BrandLockup from "@/components/brand-lockup";
+import { useScrollResetOnTab, resetPageScroll } from "@/lib/scroll";
 import { SPORT_OPTIONS } from "@/lib/sports";
 import { getTurfImages } from "@/lib/turf-images";
 import { calculateSlotPrice } from "@/lib/turf/pricing";
@@ -49,6 +50,7 @@ import { GroupBookingsSection } from "@/components/dashboard/GroupBookingsSectio
 import { GroupBookingDetailsModal } from "@/components/dashboard/GroupBookingDetailsModal";
 import { DemoNameWithBadge } from "@/components/ui/demo-badge";
 import CinematicHome from "@/components/home/CinematicHome";
+import { PwaInstallButton } from "@/components/PwaInstallButton";
 import {
   Icon,
   SportIcon,
@@ -73,6 +75,7 @@ import {
   RefreshCw,
   Copy,
   Share2,
+  Trophy,
 } from "@/components/ui/icons";
 
 function todayStr() {
@@ -2967,270 +2970,110 @@ function MatchmakingSection({
     <div className="vt-match-section" style={{ padding: "18px 20px 32px" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
         {/* Title & Refresh */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
-          <div>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: V.floodDim, border: `1px solid ${V.flood}4D`, borderRadius: 6, padding: "3px 10px", marginBottom: 6 }}>
-              <span style={{ color: V.flood, fontSize: 11, fontWeight: 700, fontFamily: FONT_BODY, letterSpacing: 0.4 }}>COMMUNITY GAMES</span>
-            </div>
-            <h2 style={{ color: V.chalk, fontFamily: FONT_DISPLAY, fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-0.01em" }}>
-              Discover & Join Approved Games
-            </h2>
-            <p style={{ color: V.chalkFaint, margin: "4px 0 0", fontSize: 13.5, fontFamily: FONT_BODY }}>
-              Play scheduled open games at your favorite turfs with individual ticket pricing.
-            </p>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ color: "#1769E8", fontSize: 11.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase", marginBottom: 6 }}>
+            COMMUNITY GAMES
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button
-              type="button"
-              onClick={onRefresh}
-              aria-label="Refresh community games"
-              style={{
-                background: "rgba(255, 255, 255, 0.05)",
-                border: `1px solid ${V.line}`,
-                borderRadius: 8,
-                padding: "7px 12px",
-                color: V.chalkDim,
-                fontSize: 12.5,
-                fontWeight: 600,
-                fontFamily: FONT_BODY,
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                transition: "all 0.15s ease",
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
-                e.currentTarget.style.color = V.chalk;
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
-                e.currentTarget.style.color = V.chalkDim;
-              }}
-            >
-              <RefreshCw size={13} /> Refresh Games
-            </button>
-          </div>
+          <h2 style={{ color: "#172B4D", fontSize: 26, fontWeight: 800, margin: 0, letterSpacing: "-0.01em" }}>
+            Discover & join games
+          </h2>
+          <p style={{ color: "#718096", margin: "4px 0 0", fontSize: 14, lineHeight: 1.4 }}>
+            Open games at your favourite turfs, with individual ticket pricing.
+          </p>
         </div>
 
-        {/* Filter Toolbar */}
-        <div style={{
-          background: V.pitchCard,
-          border: `1px solid ${V.line}`,
-          borderRadius: 12,
-          padding: "14px 16px",
-          marginBottom: 16,
-          display: "flex",
-          flexDirection: "column",
-          gap: 10,
-        }}>
-          {/* Top filter row: Search + Turfs + Date + Time */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
-            {/* Search */}
-            <div>
-              <label style={{ display: "block", fontSize: 10.5, fontWeight: 700, color: V.chalkFaint, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
-                Search
-              </label>
-              <input
-                type="text"
-                placeholder="Game, turf, or city..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                style={{
-                  width: "100%",
-                  height: 36,
-                  background: V.pitchCardRaised || "#162032",
-                  border: `1px solid ${V.line}`,
-                  borderRadius: 8,
-                  padding: "0 10px",
-                  color: V.chalk,
-                  fontSize: 12.5,
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
-              />
+        {/* Search bar + Filters button */}
+        <div style={{ display: "flex", gap: 10, marginBottom: 14, alignItems: "center" }}>
+          <div style={{ flex: 1, position: "relative" }}>
+            <div style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#9CA3AF", pointerEvents: "none" }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             </div>
-
-            {/* Turf Venue Selector */}
-            <div>
-              <label style={{ display: "block", fontSize: 10.5, fontWeight: 700, color: V.chalkFaint, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
-                Venue / Turf
-              </label>
-              <select
-                value={turfFilter || selectedTurfId}
-                onChange={e => {
-                  if (turfFilter) onClearTurfFilter?.();
-                  setSelectedTurfId(e.target.value);
-                }}
-                style={{
-                  width: "100%",
-                  height: 36,
-                  background: V.pitchCardRaised || "#162032",
-                  border: `1px solid ${V.line}`,
-                  borderRadius: 8,
-                  padding: "0 10px",
-                  color: V.chalk,
-                  fontSize: 12.5,
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
-              >
-                <option value="all">All Turfs & Venues</option>
-                {turfs.map(t => (
-                  <option key={t.id} value={t.id}>
-                    {t.name} ({t.city || "Venue"})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Date filter */}
-            <div>
-              <label style={{ display: "block", fontSize: 10.5, fontWeight: 700, color: V.chalkFaint, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
-                Date
-              </label>
-              <select
-                value={dateFilter}
-                onChange={e => setDateFilter(e.target.value)}
-                style={{
-                  width: "100%",
-                  height: 36,
-                  background: V.pitchCardRaised || "#162032",
-                  border: `1px solid ${V.line}`,
-                  borderRadius: 8,
-                  padding: "0 10px",
-                  color: V.chalk,
-                  fontSize: 12.5,
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
-              >
-                <option value="all">Any Upcoming Date</option>
-                <option value="today">Today</option>
-                <option value="tomorrow">Tomorrow</option>
-              </select>
-            </div>
-
-            {/* Time of Day filter */}
-            <div>
-              <label style={{ display: "block", fontSize: 10.5, fontWeight: 700, color: V.chalkFaint, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
-                Time of Day
-              </label>
-              <select
-                value={timeFilter}
-                onChange={e => setTimeFilter(e.target.value)}
-                style={{
-                  width: "100%",
-                  height: 36,
-                  background: V.pitchCardRaised || "#162032",
-                  border: `1px solid ${V.line}`,
-                  borderRadius: 8,
-                  padding: "0 10px",
-                  color: V.chalk,
-                  fontSize: 12.5,
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
-              >
-                <option value="all">All Times</option>
-                <option value="morning">Morning (5 AM – 12 PM)</option>
-                <option value="afternoon">Afternoon (12 PM – 5 PM)</option>
-                <option value="evening">Evening (5 PM – 9 PM)</option>
-                <option value="night">Night (9 PM+)</option>
-              </select>
-            </div>
+            <input
+              type="text"
+              placeholder="Game, turf, or city..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              style={{
+                width: "100%",
+                height: 44,
+                background: "#FFFFFF",
+                border: "1px solid #E5EDF5",
+                borderRadius: 12,
+                padding: "0 12px 0 38px",
+                color: "#172B4D",
+                fontSize: 14,
+                outline: "none",
+                boxSizing: "border-box",
+              }}
+            />
           </div>
-
-          {/* Sport Filter Row (Compact & Horizontally Scrollable) */}
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 10,
-            paddingTop: 8,
-            borderTop: `1px solid ${V.line}`,
-          }}>
-            <div style={{
-              display: "flex",
+          <button
+            type="button"
+            onClick={() => {
+              // Toggle filter visibility or scroll to filters
+            }}
+            style={{
+              height: 44,
+              padding: "0 16px",
+              background: "#FFFFFF",
+              border: "1px solid #E5EDF5",
+              borderRadius: 12,
+              color: "#172B4D",
+              fontSize: 13.5,
+              fontWeight: 700,
+              cursor: "pointer",
+              display: "inline-flex",
               alignItems: "center",
-              gap: 6,
-              overflowX: "auto",
-              scrollbarWidth: "none",
-              msOverflowStyle: "none",
-              WebkitOverflowScrolling: "touch",
-              paddingBottom: 2,
-              flex: 1,
-              minWidth: 0,
-            }}>
-              <span style={{ fontSize: 11, fontWeight: 800, color: V.chalkFaint, textTransform: "uppercase", letterSpacing: 0.5, marginRight: 2, flexShrink: 0 }}>
-                SPORT:
-              </span>
-              <button
-                type="button"
-                onClick={() => setSportFilter("all")}
-                style={{
-                  background: sportFilter === "all" ? V.floodDim : "transparent",
-                  border: `1px solid ${sportFilter === "all" ? V.flood : V.line}`,
-                  borderRadius: 6,
-                  padding: "4px 10px",
-                  color: sportFilter === "all" ? V.flood : V.chalkDim,
-                  fontSize: 11.5,
-                  fontWeight: sportFilter === "all" ? 700 : 500,
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                  flexShrink: 0,
-                  transition: "all 0.15s ease",
-                }}
-              >
-                All Sports
-              </button>
-              {SPORT_OPTIONS.map(s => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setSportFilter(s)}
-                  style={{
-                    background: sportFilter === s ? V.floodDim : "transparent",
-                    border: `1px solid ${sportFilter === s ? V.flood : V.line}`,
-                    borderRadius: 6,
-                    padding: "4px 10px",
-                    color: sportFilter === s ? V.flood : V.chalkDim,
-                    fontSize: 11.5,
-                    fontWeight: sportFilter === s ? 700 : 500,
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                    flexShrink: 0,
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  {sportIcon(s)} {s}
-                </button>
-              ))}
-            </div>
+              gap: 8,
+              whiteSpace: "nowrap",
+              flexShrink: 0,
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="8" y1="18" x2="16" y2="18"/></svg>
+            Filters
+          </button>
+        </div>
 
-            {hasActiveFilters && (
-              <button
-                type="button"
-                onClick={handleResetFilters}
-                style={{
-                  background: "transparent",
-                  border: `1px solid ${V.line}`,
-                  borderRadius: 6,
-                  padding: "4px 10px",
-                  color: V.chalkDim,
-                  fontSize: 11.5,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                  flexShrink: 0,
-                }}
-              >
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-                  Clear filters <X size={12} />
-                </span>
-              </button>
-            )}
-          </div>
+        {/* Sport Filter Chips */}
+        <div style={{
+          display: "flex",
+          gap: 8,
+          overflowX: "auto",
+          paddingBottom: 12,
+          marginBottom: 16,
+          scrollbarWidth: "none",
+          WebkitOverflowScrolling: "touch",
+          paddingRight: 24,
+        }}>
+          <button
+            type="button"
+            onClick={() => setSportFilter("all")}
+            style={{
+              padding: "8px 18px", borderRadius: 999, fontSize: 13, fontWeight: sportFilter === "all" ? 800 : 600,
+              background: sportFilter === "all" ? "#C8F542" : "#FFFFFF",
+              color: sportFilter === "all" ? "#111C2E" : "#172B4D",
+              border: `1px solid ${sportFilter === "all" ? "#C8F542" : "#DCE6F1"}`,
+              cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, transition: "all 0.15s ease",
+            }}
+          >
+            All sports
+          </button>
+          {SPORT_OPTIONS.map(s => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setSportFilter(s)}
+              style={{
+                padding: "8px 18px", borderRadius: 999, fontSize: 13, fontWeight: sportFilter === s ? 800 : 600,
+                background: sportFilter === s ? "#C8F542" : "#FFFFFF",
+                color: sportFilter === s ? "#111C2E" : "#172B4D",
+                border: `1px solid ${sportFilter === s ? "#C8F542" : "#DCE6F1"}`,
+                cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, transition: "all 0.15s ease",
+              }}
+            >
+              {s}
+            </button>
+          ))}
         </div>
 
         {/* Turf-specific active banner */}
@@ -3324,27 +3167,56 @@ function MatchmakingSection({
               accent={V.flood}
             />
           ) : (
-            <EmptyState
-              compact
-              icon="trophy"
-              title="No approved community games available"
-              subtitle="Turf owners schedule community games here once reviewed and approved by administrators. None are open right now. Check back soon or book your own slot!"
-              action={
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-                  <button type="button" onClick={onRefresh} style={buttonStyle("secondary", "sm")}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                      Refresh games <RefreshCw size={13} />
-                    </span>
-                  </button>
-                  <button type="button" onClick={onFindTurf} style={buttonStyle("primary", "sm")}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                      Find a turf to book <ArrowRight size={14} />
-                    </span>
-                  </button>
-                </div>
-              }
-              accent={V.flood}
-            />
+            <div
+              style={{
+                background: "#FFFFFF",
+                borderRadius: 24,
+                border: "1px solid #E5EDF5",
+                padding: "48px 24px",
+                textAlign: "center",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                boxShadow: "0 2px 10px rgba(0, 0, 0, 0.02)",
+              }}
+            >
+              <div
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: "50%",
+                  background: "#E0F7FA",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: 16,
+                  color: "#00838F",
+                }}
+              >
+                <Trophy size={28} />
+              </div>
+              <h3 style={{ fontSize: 20, fontWeight: 800, color: "#172B4D", margin: "0 0 8px" }}>
+                No community games right now
+              </h3>
+              <p style={{ fontSize: 14, color: "#718096", maxWidth: 340, lineHeight: 1.5, margin: "0 0 24px" }}>
+                Owners schedule games here once an admin approves them. Check back soon, or book your own slot.
+              </p>
+              <div style={{ display: "grid", gap: 10, width: "100%", maxWidth: 360 }}>
+                <button type="button" onClick={onFindTurf} style={{
+                  background: "#C8F542", color: "#111C2E", border: "none", borderRadius: 999,
+                  padding: "14px 24px", fontSize: 14.5, fontWeight: 800, cursor: "pointer",
+                  boxShadow: "0 2px 8px rgba(200, 245, 66, 0.3)",
+                }}>
+                  Find a turf to book →
+                </button>
+                <button type="button" onClick={onRefresh} style={{
+                  background: "#FFFFFF", color: "#172B4D", border: "1px solid #E5EDF5", borderRadius: 999,
+                  padding: "14px 24px", fontSize: 14, fontWeight: 700, cursor: "pointer",
+                }}>
+                  Refresh games
+                </button>
+              </div>
+            </div>
           )
         ) : (
           <div style={{ display: "grid", gap: 16 }}>
@@ -3789,6 +3661,11 @@ function DashboardSection({ isLoading, bookings = [], matchesJoined = 0, joinedG
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* Install Player App Promo Card */}
+            <div style={{ marginBottom: 24 }}>
+              <PwaInstallButton role="player" variant="card" />
             </div>
 
             {/* Filter Navigation Tabs */}
@@ -4575,6 +4452,7 @@ export default function PlayerAppClient({ profile }) {
   const supabase = createClient();
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState("home");
+  useScrollResetOnTab(activeTab);
 
   // Periodically trigger backend cleanup of expired sessions
   useEffect(() => {
@@ -5178,6 +5056,7 @@ export default function PlayerAppClient({ profile }) {
         }}>
           <BrandLockup markSize={34} compact />
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <PwaInstallButton role="player" variant="pill" />
             {profile?.id ? (
               <>
                 <button onClick={toggleNotifications} aria-label="Notifications" style={{ background: "transparent", border: "1px solid rgba(24, 168, 224, 0.2)", borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: "#172B4D", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
@@ -5444,6 +5323,7 @@ export default function PlayerAppClient({ profile }) {
 
           {/* Right side */}
           <div style={{ display: "flex", alignItems: "center", gap: 12, position: "relative" }}>
+            <PwaInstallButton role="player" variant="pill" />
             {profile?.id ? (
               <>
                 <button onClick={toggleNotifications} style={{ background: "#FFFFFF", border: "1px solid rgba(24, 168, 224, 0.2)", borderRadius: 10, width: 38, height: 38, cursor: "pointer", color: "#172B4D", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", transition: "border-color 0.2s" }}>
@@ -5669,8 +5549,10 @@ export default function PlayerAppClient({ profile }) {
                   if (tab.id === "matches") setMatchTurfFilter(null);
                   if (tab.activeIf && tab.activeIf.includes(activeTab)) {
                     // Already in hub
+                    resetPageScroll();
                   } else {
                     setActiveTab(tab.id);
+                    resetPageScroll();
                   }
                 }}
                 aria-current={isActive ? "page" : undefined}

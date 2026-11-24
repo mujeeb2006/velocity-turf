@@ -29,7 +29,13 @@ export function AdminGroupBookingsSection({ showToast }) {
       const res = await fetch("/api/admin/group-bookings");
       const json = await res.json();
       if (res.ok) {
-        setGroupBookings(json.groupBookings || []);
+        const raw = json?.groupBookings ?? json;
+        const list = Array.isArray(raw)
+          ? raw
+          : Array.isArray(raw?.groupBookings)
+          ? raw.groupBookings
+          : [];
+        setGroupBookings(list);
       } else {
         showToast(json?.error || "Could not load group bookings.", { type: "error" });
       }
@@ -44,7 +50,8 @@ export function AdminGroupBookingsSection({ showToast }) {
     fetchGroupBookings();
   }, []);
 
-  const filtered = groupBookings.filter((g) => {
+  const safeList = Array.isArray(groupBookings) ? groupBookings : [];
+  const filtered = safeList.filter((g) => {
     if (statusFilter !== "all" && g.status !== statusFilter) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();

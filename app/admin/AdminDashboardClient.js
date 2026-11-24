@@ -28,12 +28,14 @@ import { AdminGamesTab } from "@/components/dashboard/AdminGamesSection";
 import { AdminBookingExportModal } from "@/components/dashboard/BookingExportModal";
 import { AdminTournamentsSection } from "@/components/dashboard/AdminTournamentsSection";
 import { AdminPackagesSection } from "@/components/dashboard/AdminPackagesSection";
+import { useScrollResetOnTab, resetPageScroll } from "@/lib/scroll";
 import { AdminDemoDataSection } from "@/components/dashboard/AdminDemoDataSection";
 import { AdminRewardsSection } from "@/components/dashboard/AdminRewardsSection";
 import { AdminGroupBookingsSection } from "@/components/dashboard/AdminGroupBookingsSection";
 import { DemoNameWithBadge } from "@/components/ui/demo-badge";
-import { Check, AlertTriangle, Key, Lock, ArrowRight, CheckCircle, StadiumIcon } from "@/components/ui/icons";
+import { Check, AlertTriangle, Key, Lock, ArrowLeft, ArrowRight, CheckCircle, StadiumIcon } from "@/components/ui/icons";
 import MobileProfileSection from "@/components/dashboard/MobileProfileSection";
+import { PwaInstallButton } from "@/components/PwaInstallButton";
 
 const TABS = ["overview", "approvals", "game-approvals", "tournaments", "packages", "turfs", "bookings", "groups", "users", "payouts", "disputes", "rewards", "demo-data"];
 const ROLE_COLORS = { Admin: V.violet, "Turf Owner": V.sky, Player: V.flood };
@@ -175,6 +177,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
   const notes = useNotifications(supabase, profile?.id, showToast);
 
   const [tab, setTab] = useState("overview");
+  useScrollResetOnTab(tab);
   const [turfsRaw, setTurfsRaw] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [disputesRaw, setDisputesRaw] = useState([]);
@@ -271,6 +274,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
   const selectTab = (id) => {
     setTab(id);
     window.history.replaceState(null, "", `#${id}`);
+    resetPageScroll();
   };
 
   // ---- data
@@ -420,7 +424,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
 
     return (
       <>
-        <TopBar title="Payouts" sub="Money paid out to owners" action={
+        <TopBar title="Payouts" sub="Money paid out to owners" onBack={() => selectTab("overview")} action={
           <div style={{ display: "flex", gap: 8 }}>
             <Btn icon="download" size="sm" disabled={!rows.length} onClick={() => downloadCSV(`payouts-${today}.csv`, rows, [
               { label: "Payout ID", value: p => p.payout_number || p.payout_id || p.id },
@@ -441,7 +445,50 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
         </StatGrid>
         <Segmented label="View" value={payoutTabSub} onChange={setPayoutTabSub} options={[{ id: "history", label: "History" }, { id: "banks", label: "Banks" }]} />
         {payoutTabSub === "history" ? (
-          <DataTable columns={payoutColumns} rows={rows} minWidth={720} empty="No payouts yet." />
+          <>
+            <div className="vt-desktop-only">
+              <DataTable columns={payoutColumns} rows={rows} minWidth={720} empty="No payouts yet." />
+            </div>
+            <div className="vt-mobile-only">
+              {rows.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "40px 20px", color: "#718096", fontSize: 13.5, background: "#FFFFFF", borderRadius: 20, border: "1px solid #E5EDF5" }}>
+                  No payouts yet.
+                </div>
+              ) : (
+                <div style={{ display: "grid", gap: 12 }}>
+                  {rows.map((p) => (
+                    <div
+                      key={p.id}
+                      style={{
+                        background: "#FFFFFF",
+                        borderRadius: 20,
+                        padding: "16px 18px",
+                        border: "1px solid #E5EDF5",
+                        boxShadow: "0 4px 14px rgba(23, 105, 232, 0.04)",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 10,
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                        <div>
+                          <div style={{ fontSize: 15, fontWeight: 800, color: "#172B4D" }}>{p.ownerName}</div>
+                          <div style={{ fontSize: 12, color: "#718096", marginTop: 2 }}>
+                            {p.periodStart} – {p.periodEnd}
+                          </div>
+                        </div>
+                        <StatusPill status={p.status} />
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 8, borderTop: "1px solid #F0F4F8" }}>
+                        <span style={{ fontSize: 12, color: "#718096" }}>#{p.payout_number || p.payout_id || p.id?.slice(0, 8)}</span>
+                        <span style={{ fontSize: 15, fontWeight: 800, color: "#172B4D" }}>{formatINR(p.amount)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
         ) : (
           <>
             <Toolbar>
@@ -453,7 +500,50 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
                 { id: "totalPaid", label: "Paid" },
               ]} />
             </Toolbar>
-            <DataTable columns={ownerColumns} rows={sortedOwners} sort={ownerSort} onSort={toggleSort(setOwnerSort)} minWidth={720} empty="No owners found." />
+            <div className="vt-desktop-only">
+              <DataTable columns={ownerColumns} rows={sortedOwners} sort={ownerSort} onSort={toggleSort(setOwnerSort)} minWidth={720} empty="No owners found." />
+            </div>
+            <div className="vt-mobile-only">
+              {sortedOwners.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "40px 20px", color: "#718096", fontSize: 13.5, background: "#FFFFFF", borderRadius: 20, border: "1px solid #E5EDF5" }}>
+                  No owners found.
+                </div>
+              ) : (
+                <div style={{ display: "grid", gap: 12 }}>
+                  {sortedOwners.map((o) => (
+                    <div
+                      key={o.id}
+                      style={{
+                        background: "#FFFFFF",
+                        borderRadius: 20,
+                        padding: "16px 18px",
+                        border: "1px solid #E5EDF5",
+                        boxShadow: "0 4px 14px rgba(23, 105, 232, 0.04)",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 10,
+                      }}
+                    >
+                      <div style={{ fontSize: 15, fontWeight: 800, color: "#172B4D" }}>{o.ownerName}</div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, background: "#F8FAFC", borderRadius: 12, padding: "8px 12px", fontSize: 12 }}>
+                        <div>
+                          <div style={{ color: "#718096", fontSize: 11, fontWeight: 700 }}>Pending</div>
+                          <div style={{ fontWeight: 800, color: "#D97706" }}>{formatINR(o.pendingBalance)}</div>
+                        </div>
+                        <div>
+                          <div style={{ color: "#718096", fontSize: 11, fontWeight: 700 }}>Revenue</div>
+                          <div style={{ fontWeight: 800, color: "#172B4D" }}>{formatINR(o.totalRevenue)}</div>
+                        </div>
+                        <div>
+                          <div style={{ color: "#718096", fontSize: 11, fontWeight: 700 }}>Paid</div>
+                          <div style={{ fontWeight: 800, color: "#10B981" }}>{formatINR(o.totalPaid)}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </>
         )}
       </>
@@ -904,6 +994,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <PwaInstallButton role="admin" variant="pill" />
                 <button
                   type="button"
                   onClick={() => notes.setOpen((o) => !o)}
@@ -924,7 +1015,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
                 >
                   <Icon name="notification" size={19} color="#172B4D" />
                   {notes.unreadCount > 0 && (
-                    <span style={{ position: "absolute", top: -4, right: -4, minWidth: 17, height: 17, padding: "0 4px", borderRadius: 9, background: "#1769E8", color: "#fff", fontSize: 9.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <span style={{ position: "absolute", top: -4, right: -4, minWidth: 17, height: 17, padding: "0 4px", borderRadius: 9, background: "#EF4444", color: "#fff", fontSize: 9.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>
                       {notes.unreadCount > 9 ? "9+" : notes.unreadCount}
                     </span>
                   )}
@@ -953,112 +1044,6 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
                 </button>
               </div>
             </div>
-
-            {/* 4x2 Quick Action Icons Grid */}
-            <div className="vt-app-grid">
-              <button
-                type="button"
-                className={`vt-app-card ${tab === "approvals" ? "active" : ""}`}
-                onClick={() => selectTab("approvals")}
-              >
-                <div className="vt-app-icon-wrap" style={{ background: "#FEF3C7", color: "#D97706", position: "relative" }}>
-                  <Icon name="building" size={20} />
-                  {pendingTurfs.length > 0 && <span className="vt-app-badge">{pendingTurfs.length}</span>}
-                </div>
-                <span className="vt-app-label">Approvals</span>
-              </button>
-
-              <button
-                type="button"
-                className={`vt-app-card ${tab === "bookings" ? "active" : ""}`}
-                onClick={() => selectTab("bookings")}
-              >
-                <div className="vt-app-icon-wrap" style={{ background: "#EEF2FF", color: "#4F46E5" }}>
-                  <Icon name="clock" size={20} />
-                </div>
-                <span className="vt-app-label">Bookings</span>
-              </button>
-
-              <button
-                type="button"
-                className={`vt-app-card ${tab === "users" ? "active" : ""}`}
-                onClick={() => selectTab("users")}
-              >
-                <div className="vt-app-icon-wrap" style={{ background: "#F0F9FF", color: "#0284C7" }}>
-                  <Icon name="users" size={20} />
-                </div>
-                <span className="vt-app-label">Users</span>
-              </button>
-
-              <button
-                type="button"
-                className={`vt-app-card ${tab === "turfs" ? "active" : ""}`}
-                onClick={() => selectTab("turfs")}
-              >
-                <div className="vt-app-icon-wrap" style={{ background: "#ECFDF5", color: "#059669" }}>
-                  <StadiumIcon size={20} />
-                </div>
-                <span className="vt-app-label">All Turfs</span>
-              </button>
-
-              <button
-                type="button"
-                className={`vt-app-card ${tab === "payouts" ? "active" : ""}`}
-                onClick={() => selectTab("payouts")}
-              >
-                <div className="vt-app-icon-wrap" style={{ background: "#ECFDF5", color: "#10B981", position: "relative" }}>
-                  <Icon name="wallet" size={20} />
-                  {processingPayoutsCount > 0 && <span className="vt-app-badge">{processingPayoutsCount}</span>}
-                </div>
-                <span className="vt-app-label">Payouts</span>
-              </button>
-
-              <button
-                type="button"
-                className={`vt-app-card ${tab === "disputes" ? "active" : ""}`}
-                onClick={() => selectTab("disputes")}
-              >
-                <div className="vt-app-icon-wrap" style={{ background: "#FFF1F2", color: "#E11D48", position: "relative" }}>
-                  <Icon name="alert" size={20} />
-                  {openDisputes.length > 0 && <span className="vt-app-badge">{openDisputes.length}</span>}
-                </div>
-                <span className="vt-app-label">Disputes</span>
-              </button>
-
-              <button
-                type="button"
-                className={`vt-app-card ${tab === "rewards" ? "active" : ""}`}
-                onClick={() => selectTab("rewards")}
-              >
-                <div className="vt-app-icon-wrap" style={{ background: "#FAF5FF", color: "#9333EA" }}>
-                  <Icon name="gift" size={20} />
-                </div>
-                <span className="vt-app-label">Rewards</span>
-              </button>
-
-              <button
-                type="button"
-                className={`vt-app-card ${tab === "tournaments" ? "active" : ""}`}
-                onClick={() => selectTab("tournaments")}
-              >
-                <div className="vt-app-icon-wrap" style={{ background: "#FFFBEB", color: "#B45309" }}>
-                  <Icon name="trophy" size={20} />
-                </div>
-                <span className="vt-app-label">Tourneys</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Mobile subnav back button if on subtab */}
-        {tab !== "overview" && tab !== "profile" && (
-          <div className="vt-mobile-subnav-bar">
-            <button type="button" className="vt-mobile-subnav-back" onClick={() => selectTab("overview")}>
-              ← Home
-            </button>
-            <span className="vt-mobile-subnav-title">
-              {items.find((it) => it.id === tab)?.label || tab}
-            </span>
           </div>
         )}
 
@@ -1077,77 +1062,202 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
           <OverviewTab
             profile={profile} view={view} loading={loading} range={range} setRange={setRange} refreshButton={refreshButton}
             goTo={selectTab}
+            processingPayoutsCount={processingPayoutsCount}
           />
         )}
 
         {tab === "approvals" && (
           <>
-            <TopBar title="Turf Approvals" sub={pendingTurfs.length ? `${pendingTurfs.length} listing${pendingTurfs.length === 1 ? "" : "s"} awaiting review` : "No turfs waiting for review"} action={refreshButton} />
-            {loading ? (
-              <div style={{ display: "grid", gap: 14 }}>{[...Array(2)].map((_, i) => <SkeletonCard key={i} lines={2} />)}</div>
-            ) : pendingTurfs.length === 0 ? (
-              <EmptyBlock icon="checkCircle" title="You're all caught up" subtitle="When owners submit a new turf, it will show up here for your approval." />
-            ) : (
-              <div style={{ display: "grid", gap: 14 }}>
-                {pendingTurfs.map((t) => {
-                  const imgData = getTurfImages(t);
-                  return (
-                  <Card key={t.id}>
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-                      <div style={{ minWidth: 240, flex: 1 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                          <span style={{ color: V.chalk, fontWeight: 800, fontSize: 17 }}>{t.name}</span>
-                          <StatusPill status="pending" />
-                        </div>
-                        <div style={{ color: V.chalkDim, fontSize: 13, marginTop: 4 }}>
-                          <span title={`${t.address}, ${t.city}`}>{t.address}, {t.city}</span> · Owner: <strong style={{ color: V.chalk }}>{t.owner}</strong> · Submitted {relativeTime(t.createdAt)}
-                        </div>
-
-                        {/* Photos preview for Admin review */}
-                        <div style={{ display: "flex", gap: 8, marginTop: 12, alignItems: "center", overflowX: "auto", paddingBottom: 4 }}>
-                          <div style={{ position: "relative", width: 90, height: 60, borderRadius: 8, overflow: "hidden", border: `2px solid ${V.flood}`, flexShrink: 0 }}>
-                            <img src={imgData.cover} alt="Cover" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                            <span style={{ position: "absolute", bottom: 2, left: 2, background: V.flood, color: "#fff", fontSize: 8.5, fontWeight: 800, padding: "1px 4px", borderRadius: 3, textTransform: "uppercase" }}>Cover</span>
+            <div className="vt-desktop-only">
+              <TopBar title="Turf Approvals" sub={pendingTurfs.length ? `${pendingTurfs.length} listing${pendingTurfs.length === 1 ? "" : "s"} awaiting review` : "No turfs waiting for review"} onBack={() => selectTab("overview")} action={refreshButton} />
+              {loading ? (
+                <div style={{ display: "grid", gap: 14 }}>{[...Array(2)].map((_, i) => <SkeletonCard key={i} lines={2} />)}</div>
+              ) : pendingTurfs.length === 0 ? (
+                <EmptyBlock icon="checkCircle" title="You're all caught up" subtitle="When owners submit a new turf, it will show up here for your approval." />
+              ) : (
+                <div style={{ display: "grid", gap: 14 }}>
+                  {pendingTurfs.map((t) => {
+                    const imgData = getTurfImages(t);
+                    return (
+                    <Card key={t.id}>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+                        <div style={{ minWidth: 240, flex: 1 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                            <span style={{ color: V.chalk, fontWeight: 800, fontSize: 17 }}>{t.name}</span>
+                            <StatusPill status="pending" />
                           </div>
-                          {imgData.gallery.filter((u) => u !== imgData.cover).slice(0, 4).map((u, i) => (
-                            <div key={i} style={{ width: 75, height: 60, borderRadius: 8, overflow: "hidden", border: `1px solid ${V.line}`, flexShrink: 0 }}>
-                              <img src={u} alt={`Photo ${i + 2}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          <div style={{ color: V.chalkDim, fontSize: 13, marginTop: 4 }}>
+                            <span title={`${t.address}, ${t.city}`}>{t.address}, {t.city}</span> · Owner: <strong style={{ color: V.chalk }}>{t.owner}</strong> · Submitted {relativeTime(t.createdAt)}
+                          </div>
+
+                          {/* Photos preview for Admin review */}
+                          <div style={{ display: "flex", gap: 8, marginTop: 12, alignItems: "center", overflowX: "auto", paddingBottom: 4 }}>
+                            <div style={{ position: "relative", width: 90, height: 60, borderRadius: 8, overflow: "hidden", border: `2px solid ${V.flood}`, flexShrink: 0 }}>
+                              <img src={imgData.cover} alt="Cover" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                              <span style={{ position: "absolute", bottom: 2, left: 2, background: V.flood, color: "#fff", fontSize: 8.5, fontWeight: 800, padding: "1px 4px", borderRadius: 3, textTransform: "uppercase" }}>Cover</span>
                             </div>
-                          ))}
-                          {imgData.gallery.length > 5 && (
-                            <span style={{ color: V.chalkFaint, fontSize: 11.5, fontWeight: 700, paddingLeft: 4 }}>+{imgData.gallery.length - 5} more</span>
-                          )}
+                            {imgData.gallery.filter((u) => u !== imgData.cover).slice(0, 4).map((u, i) => (
+                              <div key={i} style={{ width: 75, height: 60, borderRadius: 8, overflow: "hidden", border: `1px solid ${V.line}`, flexShrink: 0 }}>
+                                <img src={u} alt={`Photo ${i + 2}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                              </div>
+                            ))}
+                            {imgData.gallery.length > 5 && (
+                              <span style={{ color: V.chalkFaint, fontSize: 11.5, fontWeight: 700, paddingLeft: 4 }}>+{imgData.gallery.length - 5} more</span>
+                            )}
+                          </div>
+
+                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
+                            {t.sports.map((s) => <Pill key={s} color={V.sky}>{s}</Pill>)}
+                            {t.amenities.map((a) => <Pill key={a} color={V.chalkDim}>{a}</Pill>)}
+                          </div>
+                          <div style={{ display: "flex", gap: 22, flexWrap: "wrap", marginTop: 14, fontSize: 12.5, color: V.chalkDim }}>
+                            <span>Base <strong style={{ color: V.chalk, fontFamily: font }}>{formatINR(t.basePrice)}</strong>/hr</span>
+                            <span>Peak <strong style={{ color: V.chalk, fontFamily: font }}>{formatINR(t.peakPrice)}</strong>/hr</span>
+                            <span>Hours <strong style={{ color: V.chalk }}>{formatTime12(t.open)} – {formatTime12(t.close)}</strong></span>
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", gap: 8, alignItems: "flex-start", flexWrap: "wrap" }}>
+                          <Btn variant="danger" icon="x" disabled={busyTurfId === t.id} onClick={() => setRejecting(t)}>Reject</Btn>
+                          <Btn variant="primary" icon="check" busy={busyTurfId === t.id} onClick={() => decideTurf(t, "approve")}>Approve</Btn>
+                          <Btn
+                            variant="danger"
+                            icon="trash"
+                            disabled={deleteTurfBusy && deleteTurf?.id === t.id}
+                            onClick={() => { setDeleteTurf(t); setDeleteTurfWarning(null); setDeleteTurfError(""); }}
+                            title="Permanently delete this turf"
+                          >
+                            Delete
+                          </Btn>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+                </div>
+              )}
+            </div>
+
+            {/* Mobile native app layout */}
+            <div className="vt-mobile-only" style={{ display: "grid", gap: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <button
+                  type="button"
+                  onClick={() => selectTab("overview")}
+                  className="vt-mobile-back-circle-btn"
+                  aria-label="Back to overview"
+                >
+                  <ArrowLeft size={18} color="#172B4D" />
+                </button>
+                <div>
+                  <h2 style={{ color: "#172B4D", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.4 }}>
+                    Turf Approvals
+                  </h2>
+                  <p style={{ color: "#718096", margin: "2px 0 0", fontSize: 13 }}>
+                    {pendingTurfs.length ? `${pendingTurfs.length} listing${pendingTurfs.length === 1 ? "" : "s"} awaiting review` : "No turfs waiting for review"}
+                  </p>
+                </div>
+              </div>
+
+              {loading ? (
+                <div style={{ display: "grid", gap: 12 }}>{[...Array(2)].map((_, i) => <SkeletonCard key={i} lines={3} />)}</div>
+              ) : pendingTurfs.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "48px 20px", color: "#718096", background: "#FFFFFF", borderRadius: 20, border: "1px solid #E5EDF5" }}>
+                  <div style={{ width: 50, height: 50, borderRadius: "50%", background: "#E9F9ED", color: "#10B981", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
+                    <Icon name="checkCircle" size={24} />
+                  </div>
+                  <div style={{ fontSize: 17, fontWeight: 800, color: "#172B4D", marginBottom: 4 }}>You're all caught up</div>
+                  <div style={{ fontSize: 13, color: "#718096", maxWidth: 280, margin: "0 auto" }}>When owners submit a new turf, it will show up here for your approval.</div>
+                </div>
+              ) : (
+                <div style={{ display: "grid", gap: 14 }}>
+                  {pendingTurfs.map((t) => {
+                    const imgData = getTurfImages(t);
+                    return (
+                      <div
+                        key={t.id}
+                        style={{
+                          background: "#FFFFFF",
+                          borderRadius: 20,
+                          padding: "18px 20px",
+                          border: "1px solid #E5EDF5",
+                          boxShadow: "0 4px 14px rgba(23, 105, 232, 0.04)",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 12,
+                        }}
+                      >
+                        {/* Turf Cover preview */}
+                        <div style={{ width: "100%", height: 140, borderRadius: 14, overflow: "hidden", position: "relative" }}>
+                          <img src={imgData.cover} alt={t.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          <span style={{ position: "absolute", top: 10, right: 10, background: "#FEF3C7", color: "#D97706", fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 6 }}>
+                            Pending Review
+                          </span>
                         </div>
 
-                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
-                          {t.sports.map((s) => <Pill key={s} color={V.sky}>{s}</Pill>)}
-                          {t.amenities.map((a) => <Pill key={a} color={V.chalkDim}>{a}</Pill>)}
+                        <div>
+                          <div style={{ fontSize: 17, fontWeight: 800, color: "#172B4D" }}>{t.name}</div>
+                          <div style={{ fontSize: 12.5, color: "#718096", marginTop: 2 }}>
+                            {t.city} · Owner: <strong style={{ color: "#172B4D" }}>{t.owner}</strong> · {relativeTime(t.createdAt)}
+                          </div>
                         </div>
-                        <div style={{ display: "flex", gap: 22, flexWrap: "wrap", marginTop: 14, fontSize: 12.5, color: V.chalkDim }}>
-                          <span>Base <strong style={{ color: V.chalk, fontFamily: font }}>{formatINR(t.basePrice)}</strong>/hr</span>
-                          <span>Peak <strong style={{ color: V.chalk, fontFamily: font }}>{formatINR(t.peakPrice)}</strong>/hr</span>
-                          <span>Hours <strong style={{ color: V.chalk }}>{formatTime12(t.open)} – {formatTime12(t.close)}</strong></span>
+
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                          {t.sports.map((s) => (
+                            <span key={s} style={{ background: "#EAF7FF", color: "#1769E8", borderRadius: 8, padding: "3px 8px", fontSize: 11.5, fontWeight: 700 }}>
+                              {s}
+                            </span>
+                          ))}
+                          <span style={{ fontSize: 13, fontWeight: 800, color: "#172B4D", marginLeft: "auto" }}>
+                            {formatINR(t.basePrice)}/hr
+                          </span>
+                        </div>
+
+                        <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
+                          <button
+                            type="button"
+                            disabled={busyTurfId === t.id}
+                            onClick={() => decideTurf(t, "approve")}
+                            style={{
+                              flex: 1,
+                              background: "#C8F542",
+                              color: "#172B4D",
+                              border: "none",
+                              borderRadius: 999,
+                              padding: "12px 18px",
+                              fontSize: 14,
+                              fontWeight: 800,
+                              cursor: "pointer",
+                              textAlign: "center",
+                            }}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busyTurfId === t.id}
+                            onClick={() => setRejecting(t)}
+                            style={{
+                              flex: 1,
+                              background: "#FFF1F2",
+                              color: "#E11D48",
+                              border: "1px solid #FECDD3",
+                              borderRadius: 999,
+                              padding: "12px 18px",
+                              fontSize: 14,
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              textAlign: "center",
+                            }}
+                          >
+                            Reject
+                          </button>
                         </div>
                       </div>
-                      <div style={{ display: "flex", gap: 8, alignItems: "flex-start", flexWrap: "wrap" }}>
-                        <Btn variant="danger" icon="x" disabled={busyTurfId === t.id} onClick={() => setRejecting(t)}>Reject</Btn>
-                        <Btn variant="primary" icon="check" busy={busyTurfId === t.id} onClick={() => decideTurf(t, "approve")}>Approve</Btn>
-                        <Btn
-                          variant="danger"
-                          icon="trash"
-                          disabled={deleteTurfBusy && deleteTurf?.id === t.id}
-                          onClick={() => { setDeleteTurf(t); setDeleteTurfWarning(null); setDeleteTurfError(""); }}
-                          title="Permanently delete this turf"
-                        >
-                          Delete
-                        </Btn>
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </>
         )}
 
@@ -1205,7 +1315,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
           ];
           return (
             <>
-              <TopBar title="All Turfs" sub={`${turfs.length} turf${turfs.length === 1 ? "" : "s"} on the platform`} action={
+              <TopBar title="All Turfs" sub={`${turfs.length} turf${turfs.length === 1 ? "" : "s"} on the platform`} onBack={() => selectTab("overview")} action={
                 <Btn icon="download" size="sm" disabled={!rows.length} onClick={() => downloadCSV(`turfs-${today}.csv`, rows, [
                   { label: "Turf", key: "name" }, { label: "Owner", key: "owner" }, { label: "City", key: "city" }, { label: "Status", key: "status" },
                   { label: "Bookings", key: "bookings" }, { label: "Revenue (INR)", key: "revenue" }, { label: "Rating", key: "rating" },
@@ -1221,7 +1331,81 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
               {loading ? (
                 <div style={{ ...panel(), borderRadius: 16, overflow: "hidden" }}>{[...Array(4)].map((_, i) => <SkeletonRow key={i} columns={6} />)}</div>
               ) : (
-                <DataTable columns={columns} rows={rows} sort={turfSort} onSort={toggleSort(setTurfSort)} minWidth={860} empty="No turfs match your filters." />
+                <>
+                  <div className="vt-desktop-only">
+                    <DataTable columns={columns} rows={rows} sort={turfSort} onSort={toggleSort(setTurfSort)} minWidth={860} empty="No turfs match your filters." />
+                  </div>
+                  <div className="vt-mobile-only">
+                    {rows.length === 0 ? (
+                      <EmptyBlock icon="shield" title="No turfs found" subtitle="No turfs match your current filter criteria." />
+                    ) : (
+                      <div style={{ display: "grid", gap: 12 }}>
+                        {rows.map((t) => (
+                          <div
+                            key={t.id}
+                            style={{
+                              background: "#FFFFFF",
+                              border: "1px solid #E5EDF5",
+                              borderRadius: 20,
+                              padding: "16px 18px",
+                              boxShadow: "0 4px 14px rgba(23, 105, 232, 0.04)",
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 12,
+                            }}
+                          >
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontSize: 16, fontWeight: 800, color: "#172B4D" }}>
+                                  <DemoNameWithBadge name={t.name} />
+                                </div>
+                                <div style={{ fontSize: 12.5, color: "#718096", marginTop: 2 }}>
+                                  {t.address ? `${t.address}, ` : ""}{t.city} · Owner: <strong>{t.owner}</strong>
+                                </div>
+                              </div>
+                              <StatusPill status={t.status} />
+                            </div>
+
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, background: "#F8FAFC", borderRadius: 12, padding: "10px 12px" }}>
+                              <div>
+                                <div style={{ fontSize: 10.5, color: "#718096", textTransform: "uppercase", fontWeight: 700 }}>Bookings</div>
+                                <div style={{ fontSize: 14, fontWeight: 800, color: "#172B4D" }}>{t.bookings}</div>
+                              </div>
+                              <div>
+                                <div style={{ fontSize: 10.5, color: "#718096", textTransform: "uppercase", fontWeight: 700 }}>Revenue</div>
+                                <div style={{ fontSize: 14, fontWeight: 800, color: "#172B4D" }}>{formatINR(t.revenue)}</div>
+                              </div>
+                              <div>
+                                <div style={{ fontSize: 10.5, color: "#718096", textTransform: "uppercase", fontWeight: 700 }}>Rating</div>
+                                <div style={{ fontSize: 14, fontWeight: 800, color: "#172B4D" }}>{t.reviewCount ? `★ ${t.rating.toFixed(1)}` : "—"}</div>
+                              </div>
+                            </div>
+
+                            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                              <button
+                                type="button"
+                                disabled={deleteTurfBusy && deleteTurf?.id === t.id}
+                                onClick={() => { setDeleteTurf(t); setDeleteTurfWarning(null); setDeleteTurfError(""); }}
+                                style={{
+                                  background: "#FFF1F2",
+                                  color: "#EF4444",
+                                  border: "1px solid #FECDD3",
+                                  borderRadius: 999,
+                                  padding: "6px 14px",
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                }}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
             </>
           );
@@ -1261,37 +1445,272 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
           ];
           return (
             <>
-              <TopBar title="Bookings" sub={`${c.all} total · ${c.pending} awaiting review · ${c.confirmed} confirmed`} action={
-                <div style={{ display: "flex", gap: 8 }}>
-                  <Btn icon="download" size="sm" variant="secondary" onClick={() => setShowExportModal(true)}>
-                    Export All to Excel
-                  </Btn>
-                  <Btn icon="download" size="sm" disabled={!rows.length} onClick={() => downloadCSV(`bookings-${today}.csv`, rows, [
-                    { label: "Date", key: "date" }, { label: "Time", key: "time" }, { label: "Turf", key: "turf" }, { label: "Player", key: "player" },
-                    { label: "Sport", key: "sport" }, { label: "Amount (INR)", key: "amount" }, { label: "Status", key: "status" }, { label: "Payment", key: "paymentStatus" },
-                  ])}>Export CSV</Btn>
-                </div>
-              } />
-              <Toolbar>
-                <SearchInput value={bookingQuery} onChange={(v) => { setBookingQuery(v); setBookingLimit(PAGE_SIZE); }} placeholder="Search turf, player or sport…" label="Search bookings" />
-                <Segmented label="Filter by status" value={bookingStatus} onChange={(v) => { setBookingStatus(v); setBookingLimit(PAGE_SIZE); }} options={[
-                  { id: "all", label: "All", count: c.all }, { id: "pending", label: "Pending", count: c.pending },
-                  { id: "confirmed", label: "Confirmed", count: c.confirmed }, { id: "completed", label: "Completed", count: c.completed },
-                  { id: "declined", label: "Declined", count: c.declined }, { id: "cancelled", label: "Cancelled", count: c.cancelled },
-                ]} />
-              </Toolbar>
-              {loading ? (
-                <div style={{ ...panel(), borderRadius: 16, overflow: "hidden" }}>{[...Array(5)].map((_, i) => <SkeletonRow key={i} columns={6} />)}</div>
-              ) : (
-                <>
-                  <DataTable columns={columns} rows={shown} sort={bookingSort} onSort={toggleSort(setBookingSort)} minWidth={940} empty="No bookings match your filters." />
-                  {rows.length > shown.length && (
-                    <div style={{ textAlign: "center", marginTop: 14 }}>
-                      <Btn onClick={() => setBookingLimit((n) => n + PAGE_SIZE)}>Show more ({rows.length - shown.length} remaining)</Btn>
+              {/* Desktop layout */}
+              <div className="vt-desktop-only">
+                <TopBar title="Bookings" sub={`${c.all} total · ${c.pending} awaiting review · ${c.confirmed} confirmed`} onBack={() => selectTab("overview")} action={
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <Btn icon="download" size="sm" variant="secondary" onClick={() => setShowExportModal(true)}>
+                      Export All to Excel
+                    </Btn>
+                    <Btn icon="download" size="sm" disabled={!rows.length} onClick={() => downloadCSV(`bookings-${today}.csv`, rows, [
+                      { label: "Date", key: "date" }, { label: "Time", key: "time" }, { label: "Turf", key: "turf" }, { label: "Player", key: "player" },
+                      { label: "Sport", key: "sport" }, { label: "Amount (INR)", key: "amount" }, { label: "Status", key: "status" }, { label: "Payment", key: "paymentStatus" },
+                    ])}>Export CSV</Btn>
+                  </div>
+                } />
+                <Toolbar>
+                  <SearchInput value={bookingQuery} onChange={(v) => { setBookingQuery(v); setBookingLimit(PAGE_SIZE); }} placeholder="Search turf, player or sport…" label="Search bookings" />
+                  <Segmented label="Filter by status" value={bookingStatus} onChange={(v) => { setBookingStatus(v); setBookingLimit(PAGE_SIZE); }} options={[
+                    { id: "all", label: "All", count: c.all }, { id: "pending", label: "Pending", count: c.pending },
+                    { id: "confirmed", label: "Confirmed", count: c.confirmed }, { id: "completed", label: "Completed", count: c.completed },
+                    { id: "declined", label: "Declined", count: c.declined }, { id: "cancelled", label: "Cancelled", count: c.cancelled },
+                  ]} />
+                </Toolbar>
+                {loading ? (
+                  <div style={{ ...panel(), borderRadius: 16, overflow: "hidden" }}>{[...Array(5)].map((_, i) => <SkeletonRow key={i} columns={6} />)}</div>
+                ) : (
+                  <>
+                    <DataTable columns={columns} rows={shown} sort={bookingSort} onSort={toggleSort(setBookingSort)} minWidth={940} empty="No bookings match your filters." />
+                    {rows.length > shown.length && (
+                      <div style={{ textAlign: "center", marginTop: 14 }}>
+                        <Btn onClick={() => setBookingLimit((n) => n + PAGE_SIZE)}>Show more ({rows.length - shown.length} remaining)</Btn>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* Mobile native app layout */}
+              <div className="vt-mobile-only" style={{ display: "grid", gap: 14 }}>
+                {/* Header */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <button
+                      type="button"
+                      onClick={() => selectTab("overview")}
+                      className="vt-mobile-back-circle-btn"
+                      aria-label="Back to overview"
+                    >
+                      <ArrowLeft size={18} color="#172B4D" />
+                    </button>
+                    <div>
+                      <h2 style={{ color: "#172B4D", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.4 }}>
+                        Bookings
+                      </h2>
+                      <p style={{ color: "#718096", margin: "2px 0 0", fontSize: 13 }}>
+                        {c.all} total · {c.pending} awaiting review · {c.confirmed} confirmed
+                      </p>
                     </div>
-                  )}
-                </>
-              )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowExportModal(true)}
+                    aria-label="Export bookings"
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 22,
+                      background: "#FFFFFF",
+                      border: "1px solid #E5EDF5",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Icon name="download" size={17} color="#172B4D" />
+                  </button>
+                </div>
+
+                {/* Search Bar */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    background: "#FFFFFF",
+                    border: "1px solid #E5EDF5",
+                    borderRadius: 16,
+                    padding: "12px 16px",
+                  }}
+                >
+                  <Icon name="search" size={16} color="#718096" />
+                  <input
+                    type="text"
+                    value={bookingQuery}
+                    onChange={(e) => { setBookingQuery(e.target.value); setBookingLimit(PAGE_SIZE); }}
+                    placeholder="Search turf, player or sport"
+                    aria-label="Search bookings"
+                    style={{
+                      border: "none",
+                      outline: "none",
+                      background: "transparent",
+                      color: "#172B4D",
+                      fontSize: 13.5,
+                      width: "100%",
+                    }}
+                  />
+                </div>
+
+                {/* Filter Pills */}
+                <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2, scrollbarWidth: "none" }}>
+                  {[
+                    { id: "all", label: "All", count: c.all },
+                    { id: "pending", label: "Pending", count: c.pending },
+                    { id: "confirmed", label: "Confirmed", count: c.confirmed },
+                    { id: "completed", label: "Completed", count: c.completed },
+                    { id: "declined", label: "Declined", count: c.declined },
+                    { id: "cancelled", label: "Cancelled", count: c.cancelled },
+                  ].map((o) => {
+                    const active = bookingStatus === o.id;
+                    return (
+                      <button
+                        key={o.id}
+                        type="button"
+                        onClick={() => { setBookingStatus(o.id); setBookingLimit(PAGE_SIZE); }}
+                        style={{
+                          background: active ? "#172B4D" : "#FFFFFF",
+                          color: active ? "#FFFFFF" : "#172B4D",
+                          border: active ? "none" : "1px solid #E5EDF5",
+                          borderRadius: 999,
+                          padding: "8px 18px",
+                          fontWeight: 700,
+                          fontSize: 13,
+                          cursor: "pointer",
+                          whiteSpace: "nowrap",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          flexShrink: 0,
+                        }}
+                      >
+                        <span>{o.label}</span>
+                        <span>{o.count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Cards List */}
+                {loading ? (
+                  <div style={{ display: "grid", gap: 12 }}>{[...Array(4)].map((_, i) => <SkeletonCard key={i} lines={2} />)}</div>
+                ) : shown.length === 0 ? (
+                  <div style={{ textAlign: "center", padding: "40px 20px", color: "#718096", fontSize: 13.5, background: "#FFFFFF", borderRadius: 20, border: "1px solid #E5EDF5" }}>
+                    No bookings match your filters.
+                  </div>
+                ) : (
+                  <div style={{ display: "grid", gap: 12 }}>
+                    {shown.map((b) => (
+                      <div
+                        key={b.id}
+                        style={{
+                          background: "#FFFFFF",
+                          borderRadius: 18,
+                          padding: "16px 18px",
+                          border: "1px solid #E5EDF5",
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 12,
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 15.5, fontWeight: 800, color: "#172B4D", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {b.turf || "Turf"}
+                            </div>
+                            <div style={{ fontSize: 12.5, color: "#718096", marginTop: 2 }}>
+                              {b.player ? `${b.player} · ${b.sport || "Sport"}` : b.sport || "Sport"}
+                            </div>
+                          </div>
+                          <div
+                            style={{
+                              background: b.status === "confirmed" ? "#EAF7FF" : b.status === "completed" ? "#E9F9ED" : b.status === "pending" ? "#FEF3C7" : "#FFF1F2",
+                              color: b.status === "confirmed" ? "#1769E8" : b.status === "completed" ? "#10B981" : b.status === "pending" ? "#D97706" : "#E11D48",
+                              borderRadius: 8,
+                              padding: "4px 10px",
+                              fontSize: 12,
+                              fontWeight: 700,
+                              textTransform: "capitalize",
+                            }}
+                          >
+                            {b.status}
+                          </div>
+                        </div>
+
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, fontWeight: 700, color: "#172B4D" }}>
+                          <div>
+                            {formatBookingDate(b.date)} · {formatTime12(b.time)}
+                          </div>
+                          <div style={{ fontSize: 14, fontWeight: 800 }}>
+                            {b.amount ? formatINR(b.amount) : "—"}
+                          </div>
+                        </div>
+
+                        {["pending", "confirmed"].includes(b.status) && (
+                          <div style={{ display: "flex", gap: 8, marginTop: 2 }}>
+                            {b.status === "pending" && (
+                              <button
+                                type="button"
+                                disabled={busyBookingId === b.id}
+                                onClick={() => decideBooking(b, "approve")}
+                                style={{
+                                  flex: 1,
+                                  background: "#C8F542",
+                                  color: "#172B4D",
+                                  border: "none",
+                                  borderRadius: 999,
+                                  padding: "9px 16px",
+                                  fontSize: 13,
+                                  fontWeight: 800,
+                                  cursor: "pointer",
+                                }}
+                              >
+                                Approve
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              disabled={busyBookingId === b.id}
+                              onClick={() => setRejectingBooking(b)}
+                              style={{
+                                flex: 1,
+                                background: "#FFF1F2",
+                                color: "#E11D48",
+                                border: "1px solid #FECDD3",
+                                borderRadius: 999,
+                                padding: "9px 16px",
+                                fontSize: 13,
+                                fontWeight: 700,
+                                cursor: "pointer",
+                              }}
+                            >
+                              {b.status === "confirmed" ? "Cancel booking" : "Reject"}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Footer Count */}
+                {shown.length > 0 && (
+                  <div style={{ textAlign: "center", fontSize: 12, color: "#718096", marginTop: 4 }}>
+                    Showing {shown.length} of {rows.length}
+                    {rows.length > shown.length && (
+                      <button
+                        type="button"
+                        onClick={() => setBookingLimit((n) => n + PAGE_SIZE)}
+                        style={{ display: "block", margin: "10px auto 0", background: "none", border: "none", color: "#1769E8", fontWeight: 700, fontSize: 13, cursor: "pointer" }}
+                      >
+                        Load more ({rows.length - shown.length} remaining)
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             </>
           );
         })()}
@@ -1351,91 +1770,317 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
 
           return (
             <>
-              <TopBar title="Users" sub={`${counts.all.toLocaleString("en-IN")} account${counts.all === 1 ? "" : "s"}`} action={
-                <>
-                  <Btn icon="download" size="sm" disabled={!rows.length} onClick={() => downloadCSV(`users-${today}.csv`, rows, [
-                    { label: "Name", key: "name" }, { label: "Email", key: "email" }, { label: "Role", key: "role" },
-                    { label: "Status", key: "status" }, { label: "Joined", key: "joined" },
-                    { label: "Bookings", key: "bookings" }, { label: "Spent (INR)", key: "spent" },
-                  ])}>Export CSV</Btn>
-                  <Btn variant="primary" icon="plus" size="sm" onClick={() => { setShowInvite(true); setInviteError(""); setInviteLink(""); setInviteLinkCopied(false); }}>Invite owner</Btn>
-                </>
-              } />
-              {usersFailed && <ErrorBanner message="Couldn't load the user list. Check that SUPABASE_SERVICE_ROLE_KEY is configured on the server." onRetry={fetchUsers} />}
-              <Toolbar>
-                <SearchInput value={userQuery} onChange={setUserQuery} placeholder="Search name, email or role…" label="Search users" />
-                <Segmented label="Filter by role" value={userRole} onChange={setUserRole} options={[
-                  { id: "all", label: "All", count: counts.all }, { id: "Player", label: "Players", count: counts.Player },
-                  { id: "Turf Owner", label: "Owners", count: counts["Turf Owner"] }, { id: "Admin", label: "Admins", count: counts.Admin },
-                ]} />
-              </Toolbar>
-              {loading ? (
-                <div style={{ ...panel(), borderRadius: 16, overflow: "hidden" }}>{[...Array(4)].map((_, i) => <SkeletonRow key={i} columns={7} />)}</div>
-              ) : (
-                <>
-                  {/* Desktop table */}
+              {/* Desktop layout */}
+              <div className="vt-desktop-only">
+                <TopBar title="Users" sub={`${counts.all.toLocaleString("en-IN")} account${counts.all === 1 ? "" : "s"}`} onBack={() => selectTab("overview")} action={
+                  <>
+                    <Btn icon="download" size="sm" disabled={!rows.length} onClick={() => downloadCSV(`users-${today}.csv`, rows, [
+                      { label: "Name", key: "name" }, { label: "Email", key: "email" }, { label: "Role", key: "role" },
+                      { label: "Status", key: "status" }, { label: "Joined", key: "joined" },
+                      { label: "Bookings", key: "bookings" }, { label: "Spent (INR)", key: "spent" },
+                    ])}>Export CSV</Btn>
+                    <Btn variant="primary" icon="plus" size="sm" onClick={() => { setShowInvite(true); setInviteError(""); setInviteLink(""); setInviteLinkCopied(false); }}>Invite owner</Btn>
+                  </>
+                } />
+                {usersFailed && <ErrorBanner message="Couldn't load the user list. Check that SUPABASE_SERVICE_ROLE_KEY is configured on the server." onRetry={fetchUsers} />}
+                <Toolbar>
+                  <SearchInput value={userQuery} onChange={setUserQuery} placeholder="Search name, email or role…" label="Search users" />
+                  <Segmented label="Filter by role" value={userRole} onChange={setUserRole} options={[
+                    { id: "all", label: "All", count: counts.all }, { id: "Player", label: "Players", count: counts.Player },
+                    { id: "Turf Owner", label: "Owners", count: counts["Turf Owner"] }, { id: "Admin", label: "Admins", count: counts.Admin },
+                  ]} />
+                </Toolbar>
+                {loading ? (
+                  <div style={{ ...panel(), borderRadius: 16, overflow: "hidden" }}>{[...Array(4)].map((_, i) => <SkeletonRow key={i} columns={7} />)}</div>
+                ) : (
                   <div className="vt-users-table">
                     <DataTable columns={columns} rows={rows} sort={userSort} onSort={toggleSort(setUserSort)} minWidth={900} empty={userQuery || userRole !== "all" ? "No users match your filters." : "No users yet."} />
                   </div>
-                  {/* Mobile cards */}
-                  <div className="vt-users-cards">
-                    {rows.length === 0 ? (
-                      <div style={{ textAlign: "center", padding: "40px 0", color: V.chalkFaint, fontSize: 14 }}>
-                        {userQuery || userRole !== "all" ? "No users match your filters." : "No users yet."}
-                      </div>
-                    ) : rows.map((u) => {
-                      const STATUS_COLORS = { Active: V.confirmed, "Pending Invite": V.pending, Suspended: V.danger };
+                )}
+              </div>
+
+              {/* Mobile native app layout */}
+              <div className="vt-mobile-only" style={{ display: "grid", gap: 14 }}>
+                {/* Header */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <button
+                      type="button"
+                      onClick={() => selectTab("overview")}
+                      className="vt-mobile-back-circle-btn"
+                      aria-label="Back to overview"
+                    >
+                      <ArrowLeft size={18} color="#172B4D" />
+                    </button>
+                    <div>
+                      <h2 style={{ color: "#172B4D", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.4 }}>
+                        Users
+                      </h2>
+                      <p style={{ color: "#718096", margin: "2px 0 0", fontSize: 13 }}>
+                        {counts.all.toLocaleString("en-IN")} accounts
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => downloadCSV(`users-${today}.csv`, rows, [
+                      { label: "Name", key: "name" }, { label: "Email", key: "email" }, { label: "Role", key: "role" },
+                      { label: "Status", key: "status" }, { label: "Joined", key: "joined" },
+                      { label: "Bookings", key: "bookings" }, { label: "Spent (INR)", key: "spent" },
+                    ])}
+                    aria-label="Download users CSV"
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 22,
+                      background: "#FFFFFF",
+                      border: "1px solid #E5EDF5",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Icon name="download" size={17} color="#172B4D" />
+                  </button>
+                </div>
+
+                {/* Invite Owner Primary Lime Button */}
+                <button
+                  type="button"
+                  onClick={() => { setShowInvite(true); setInviteError(""); setInviteLink(""); setInviteLinkCopied(false); }}
+                  style={{
+                    width: "100%",
+                    background: "#C8F542",
+                    color: "#172B4D",
+                    border: "none",
+                    borderRadius: 999,
+                    padding: "13px 24px",
+                    fontWeight: 800,
+                    fontSize: 14.5,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    boxShadow: "0 2px 10px rgba(200, 245, 66, 0.3)",
+                  }}
+                >
+                  <Icon name="plus" size={17} color="#172B4D" />
+                  <span>Invite owner</span>
+                </button>
+
+                {/* Search Bar */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    background: "#FFFFFF",
+                    border: "1px solid #E5EDF5",
+                    borderRadius: 16,
+                    padding: "12px 16px",
+                  }}
+                >
+                  <Icon name="search" size={16} color="#718096" />
+                  <input
+                    type="text"
+                    value={userQuery}
+                    onChange={(e) => setUserQuery(e.target.value)}
+                    placeholder="Search name, email or role"
+                    aria-label="Search users"
+                    style={{
+                      border: "none",
+                      outline: "none",
+                      background: "transparent",
+                      color: "#172B4D",
+                      fontSize: 13.5,
+                      width: "100%",
+                    }}
+                  />
+                </div>
+
+                {/* Filter Pills */}
+                <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2, scrollbarWidth: "none" }}>
+                  {[
+                    { id: "all", label: "All", count: counts.all },
+                    { id: "Player", label: "Players", count: counts.Player },
+                    { id: "Turf Owner", label: "Owners", count: counts["Turf Owner"] },
+                    { id: "Admin", label: "Admins", count: counts.Admin },
+                  ].map((o) => {
+                    const active = userRole === o.id;
+                    return (
+                      <button
+                        key={o.id}
+                        type="button"
+                        onClick={() => setUserRole(o.id)}
+                        style={{
+                          background: active ? "#172B4D" : "#FFFFFF",
+                          color: active ? "#FFFFFF" : "#172B4D",
+                          border: active ? "none" : "1px solid #E5EDF5",
+                          borderRadius: 999,
+                          padding: "8px 18px",
+                          fontWeight: 700,
+                          fontSize: 13,
+                          cursor: "pointer",
+                          whiteSpace: "nowrap",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          flexShrink: 0,
+                        }}
+                      >
+                        <span>{o.label}</span>
+                        <span>{o.count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* User Cards List */}
+                {loading ? (
+                  <div style={{ display: "grid", gap: 12 }}>{[...Array(4)].map((_, i) => <SkeletonCard key={i} lines={2} />)}</div>
+                ) : rows.length === 0 ? (
+                  <div style={{ textAlign: "center", padding: "40px 20px", color: "#718096", fontSize: 13.5, background: "#FFFFFF", borderRadius: 20, border: "1px solid #E5EDF5" }}>
+                    {userQuery || userRole !== "all" ? "No users match your filters." : "No users yet."}
+                  </div>
+                ) : (
+                  <div style={{ display: "grid", gap: 12 }}>
+                    {rows.map((u) => {
                       const isSelf = u.id === profile?.id;
                       const isAdmin = u.role === "Admin";
                       const isPending = u.status === "Pending Invite";
+                      const initial = (u.name || u.email || "U").trim().charAt(0).toUpperCase();
+                      const secondaryInitial = u.name && u.name.includes(" ") ? u.name.split(" ")[1].charAt(0).toUpperCase() : "";
+                      const avatarText = (initial + secondaryInitial).slice(0, 2);
+
                       return (
-                        <div key={u.id} style={{
-                          background: "rgba(255,255,255,0.03)", border: `1px solid ${V.line}`, borderRadius: 14,
-                          padding: "16px", marginBottom: 10,
-                        }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, flexWrap: "wrap" }}>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontWeight: 700, color: V.chalk, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.name}</div>
-                              <div style={{ color: V.chalkFaint, fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 2 }}>{u.email}</div>
-                              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
-                                <Pill color={ROLE_COLORS[u.role]}>{u.role}</Pill>
-                                <Pill color={STATUS_COLORS[u.status] || V.chalkDim}>{u.status}</Pill>
-                              </div>
+                        <div
+                          key={u.id}
+                          style={{
+                            background: "#FFFFFF",
+                            borderRadius: 20,
+                            padding: "18px 20px",
+                            border: "1px solid #E5EDF5",
+                            boxShadow: "0 4px 14px rgba(23, 105, 232, 0.04)",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 14,
+                            position: "relative",
+                          }}
+                        >
+                          {/* Circular Avatar */}
+                          <div
+                            style={{
+                              width: 44,
+                              height: 44,
+                              borderRadius: "50%",
+                              background: "#E0F2FE",
+                              color: "#0284C7",
+                              fontWeight: 900,
+                              fontSize: 15,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flexShrink: 0,
+                            }}
+                          >
+                            {avatarText}
+                          </div>
+
+                          {/* Info Column */}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 800, color: "#172B4D", fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {u.name || u.email}
                             </div>
-                            <div style={{ fontSize: 12, color: V.chalkFaint, whiteSpace: "nowrap" }}>{u.joined}</div>
-                          </div>
-                          <div style={{ display: "flex", gap: 16, marginTop: 12, fontSize: 12.5, color: V.chalkDim }}>
-                            <span>{u.bookings} booking{u.bookings !== 1 ? "s" : ""}</span>
-                            <span style={{ fontFamily: font, color: V.chalk, fontWeight: 600 }}>{formatINR(u.spent)}</span>
-                          </div>
-                          <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
-                            {isPending ? (
-                              <Btn variant="danger" size="sm" busy={revokingUserId === u.id}
-                                onClick={() => handleRevokeInvite(u.id, u.name)}>Revoke invite</Btn>
-                            ) : !isAdmin && !isSelf ? (
-                              <Btn variant="secondary" size="sm"
-                                onClick={() => { setRoleChangeUser(u); setRoleWarning(null); setRoleResolution(""); }}>Change Role</Btn>
-                            ) : null}
-                            {(u.role === "Turf Owner" || isPending) && !isSelf && (
-                              <Btn variant="ghost" size="sm"
-                                onClick={() => { setAccessLinkUser(u); setAccessLinkData(null); setAccessLinkError(""); setAccessLinkCopied(false); }}>Get Link</Btn>
-                            )}
-                            {!isAdmin && !isSelf && (
-                              <Btn
-                                variant="danger"
-                                size="sm"
-                                onClick={() => { setDeleteUser(u); setDeleteConfirmName(""); setDeleteError(""); }}
+                            <div style={{ color: "#718096", fontSize: 12.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 1 }}>
+                              {u.email}
+                            </div>
+                            <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", marginTop: 6 }}>
+                              <span
+                                style={{
+                                  background: "#EAF7FF",
+                                  color: "#1769E8",
+                                  borderRadius: 8,
+                                  padding: "2px 8px",
+                                  fontSize: 11.5,
+                                  fontWeight: 700,
+                                }}
                               >
-                                Delete
-                              </Btn>
-                            )}
+                                {u.role}
+                              </span>
+                              <span
+                                style={{
+                                  background: u.status === "Active" ? "#E9F9ED" : "#FEF3C7",
+                                  color: u.status === "Active" ? "#10B981" : "#D97706",
+                                  borderRadius: 8,
+                                  padding: "2px 8px",
+                                  fontSize: 11.5,
+                                  fontWeight: 700,
+                                }}
+                              >
+                                {u.status}
+                              </span>
+                              <span style={{ fontSize: 12, color: "#718096" }}>
+                                · {u.bookings} booking{u.bookings !== 1 ? "s" : ""} · <strong style={{ color: "#172B4D" }}>{formatINR(u.spent)}</strong>
+                              </span>
+                            </div>
+                            <div style={{ fontSize: 12, color: "#718096", marginTop: 4 }}>
+                              Joined {u.joined}
+                            </div>
+                          </div>
+
+                          {/* 3-dots Menu Button */}
+                          <div style={{ position: "relative" }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (isPending) {
+                                  handleRevokeInvite(u.id, u.name);
+                                } else if (!isAdmin && !isSelf) {
+                                  setRoleChangeUser(u);
+                                  setRoleWarning(null);
+                                  setRoleResolution("");
+                                } else if (u.role === "Turf Owner" || isPending) {
+                                  setAccessLinkUser(u);
+                                  setAccessLinkData(null);
+                                  setAccessLinkError("");
+                                  setAccessLinkCopied(false);
+                                }
+                              }}
+                              style={{
+                                width: 38,
+                                height: 38,
+                                borderRadius: "50%",
+                                border: "1px solid #E5EDF5",
+                                background: "#FFFFFF",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                cursor: "pointer",
+                                color: "#172B4D",
+                                fontSize: 18,
+                                flexShrink: 0,
+                              }}
+                              aria-label="User actions"
+                            >
+                              ⋮
+                            </button>
                           </div>
                         </div>
                       );
                     })}
                   </div>
-                </>
-              )}
+                )}
+
+                {/* Footer Count */}
+                {rows.length > 0 && (
+                  <div style={{ textAlign: "center", fontSize: 12, color: "#718096", marginTop: 4 }}>
+                    Showing {rows.length} of {counts.all}
+                  </div>
+                )}
+              </div>
             </>
           );
         })()}
@@ -1444,7 +2089,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
           const shown = disputeFilter === "all" ? disputes : disputes.filter((d) => d.status === disputeFilter);
           return (
             <>
-              <TopBar title="Disputes & Refunds" sub={`${openDisputes.length} open · ${disputes.length} total · average resolution ${formatHours(view.avgResolve)}`} action={refreshButton} />
+              <TopBar title="Disputes & Refunds" sub={`${openDisputes.length} open · ${disputes.length} total · average resolution ${formatHours(view.avgResolve)}`} onBack={() => selectTab("overview")} action={refreshButton} />
               <Toolbar>
                 <Segmented label="Filter disputes" value={disputeFilter} onChange={setDisputeFilter} options={[
                   { id: "open", label: "Open", count: openDisputes.length },
@@ -2176,7 +2821,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
           className={`vt-bottom-bar-btn ${tab === "overview" ? "active" : ""}`}
           onClick={() => selectTab("overview")}
         >
-          <Icon name="building" size={20} />
+          <Icon name="home" size={20} />
           <span>Home</span>
         </button>
         <button
@@ -2220,7 +2865,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
 }
 
 // ------------------------------------------------------------------ overview
-function OverviewTab({ profile, view, loading, range, setRange, refreshButton, goTo }) {
+function OverviewTab({ profile, view, loading, range, setRange, refreshButton, goTo, processingPayoutsCount = 0 }) {
   const { month, pendingTurfs, openDisputes, userCounts, series, turfs, cityList, bookingRows, liveTurfs, avgResolve, revenueBreakdown, bookingCounts } = view;
   const topTurfs = [...turfs].sort((a, b) => b.revenue - a.revenue).filter((t) => t.revenue > 0).slice(0, 5)
     .map((t) => ({ key: t.id, label: t.name, sub: t.city, value: t.revenue }));
@@ -2230,111 +2875,462 @@ function OverviewTab({ profile, view, loading, range, setRange, refreshButton, g
 
   return (
     <>
+      {/* DESKTOP-ONLY OVERVIEW CONTENT */}
       <div className="vt-desktop-only">
-        <TopBar title={`Welcome, ${profile?.full_name || "Admin"}`} sub="Everything happening across Velocity Turf." action={refreshButton} />
-      </div>
+        <TopBar
+          title={`Welcome, ${profile?.full_name || "Admin"}`}
+          sub="Everything happening across Velocity Turf."
+          action={
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <PwaInstallButton role="admin" variant="pill" />
+              {refreshButton}
+            </div>
+          }
+        />
 
-      {loading ? (
-        <StatGrid>{[...Array(6)].map((_, i) => <SkeletonCard key={i} lines={1} />)}</StatGrid>
-      ) : (
-        <>
-          <div style={{ display: "grid", gap: 10, marginBottom: 22 }}>
-            {pendingTurfs.length > 0 && (
-              <AttentionItem icon="building" tone={V.pending} title={`${pendingTurfs.length} turf${pendingTurfs.length === 1 ? "" : "s"} waiting for approval`}
-                subtitle="Owners can't take bookings until you review their listing."
-                action={<Btn variant="primary" size="sm" onClick={() => goTo("approvals")}>Review</Btn>} />
+        {loading ? (
+          <StatGrid>{[...Array(6)].map((_, i) => <SkeletonCard key={i} lines={1} />)}</StatGrid>
+        ) : (
+          <>
+            <div style={{ display: "grid", gap: 10, marginBottom: 22 }}>
+              {pendingTurfs.length > 0 && (
+                <AttentionItem icon="building" tone={V.pending} title={`${pendingTurfs.length} turf${pendingTurfs.length === 1 ? "" : "s"} waiting for approval`}
+                  subtitle="Owners can't take bookings until you review their listing."
+                  action={<Btn variant="primary" size="sm" onClick={() => goTo("approvals")}>Review</Btn>} />
+              )}
+              {openDisputes.length > 0 && (
+                <AttentionItem icon="alert" tone={V.danger} title={`${openDisputes.length} open dispute${openDisputes.length === 1 ? "" : "s"}`}
+                  subtitle={`Oldest raised ${relativeTime(openDisputes[openDisputes.length - 1].createdAt)}.`}
+                  action={<Btn variant="primary" size="sm" onClick={() => goTo("disputes")}>Resolve</Btn>} />
+              )}
+              {pendingTurfs.length === 0 && openDisputes.length === 0 && (
+                <AttentionItem icon="check" tone={V.confirmed} title="You're all caught up" subtitle="No approvals or disputes waiting for you." />
+              )}
+            </div>
+
+            <StatGrid>
+              <StatCard label="Collected revenue" value={formatCompactINR(rb.collected)} icon="rupee" color={V.confirmed} sub={`₹${rb.pending.toLocaleString("en-IN")} pending · ₹${rb.refunded.toLocaleString("en-IN")} refunded`} />
+              <StatCard label="Revenue this month" value={formatCompactINR(month.revenue)} icon="rupee" color={V.sky} delta={month.revenueChange} sub="Confirmed + completed bookings" />
+              <StatCard label="Total bookings" value={bookingCounts.all.toLocaleString("en-IN")} icon="calendar" color={V.aqua} sub={`${bookingCounts.confirmed + bookingCounts.completed} confirmed · ${bookingCounts.pending} pending · ${rb.cancelledCount} cancelled`} />
+              <StatCard label="Live turfs" value={liveTurfs} icon="building" color={V.confirmed} sub={pendingTurfs.length ? `${pendingTurfs.length} waiting for approval` : "None waiting for approval"} />
+              <StatCard label="Total users" value={userCounts.all.toLocaleString("en-IN")} icon="users" color={V.pending} sub={`${userCounts.Player} players · ${userCounts["Turf Owner"]} owners · ${userCounts.Admin} admins`} />
+              <StatCard label="Open disputes" value={openDisputes.length} icon="alert" color={V.danger} sub={openDisputes.length === 0 ? "Nothing to resolve" : avgResolve === null ? "Needs attention" : `Avg. resolution ${formatHours(avgResolve)}`} />
+            </StatGrid>
+          </>
+        )}
+
+        <div className="vt-two-col">
+          <Card>
+            <SectionTitle action={
+              <Segmented label="Chart range" value={range} onChange={setRange} options={[{ id: 7, label: "7d" }, { id: 30, label: "30d" }, { id: 90, label: "90d" }]} />
+            }>Revenue · last {range} days</SectionTitle>
+            {loading ? <SkeletonCard lines={3} /> : (
+              <BarChart data={seriesToBars(series, range)} formatValue={formatINR} ariaLabel={`Daily revenue for the last ${range} days`} />
             )}
-            {openDisputes.length > 0 && (
-              <AttentionItem icon="alert" tone={V.danger} title={`${openDisputes.length} open dispute${openDisputes.length === 1 ? "" : "s"}`}
-                subtitle={`Oldest raised ${relativeTime(openDisputes[openDisputes.length - 1].createdAt)}.`}
-                action={<Btn variant="primary" size="sm" onClick={() => goTo("disputes")}>Resolve</Btn>} />
-            )}
-            {pendingTurfs.length === 0 && openDisputes.length === 0 && (
-              <AttentionItem icon="check" tone={V.confirmed} title="You're all caught up" subtitle="No approvals or disputes waiting for you." />
-            )}
+          </Card>
+          <Card>
+            <SectionTitle>Top turfs by all-time revenue</SectionTitle>
+            {loading ? <SkeletonCard lines={3} /> : <BarList items={topTurfs} formatValue={formatCompactINR} empty="Revenue will rank here once bookings are confirmed." />}
+          </Card>
+        </div>
+
+        {/* Revenue source and city breakdown */}
+        {!loading && (rb.collected > 0) && (
+          <div className="vt-two-col" style={{ marginTop: 0 }}>
+            <Card>
+              <SectionTitle>Revenue by source</SectionTitle>
+              <BarList
+                items={[
+                  { key: "online", label: "Online bookings", value: rb.onlineRev },
+                  { key: "walkin", label: "Walk-in bookings", value: rb.walkInRev },
+                ].filter((i) => i.value > 0)}
+                color={V.aqua}
+                formatValue={formatCompactINR}
+                empty="Revenue source breakdown will appear here."
+              />
+            </Card>
+            <Card>
+              <SectionTitle>All-time revenue by city</SectionTitle>
+              <BarList items={cityList.slice(0, 6)} color={V.sky} formatValue={formatCompactINR} empty="City breakdown appears once turfs are listed." />
+            </Card>
           </div>
+        )}
 
-          <StatGrid>
-            <StatCard label="Collected revenue" value={formatCompactINR(rb.collected)} icon="rupee" color={V.confirmed} sub={`₹${rb.pending.toLocaleString("en-IN")} pending · ₹${rb.refunded.toLocaleString("en-IN")} refunded`} />
-            <StatCard label="Revenue this month" value={formatCompactINR(month.revenue)} icon="rupee" color={V.sky} delta={month.revenueChange} sub="Confirmed + completed bookings" />
-            <StatCard label="Total bookings" value={bookingCounts.all.toLocaleString("en-IN")} icon="calendar" color={V.aqua} sub={`${bookingCounts.confirmed + bookingCounts.completed} confirmed · ${bookingCounts.pending} pending · ${rb.cancelledCount} cancelled`} />
-            <StatCard label="Live turfs" value={liveTurfs} icon="building" color={V.confirmed} sub={pendingTurfs.length ? `${pendingTurfs.length} waiting for approval` : "None waiting for approval"} />
-            <StatCard label="Total users" value={userCounts.all.toLocaleString("en-IN")} icon="users" color={V.pending} sub={`${userCounts.Player} players · ${userCounts["Turf Owner"]} owners · ${userCounts.Admin} admins`} />
-            <StatCard label="Open disputes" value={openDisputes.length} icon="alert" color={V.danger} sub={openDisputes.length === 0 ? "Nothing to resolve" : avgResolve === null ? "Needs attention" : `Avg. resolution ${formatHours(avgResolve)}`} />
-          </StatGrid>
-        </>
-      )}
+        {!loading && rb.collected === 0 && (
+          <div className="vt-two-col" style={{ marginTop: 0 }}>
+            <Card>
+              <SectionTitle>All-time revenue by city</SectionTitle>
+              <BarList items={cityList.slice(0, 6)} color={V.sky} formatValue={formatCompactINR} empty="City breakdown appears once turfs are listed." />
+            </Card>
+          </div>
+        )}
 
-      <div className="vt-two-col">
-        <Card>
-          <SectionTitle action={
-            <Segmented label="Chart range" value={range} onChange={setRange} options={[{ id: 7, label: "7d" }, { id: 30, label: "30d" }, { id: 90, label: "90d" }]} />
-          }>Revenue · last {range} days</SectionTitle>
-          {loading ? <SkeletonCard lines={3} /> : (
-            <BarChart data={seriesToBars(series, range)} formatValue={formatINR} ariaLabel={`Daily revenue for the last ${range} days`} />
-          )}
-        </Card>
-        <Card>
-          <SectionTitle>Top turfs by all-time revenue</SectionTitle>
-          {loading ? <SkeletonCard lines={3} /> : <BarList items={topTurfs} formatValue={formatCompactINR} empty="Revenue will rank here once bookings are confirmed." />}
-        </Card>
+        <div className="vt-even-col">
+          <Card>
+            <SectionTitle action={<Btn variant="ghost" size="sm" onClick={() => goTo("bookings")}>View all bookings</Btn>}>Latest bookings</SectionTitle>
+            {loading ? <SkeletonCard lines={3} /> : recent.length === 0 ? (
+              <div style={{ color: V.chalkFaint, fontSize: 13 }}>No bookings yet.</div>
+            ) : (
+              <div style={{ display: "grid" }}>
+                {recent.map((b, i) => (
+                  <div key={b.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: i < recent.length - 1 ? `1px solid ${V.line}` : "none" }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ color: V.chalk, fontWeight: 700, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.player} · {b.turf}</div>
+                      <div style={{ color: V.chalkFaint, fontSize: 12 }}>{formatBookingDate(b.date)}, {formatTime12(b.time)} · {b.sport}</div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                      <span style={{ fontFamily: font, fontWeight: 700, fontSize: 12.5, color: V.chalk }}>{formatINR(b.amount)}</span>
+                      <StatusPill status={b.status} />
+                      <StatusPill status={b.paymentStatus} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </div>
       </div>
 
-      {/* Revenue source and city breakdown */}
-      {!loading && (rb.collected > 0) && (
-        <div className="vt-two-col" style={{ marginTop: 0 }}>
-          <Card>
-            <SectionTitle>Revenue by source</SectionTitle>
-            <BarList
-              items={[
-                { key: "online", label: "Online bookings", value: rb.onlineRev },
-                { key: "walkin", label: "Walk-in bookings", value: rb.walkInRev },
-              ].filter((i) => i.value > 0)}
-              color={V.aqua}
-              formatValue={formatCompactINR}
-              empty="Revenue source breakdown will appear here."
-            />
-          </Card>
-          <Card>
-            <SectionTitle>All-time revenue by city</SectionTitle>
-            <BarList items={cityList.slice(0, 6)} color={V.sky} formatValue={formatCompactINR} empty="City breakdown appears once turfs are listed." />
-          </Card>
-        </div>
-      )}
+      {/* NATIVE MOBILE-ONLY OVERVIEW CONTENT (matches reference mobile app UI) */}
+      <div className="vt-mobile-only">
+        {/* 1. Alert Banner (if pending approvals) */}
+        {pendingTurfs.length > 0 && (
+          <div style={{
+            background: "#FEF3D6",
+            border: "1px solid #FDE68A",
+            borderRadius: 16,
+            padding: "14px 16px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            marginBottom: 14,
+          }}>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 13.5, color: "#172B4D" }}>
+                {pendingTurfs.length} turf{pendingTurfs.length === 1 ? "" : "s"} waiting for approval
+              </div>
+              <div style={{ fontSize: 12, color: "#78350F", marginTop: 2 }}>
+                Owners can't take bookings until you review the listing.
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => goTo("approvals")}
+              style={{
+                background: "#172B4D",
+                color: "#FFFFFF",
+                border: "none",
+                borderRadius: 999,
+                padding: "8px 18px",
+                fontSize: 12.5,
+                fontWeight: 800,
+                cursor: "pointer",
+                flexShrink: 0,
+              }}
+            >
+              Review
+            </button>
+          </div>
+        )}
 
-      {/* Fallback city card when no revenue source breakdown needed */}
-      {!loading && rb.collected === 0 && (
-        <div className="vt-two-col" style={{ marginTop: 0 }}>
-          <Card>
-            <SectionTitle>All-time revenue by city</SectionTitle>
-            <BarList items={cityList.slice(0, 6)} color={V.sky} formatValue={formatCompactINR} empty="City breakdown appears once turfs are listed." />
-          </Card>
+        {/* 2. Revenue this month card */}
+        <div className="vt-mobile-card">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ color: "#718096", fontSize: 13, fontWeight: 600 }}>Revenue this month</span>
+            <span style={{
+              background: "#DCFCE7",
+              color: "#15803D",
+              borderRadius: 999,
+              padding: "2px 8px",
+              fontSize: 11,
+              fontWeight: 800,
+            }}>
+              ↑ {month.revenueChange >= 0 ? `+${month.revenueChange}%` : `${month.revenueChange}%`}
+            </span>
+          </div>
+          <div style={{ fontSize: 32, fontWeight: 900, color: "#172B4D", margin: "4px 0 2px" }}>
+            {formatCompactINR(month.revenue)}
+          </div>
+          <div style={{ color: "#718096", fontSize: 12, marginBottom: 8 }}>
+            Confirmed + completed bookings
+          </div>
+          <div style={{ height: 48, width: "100%", margin: "8px 0" }}>
+            <svg width="100%" height="100%" viewBox="0 0 300 48" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="adminSparklineGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10B981" stopOpacity="0.25" />
+                  <stop offset="100%" stopColor="#10B981" stopOpacity="0.0" />
+                </linearGradient>
+              </defs>
+              <path
+                d="M 0 40 C 40 38, 70 39, 100 35 C 130 31, 160 27, 200 29 C 240 23, 270 19, 300 15 L 300 48 L 0 48 Z"
+                fill="url(#adminSparklineGrad)"
+              />
+              <path
+                d="M 0 40 C 40 38, 70 39, 100 35 C 130 31, 160 27, 200 29 C 240 23, 270 19, 300 15"
+                fill="none"
+                stroke="#10B981"
+                strokeWidth="2.5"
+              />
+            </svg>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: "#718096", paddingTop: 8, borderTop: "1px solid #F0F4F8" }}>
+            <span>Collected <strong style={{ color: "#172B4D" }}>₹{rb.collected.toLocaleString("en-IN")}</strong></span>
+            <span>Pending <strong style={{ color: "#172B4D" }}>₹{rb.pending.toLocaleString("en-IN")}</strong></span>
+            <span>Refunded <strong style={{ color: "#172B4D" }}>₹{rb.refunded.toLocaleString("en-IN")}</strong></span>
+          </div>
         </div>
-      )}
 
-      <div className="vt-even-col">
-        <Card>
-          <SectionTitle action={<Btn variant="ghost" size="sm" onClick={() => goTo("bookings")}>View all bookings</Btn>}>Latest bookings</SectionTitle>
-          {loading ? <SkeletonCard lines={3} /> : recent.length === 0 ? (
-            <div style={{ color: V.chalkFaint, fontSize: 13 }}>No bookings yet.</div>
+        {/* 3. 4x2 Quick Action Icons Grid */}
+        <div className="vt-app-grid">
+          <button type="button" className="vt-app-card" onClick={() => goTo("approvals")}>
+            <div className="vt-app-icon-wrap" style={{ background: "#FEF3C7", color: "#D97706", position: "relative" }}>
+              <Icon name="shield" size={20} />
+              {pendingTurfs.length > 0 && <span className="vt-app-badge">{pendingTurfs.length}</span>}
+            </div>
+            <span className="vt-app-label">Approvals</span>
+          </button>
+          <button type="button" className="vt-app-card" onClick={() => goTo("bookings")}>
+            <div className="vt-app-icon-wrap" style={{ background: "#EEF2FF", color: "#4F46E5" }}>
+              <Icon name="clock" size={20} />
+            </div>
+            <span className="vt-app-label">Bookings</span>
+          </button>
+          <button type="button" className="vt-app-card" onClick={() => goTo("users")}>
+            <div className="vt-app-icon-wrap" style={{ background: "#F0F9FF", color: "#0284C7" }}>
+              <Icon name="users" size={20} />
+            </div>
+            <span className="vt-app-label">Users</span>
+          </button>
+          <button type="button" className="vt-app-card" onClick={() => goTo("turfs")}>
+            <div className="vt-app-icon-wrap" style={{ background: "#ECFDF5", color: "#059669" }}>
+              <StadiumIcon size={20} />
+            </div>
+            <span className="vt-app-label">Turfs</span>
+          </button>
+          <button type="button" className="vt-app-card" onClick={() => goTo("payouts")}>
+            <div className="vt-app-icon-wrap" style={{ background: "#ECFDF5", color: "#10B981", position: "relative" }}>
+              <Icon name="wallet" size={20} />
+              {processingPayoutsCount > 0 && <span className="vt-app-badge">{processingPayoutsCount}</span>}
+            </div>
+            <span className="vt-app-label">Payouts</span>
+          </button>
+          <button type="button" className="vt-app-card" onClick={() => goTo("disputes")}>
+            <div className="vt-app-icon-wrap" style={{ background: "#FFF1F2", color: "#E11D48", position: "relative" }}>
+              <Icon name="alert" size={20} />
+              {openDisputes.length > 0 && <span className="vt-app-badge">{openDisputes.length}</span>}
+            </div>
+            <span className="vt-app-label">Disputes</span>
+          </button>
+          <button type="button" className="vt-app-card" onClick={() => goTo("rewards")}>
+            <div className="vt-app-icon-wrap" style={{ background: "#FAF5FF", color: "#9333EA" }}>
+              <Icon name="gift" size={20} />
+            </div>
+            <span className="vt-app-label">Rewards</span>
+          </button>
+          <button type="button" className="vt-app-card" onClick={() => goTo("tournaments")}>
+            <div className="vt-app-icon-wrap" style={{ background: "#FFFBEB", color: "#B45309" }}>
+              <Icon name="trophy" size={20} />
+            </div>
+            <span className="vt-app-label">Tourneys</span>
+          </button>
+        </div>
+
+        {/* 4. Total bookings card */}
+        <div className="vt-mobile-card">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <span style={{ color: "#718096", fontSize: 13, fontWeight: 600 }}>Total bookings</span>
+            <span style={{ fontSize: 24, fontWeight: 900, color: "#1769E8" }}>{bookingCounts.all}</span>
+          </div>
+          <div style={{ display: "flex", height: 8, borderRadius: 4, overflow: "hidden", background: "#E5EDF5", marginBottom: 12 }}>
+            <div style={{ width: `${bookingCounts.all ? ((bookingCounts.confirmed + bookingCounts.completed) / bookingCounts.all) * 100 : 70}%`, background: "#10B981" }} />
+            <div style={{ width: `${bookingCounts.all ? (bookingCounts.pending / bookingCounts.all) * 100 : 0}%`, background: "#F59E0B" }} />
+            <div style={{ width: `${bookingCounts.all ? (rb.cancelledCount / bookingCounts.all) * 100 : 30}%`, background: "#EF4444" }} />
+          </div>
+          <div style={{ display: "flex", gap: 12, fontSize: 11.5, color: "#718096" }}>
+            <span><span style={{ color: "#10B981" }}>•</span> {bookingCounts.confirmed + bookingCounts.completed} confirmed</span>
+            <span><span style={{ color: "#F59E0B" }}>•</span> {bookingCounts.pending} pending</span>
+            <span><span style={{ color: "#EF4444" }}>•</span> {rb.cancelledCount} cancelled</span>
+          </div>
+        </div>
+
+        {/* 5. Live turfs & Total users (2 cards side by side) */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+          <div className="vt-mobile-card" style={{ marginBottom: 0 }}>
+            <div style={{ color: "#718096", fontSize: 12, fontWeight: 600 }}>Live turfs</div>
+            <div style={{ fontSize: 24, fontWeight: 900, color: "#172B4D", margin: "4px 0 2px" }}>
+              {liveTurfs}
+            </div>
+            <div style={{ color: pendingTurfs.length ? "#D97706" : "#718096", fontSize: 11 }}>
+              {pendingTurfs.length ? `${pendingTurfs.length} waiting for approval` : "All live"}
+            </div>
+          </div>
+          <div className="vt-mobile-card" style={{ marginBottom: 0 }}>
+            <div style={{ color: "#718096", fontSize: 12, fontWeight: 600 }}>Total users</div>
+            <div style={{ fontSize: 24, fontWeight: 900, color: "#172B4D", margin: "4px 0 2px" }}>
+              {userCounts.all}
+            </div>
+            <div style={{ color: "#718096", fontSize: 11 }}>
+              {userCounts.Player} players · {userCounts["Turf Owner"]} owners · {userCounts.Admin} admin
+            </div>
+          </div>
+        </div>
+
+        {/* 6. Open disputes card */}
+        <div className="vt-mobile-card">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <div style={{ color: "#718096", fontSize: 12, fontWeight: 600 }}>Open disputes</div>
+              <div style={{ color: "#718096", fontSize: 11.5, marginTop: 2 }}>
+                {openDisputes.length === 0 ? "Nothing to resolve" : `${openDisputes.length} needing attention`}
+              </div>
+            </div>
+            <div style={{ fontSize: 24, fontWeight: 900, color: "#172B4D" }}>
+              {openDisputes.length}
+            </div>
+          </div>
+        </div>
+
+        {/* 7. Revenue last range days card */}
+        <div className="vt-mobile-card">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.8, color: "#718096", textTransform: "uppercase" }}>
+              REVENUE · LAST {range} DAYS
+            </span>
+            <div style={{ display: "flex", gap: 6 }}>
+              {[7, 30, 90].map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setRange(r)}
+                  style={{
+                    padding: "4px 12px",
+                    borderRadius: 999,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    border: range === r ? "none" : "1px solid #E5EDF5",
+                    background: range === r ? "#172B4D" : "#FFFFFF",
+                    color: range === r ? "#FFFFFF" : "#172B4D",
+                  }}
+                >
+                  {r}d
+                </button>
+              ))}
+            </div>
+          </div>
+          <div style={{ fontSize: 26, fontWeight: 900, color: "#172B4D" }}>
+            {formatINR(seriesToBars(series, range).reduce((sum, item) => sum + (item.value || 0), 0))}
+          </div>
+          <div style={{ color: "#718096", fontSize: 12, marginTop: 2, marginBottom: 12 }}>
+            Total for this period
+          </div>
+          <div style={{ minHeight: 80 }}>
+            <BarChart data={seriesToBars(series, range)} formatValue={formatINR} ariaLabel={`Daily revenue for the last ${range} days`} />
+          </div>
+        </div>
+
+        {/* 8. Top turfs all-time */}
+        <div className="vt-mobile-card">
+          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.8, color: "#718096", textTransform: "uppercase", marginBottom: 14 }}>
+            TOP TURFS · ALL-TIME
+          </div>
+          {topTurfs.length === 0 ? (
+            <div style={{ color: "#718096", fontSize: 13 }}>Revenue will rank here once bookings are confirmed.</div>
           ) : (
-            <div style={{ display: "grid" }}>
-              {recent.map((b, i) => (
-                <div key={b.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: i < recent.length - 1 ? `1px solid ${V.line}` : "none" }}>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ color: V.chalk, fontWeight: 700, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.player} · {b.turf}</div>
-                    <div style={{ color: V.chalkFaint, fontSize: 12 }}>{formatBookingDate(b.date)}, {formatTime12(b.time)} · {b.sport}</div>
+            <div style={{ display: "grid", gap: 12 }}>
+              {topTurfs.map((t) => {
+                const maxVal = topTurfs[0]?.value || 1;
+                const pct = Math.min(100, Math.round((t.value / maxVal) * 100));
+                return (
+                  <div key={t.key}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#172B4D" }}>
+                        {t.label} <span style={{ color: "#718096", fontWeight: 500 }}>· {t.sub}</span>
+                      </div>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: "#172B4D" }}>{formatCompactINR(t.value)}</span>
+                    </div>
+                    <div style={{ height: 6, borderRadius: 3, background: "#E5EDF5", overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${pct}%`, background: "#059669", borderRadius: 3 }} />
+                    </div>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                    <span style={{ fontFamily: font, fontWeight: 700, fontSize: 12.5, color: V.chalk }}>{formatINR(b.amount)}</span>
-                    <StatusPill status={b.status} />
-                    <StatusPill status={b.paymentStatus} />
+                );
+              })}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => goTo("turfs")}
+            style={{ background: "none", border: "none", color: "#1769E8", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: "12px 0 0", display: "block" }}
+          >
+            View all turfs
+          </button>
+        </div>
+
+        {/* 9. Revenue by city */}
+        <div className="vt-mobile-card">
+          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.8, color: "#718096", textTransform: "uppercase", marginBottom: 14 }}>
+            REVENUE BY CITY
+          </div>
+          {cityList.slice(0, 5).map((c) => {
+            const maxVal = cityList[0]?.value || 1;
+            const pct = maxVal > 0 ? Math.min(100, Math.round((c.value / maxVal) * 100)) : 0;
+            return (
+              <div key={c.key} style={{ marginBottom: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#172B4D" }}>
+                    {c.label} <span style={{ color: "#718096", fontWeight: 500 }}>· {turfs.filter(t => t.city === c.label).length} turf{turfs.filter(t => t.city === c.label).length === 1 ? "" : "s"}</span>
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: "#172B4D" }}>{formatCompactINR(c.value)}</span>
+                </div>
+                <div style={{ height: 6, borderRadius: 3, background: "#E5EDF5", overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${pct}%`, background: "#1769E8", borderRadius: 3 }} />
+                </div>
+              </div>
+            );
+          })}
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#718096", paddingTop: 10, marginTop: 6, borderTop: "1px solid #F0F4F8" }}>
+            <span>Source: walk-in bookings</span>
+            <strong style={{ color: "#172B4D" }}>{formatINR(rb.walkInRev || 0)}</strong>
+          </div>
+        </div>
+
+        {/* 10. Latest bookings */}
+        <div className="vt-mobile-card">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.8, color: "#718096", textTransform: "uppercase" }}>
+              LATEST BOOKINGS
+            </span>
+            <button
+              type="button"
+              onClick={() => goTo("bookings")}
+              style={{ background: "none", border: "none", color: "#1769E8", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}
+            >
+              View all
+            </button>
+          </div>
+          {recent.length === 0 ? (
+            <div style={{ color: "#718096", fontSize: 13 }}>No bookings yet.</div>
+          ) : (
+            <div style={{ display: "grid", gap: 12 }}>
+              {recent.slice(0, 5).map((b, i) => (
+                <div key={b.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: i < 4 ? 10 : 0, borderBottom: i < 4 ? "1px solid #F0F4F8" : "none" }}>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: 13.5, color: "#172B4D" }}>{b.player} · {b.turf}</div>
+                    <div style={{ fontSize: 12, color: "#718096", marginTop: 2 }}>{formatBookingDate(b.date)}, {formatTime12(b.time)} · {b.sport}</div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontWeight: 800, fontSize: 13.5, color: "#172B4D" }}>{formatINR(b.amount)}</div>
+                    <div style={{ marginTop: 2 }}>
+                      <StatusPill status={b.status} />
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           )}
-        </Card>
+        </div>
       </div>
     </>
   );

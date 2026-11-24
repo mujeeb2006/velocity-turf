@@ -10,6 +10,7 @@ import {
 import { QrCameraScanner } from "@/components/dashboard/QrCameraScanner";
 import { parseBookingQr } from "@/lib/qr/booking-qr";
 import { useToast } from "@/components/ui/toast";
+import { ArrowLeft } from "@/components/ui/icons";
 
 export function OwnerQrCheckinSection({
   turfs = [],
@@ -17,6 +18,7 @@ export function OwnerQrCheckinSection({
   onRefresh,
   onViewBookingDetail,
   profile,
+  onBack,
 }) {
   const { showToast } = useToast();
 
@@ -296,26 +298,69 @@ export function OwnerQrCheckinSection({
   return (
     <div style={{ display: "grid", gap: 24 }}>
       {/* Top Section Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 14 }}>
-        <div>
-          <h2 style={{ color: V.chalk, fontFamily: font, fontSize: 24, fontWeight: 800, margin: 0 }}>
-            Attendance & QR Verification
-          </h2>
-          <p style={{ color: V.chalkDim, margin: "4px 0 0", fontSize: 13.5 }}>
-            Scan player QR tickets to verify booking details, prevent duplicate arrivals, and manage attendance rosters.
-          </p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="vt-mobile-back-circle-btn"
+              aria-label="Back to overview"
+            >
+              <ArrowLeft size={18} color="#172B4D" />
+            </button>
+          )}
+          <div style={{ minWidth: 0 }}>
+            <h2 style={{ color: V.chalk, fontFamily: font, fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.4 }}>
+              Check-in
+            </h2>
+            <p style={{ color: V.chalkDim, margin: "4px 0 0", fontSize: 13 }}>
+              Scan player QR tickets to verify bookings and stop duplicate arrivals.
+            </p>
+          </div>
         </div>
 
         {/* View Switcher */}
-        <Segmented
-          label="Attendance Section"
-          value={activeView}
-          onChange={setActiveView}
-          options={[
-            { id: "scanner", label: "Live QR Scanner", count: undefined },
-            { id: "roster", label: "Attendance Roster", count: rosterStats.expectedToday },
-          ]}
-        />
+        <div style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
+          <button
+            type="button"
+            onClick={() => setActiveView("scanner")}
+            style={{
+              background: activeView === "scanner" ? "#172B4D" : "#FFFFFF",
+              color: activeView === "scanner" ? "#FFFFFF" : "#172B4D",
+              border: activeView === "scanner" ? "none" : "1px solid #E5EDF5",
+              borderRadius: 999,
+              padding: "9px 22px",
+              fontWeight: 700,
+              fontSize: 13,
+              cursor: "pointer",
+              transition: "all 0.15s ease",
+            }}
+          >
+            Live scanner
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveView("roster")}
+            style={{
+              background: activeView === "roster" ? "#172B4D" : "#FFFFFF",
+              color: activeView === "roster" ? "#FFFFFF" : "#172B4D",
+              border: activeView === "roster" ? "none" : "1px solid #E5EDF5",
+              borderRadius: 999,
+              padding: "9px 22px",
+              fontWeight: 700,
+              fontSize: 13,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              transition: "all 0.15s ease",
+            }}
+          >
+            <span>Roster</span>
+            <span style={{ fontSize: 11.5, fontWeight: 800, opacity: 0.85 }}>{rosterStats.expectedToday}</span>
+          </button>
+        </div>
       </div>
 
       {/* =========================================================================
@@ -325,102 +370,120 @@ export function OwnerQrCheckinSection({
         <div style={{ display: "grid", gap: 24 }}>
           {/* Main 2-column or 1-column layout */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: 24 }}>
-            {/* Left Card: Camera Scanner & Manual Input */}
-            <Card style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              <SectionTitle>QR Code Camera Scanner</SectionTitle>
+          {/* Top Card: Camera Viewfinder */}
+          <div
+            style={{
+              background: "#FFFFFF",
+              borderRadius: 20,
+              padding: 16,
+              border: "1px solid #E5EDF5",
+              boxShadow: "0 4px 14px rgba(23, 105, 232, 0.04)",
+            }}
+          >
+            <QrCameraScanner
+              isScanning={isScanning}
+              onStartScan={() => {
+                setVerificationError("");
+                setCheckinSuccessMsg("");
+                setIsScanning(true);
+              }}
+              onStopScan={() => setIsScanning(false)}
+              onScan={(code) => handleVerify(code)}
+              onError={(err) => setVerificationError(err)}
+            />
+          </div>
 
-              {/* Camera Component */}
-              <QrCameraScanner
-                isScanning={isScanning}
-                onStartScan={() => {
-                  setVerificationError("");
-                  setCheckinSuccessMsg("");
-                  setIsScanning(true);
+          {/* Middle Card: Manual Booking ID Input */}
+          <div
+            style={{
+              background: "#FFFFFF",
+              borderRadius: 20,
+              padding: "18px 20px",
+              border: "1px solid #E5EDF5",
+              boxShadow: "0 4px 14px rgba(23, 105, 232, 0.04)",
+            }}
+          >
+            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.8, color: "#718096", textTransform: "uppercase", marginBottom: 12 }}>
+              OR ENTER BOOKING ID
+            </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (manualCode.trim()) handleVerify(manualCode.trim());
+              }}
+              style={{ display: "flex", gap: 10, alignItems: "center" }}
+            >
+              <input
+                type="text"
+                value={manualCode}
+                onChange={(e) => setManualCode(e.target.value)}
+                placeholder="Paste booking ID"
+                aria-label="Booking ID"
+                style={{
+                  flex: 1,
+                  padding: "12px 16px",
+                  borderRadius: 14,
+                  border: "1px solid #E5EDF5",
+                  background: "#FFFFFF",
+                  color: "#172B4D",
+                  fontSize: 13.5,
+                  outline: "none",
                 }}
-                onStopScan={() => setIsScanning(false)}
-                onScan={(code) => handleVerify(code)}
-                onError={(err) => setVerificationError(err)}
               />
-
-              {/* Manual Entry Fallback Divider */}
-              <div style={{ position: "relative", textAlign: "center", margin: "10px 0" }}>
-                <hr style={{ border: 0, borderTop: `1px solid ${V.line}` }} />
-                <span
-                  style={{
-                    position: "absolute",
-                    top: "50%",
-                    left: "50%",
-                    transform: "translate(-50%, -50%)",
-                    background: "#FFFFFF",
-                    padding: "0 12px",
-                    color: V.chalkFaint,
-                    fontSize: 11.5,
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                  }}
-                >
-                  or enter booking ID manually
-                </span>
-              </div>
-
-              {/* Manual Entry Input Form */}
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (manualCode.trim()) handleVerify(manualCode.trim());
+              <button
+                type="submit"
+                disabled={!manualCode.trim() || verifying}
+                style={{
+                  background: "#172B4D",
+                  color: "#FFFFFF",
+                  borderRadius: 14,
+                  padding: "12px 24px",
+                  fontSize: 14,
+                  fontWeight: 800,
+                  border: "none",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  opacity: !manualCode.trim() || verifying ? 0.6 : 1,
                 }}
-                style={{ display: "flex", gap: 8 }}
               >
-                <input
-                  type="text"
-                  value={manualCode}
-                  onChange={(e) => setManualCode(e.target.value)}
-                  placeholder="Paste Booking ID or QR text…"
-                  aria-label="Booking ID"
-                  style={{
-                    flex: 1,
-                    padding: "10px 14px",
-                    borderRadius: 10,
-                    border: `1px solid ${V.lineStrong}`,
-                    background: V.pitchCard,
-                    color: V.chalk,
-                    fontFamily: mono,
-                    fontSize: 13,
-                    outline: "none",
-                  }}
-                />
-                <Btn
-                  variant="primary"
-                  type="submit"
-                  busy={verifying}
-                  disabled={!manualCode.trim() || verifying}
-                >
-                  Verify
-                </Btn>
-              </form>
+                {verifying ? "Verifying…" : "Verify"}
+              </button>
+            </form>
 
-              {/* Verification Error Feedback */}
-              {verificationError && (
-                <div
-                  style={{
-                    padding: "12px 16px",
-                    borderRadius: 10,
-                    background: "#FEF2F2",
-                    border: "1px solid #FCA5A5",
-                    color: "#991B1B",
-                    fontSize: 13,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  <div style={{ fontWeight: 700, marginBottom: 2 }}>Verification Error</div>
-                  {verificationError}
-                </div>
-              )}
-            </Card>
+            {verificationError && (
+              <div
+                style={{
+                  marginTop: 12,
+                  padding: "10px 14px",
+                  borderRadius: 10,
+                  background: "#FEF2F2",
+                  border: "1px solid #FCA5A5",
+                  color: "#991B1B",
+                  fontSize: 12.5,
+                  lineHeight: 1.4,
+                }}
+              >
+                {verificationError}
+              </div>
+            )}
+          </div>
 
             {/* Right Card: Verified Booking & Attendance Confirmation */}
-            <Card style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <SectionTitle>Verified Ticket Details</SectionTitle>
+            <div
+              style={{
+                background: "#FFFFFF",
+                borderRadius: 20,
+                padding: 20,
+                border: "1px solid #E5EDF5",
+                boxShadow: "0 4px 14px rgba(23, 105, 232, 0.04)",
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
+              }}
+            >
+              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.8, color: "#718096", textTransform: "uppercase" }}>
+                VERIFIED TICKET
+              </div>
 
               {verifying ? (
                 <div style={{ padding: "48px 24px", textAlign: "center", color: V.chalkDim }}>
@@ -638,20 +701,31 @@ export function OwnerQrCheckinSection({
                   </div>
                 </div>
               ) : (
-                <EmptyBlock
-                  icon="qr"
-                  title="No ticket scanned yet"
-                  subtitle="Point your camera at a player's booking QR code or type their booking ID to verify."
-                  action={
-                    !isScanning ? (
-                      <Btn variant="primary" icon="camera" onClick={() => setIsScanning(true)}>
-                        Open Camera Scanner
-                      </Btn>
-                    ) : null
-                  }
-                />
+                <div style={{ padding: "28px 16px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <div
+                    style={{
+                      width: 52,
+                      height: 52,
+                      borderRadius: "50%",
+                      background: "#F3E8FF",
+                      color: "#9333EA",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginBottom: 12,
+                    }}
+                  >
+                    <Icon name="qr" size={24} />
+                  </div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: "#172B4D", marginBottom: 4 }}>
+                    No ticket scanned yet
+                  </div>
+                  <div style={{ fontSize: 12.5, color: "#718096", maxWidth: 300, lineHeight: 1.4 }}>
+                    Verified bookings show up here with turf, time and player.
+                  </div>
+                </div>
               )}
-            </Card>
+            </div>
           </div>
         </div>
       )}
@@ -767,14 +841,139 @@ export function OwnerQrCheckinSection({
             />
           </Card>
 
-          {/* Roster Data Table */}
-          <DataTable
-            columns={rosterColumns}
-            rows={filteredRosterBookings}
-            keyField="id"
-            empty="No bookings found matching your attendance filters."
-            pageSize={15}
-          />
+          {/* Roster Data Table (Desktop) */}
+          <div className="vt-desktop-only">
+            <DataTable
+              columns={rosterColumns}
+              rows={filteredRosterBookings}
+              keyField="id"
+              empty="No bookings found matching your attendance filters."
+              pageSize={15}
+            />
+          </div>
+
+          {/* Roster Cards (Mobile) */}
+          <div className="vt-mobile-only">
+            {filteredRosterBookings.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "40px 20px", color: "#718096", fontSize: 13.5, background: "#FFFFFF", borderRadius: 20, border: "1px solid #E5EDF5" }}>
+                No bookings found matching your attendance filters.
+              </div>
+            ) : (
+              <div style={{ display: "grid", gap: 12 }}>
+                {filteredRosterBookings.map((b) => {
+                  const att = b.attendance_status || "not_arrived";
+                  const isCheckedIn = att === "checked_in";
+                  const isNoShow = att === "no_show";
+                  const playerName = b.player?.name || "Customer";
+                  const initial = playerName.charAt(0).toUpperCase() || "P";
+                  return (
+                    <div
+                      key={b.id}
+                      style={{
+                        background: "#FFFFFF",
+                        borderRadius: 20,
+                        padding: "16px 18px",
+                        border: "1px solid #E5EDF5",
+                        boxShadow: "0 4px 14px rgba(23, 105, 232, 0.04)",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 12,
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                          <div
+                            style={{
+                              width: 40,
+                              height: 40,
+                              borderRadius: "50%",
+                              background: "linear-gradient(135deg, #18A8E0 0%, #1769E8 100%)",
+                              color: "#FFFFFF",
+                              fontWeight: 900,
+                              fontSize: 15,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flexShrink: 0,
+                            }}
+                          >
+                            {initial}
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontWeight: 800, fontSize: 15, color: "#172B4D", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {playerName}
+                            </div>
+                            <div style={{ fontSize: 12, color: "#718096", marginTop: 2 }}>
+                              {b.turf_name} · #{b.id.slice(0, 8)}
+                            </div>
+                          </div>
+                        </div>
+                        <div>
+                          <Pill color={isCheckedIn ? "#10B981" : isNoShow ? "#EF4444" : "#F59E0B"}>
+                            {isCheckedIn ? "Checked In" : isNoShow ? "No Show" : "Pending"}
+                          </Pill>
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 8, borderTop: "1px solid #F0F4F8", fontSize: 12.5 }}>
+                        <span style={{ fontWeight: 700, color: "#172B4D" }}>
+                          {formatBookingDate(b.booking_date)} · {formatTime12(b.start_time)}
+                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          {b.sport && <Pill color={V.sky}>{b.sport}</Pill>}
+                          <span style={{ fontWeight: 800, color: "#172B4D" }}>{formatINR(b.total_amount)}</span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 2 }}>
+                        {!isCheckedIn ? (
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateAttendance(b.id, "checked_in")}
+                            style={{
+                              flex: 1,
+                              background: "#1769E8",
+                              color: "#FFFFFF",
+                              borderRadius: 999,
+                              padding: "9px 14px",
+                              fontSize: 13,
+                              fontWeight: 800,
+                              border: "none",
+                              cursor: "pointer",
+                            }}
+                          >
+                            Check In
+                          </button>
+                        ) : (
+                          <div style={{ flex: 1, background: "#DCFCE7", color: "#15803D", borderRadius: 999, padding: "8px 14px", fontSize: 12.5, fontWeight: 800, textAlign: "center" }}>
+                            ✓ Checked In
+                          </div>
+                        )}
+                        {onViewBookingDetail && (
+                          <button
+                            type="button"
+                            onClick={() => onViewBookingDetail(b)}
+                            style={{
+                              background: "#FFFFFF",
+                              color: "#172B4D",
+                              border: "1px solid #E5EDF5",
+                              borderRadius: 999,
+                              padding: "9px 16px",
+                              fontSize: 13,
+                              fontWeight: 700,
+                              cursor: "pointer",
+                            }}
+                          >
+                            Details
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

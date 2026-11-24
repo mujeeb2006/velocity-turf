@@ -21,11 +21,16 @@ export async function GET(request) {
 
   const admin = createAdminClient();
   try {
-    const list = await getAdminGroupBookings(admin, {
+    const result = await getAdminGroupBookings(admin, {
       turfId,
       ownerId: role === "owner" ? profile.id : null,
     });
-    return NextResponse.json({ groupBookings: list });
+    const list = Array.isArray(result?.groupBookings)
+      ? result.groupBookings
+      : Array.isArray(result)
+      ? result
+      : [];
+    return NextResponse.json({ ok: true, groupBookings: list });
   } catch (err) {
     console.error("GET /api/admin/group-bookings error:", err);
     return Errors.internal("Could not load group bookings.");

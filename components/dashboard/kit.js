@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { COLORS as V, FONT_BODY, FONT_DATA, FONT_DISPLAY, panel } from "@/lib/design-tokens";
 import { formatDelta, formatNotificationBody, formatNotificationTitle, relativeTime, toCSV } from "@/lib/dashboard/format";
 import BrandLockup from "@/components/brand-lockup";
-import { Icon as BaseIcon, SportIcon, Check, Clock, X, Users, RefreshCw } from "@/components/ui/icons";
+import { Icon as BaseIcon, SportIcon, Check, Clock, X, Users, RefreshCw, ArrowLeft } from "@/components/ui/icons";
 
 export const font = FONT_BODY;
 export const mono = FONT_DATA;
@@ -552,12 +552,24 @@ export function DetailRows({ rows }) {
 }
 
 // ---------------------------------------------------------------- layout
-export function TopBar({ title, sub, action }) {
+export function TopBar({ title, sub, action, onBack }) {
   return (
     <div className="vt-topbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
-      <div style={{ minWidth: 0 }}>
-        <h1 style={{ color: V.chalk, fontFamily: font, fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.4 }}>{title}</h1>
-        {sub && <p style={{ color: V.chalkDim, margin: "4px 0 0", fontSize: 13 }}>{sub}</p>}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="vt-mobile-back-circle-btn"
+            aria-label="Back to overview"
+          >
+            <ArrowLeft size={18} color="#172B4D" />
+          </button>
+        )}
+        <div style={{ minWidth: 0 }}>
+          <h1 style={{ color: V.chalk, fontFamily: font, fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.4 }}>{title}</h1>
+          {sub && <p style={{ color: V.chalkDim, margin: "4px 0 0", fontSize: 13 }}>{sub}</p>}
+        </div>
       </div>
       {action && <div className="vt-topbar-action" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>{action}</div>}
     </div>

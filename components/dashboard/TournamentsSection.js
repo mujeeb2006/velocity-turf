@@ -7,9 +7,9 @@ import { formatBookingDate, formatINR, formatTime12 } from "@/lib/dashboard/form
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { extractErrorMessage } from "@/lib/api-response";
-import { ArrowLeft, Check, Zap, MapPin } from "@/components/ui/icons";
+import { ArrowLeft, Check, Zap, MapPin, Trophy } from "@/components/ui/icons";
 
-export function TournamentsSection({ profile, showToast }) {
+export function TournamentsSection({ profile, showToast, onFindTurf }) {
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTour, setSelectedTour] = useState(null);
@@ -82,11 +82,11 @@ export function TournamentsSection({ profile, showToast }) {
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 16px" }}>
       {/* Header */}
-      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 16, marginBottom: 24 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 16, marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontSize: 26, fontWeight: 800, color: V.chalk, margin: 0 }}>Tournaments & Leagues</h1>
-          <p style={{ fontSize: 14, color: V.chalkDim, marginTop: 4 }}>
-            Competitive cups, leagues, fixtures, verified entry fees, transparent prize pools, and live standings.
+          <h1 style={{ fontSize: 26, fontWeight: 800, color: "#172B4D", margin: 0, letterSpacing: "-0.01em" }}>Tournaments & Leagues</h1>
+          <p style={{ fontSize: 14, color: "#718096", marginTop: 4, lineHeight: 1.4 }}>
+            Cups, leagues, fixtures, verified entry fees, prize pools and live standings.
           </p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
@@ -94,8 +94,8 @@ export function TournamentsSection({ profile, showToast }) {
           <button
             onClick={() => setShowCreateModal(true)}
             style={{
-              background: V.flood, color: "#fff", border: "none", borderRadius: 10,
-              padding: "10px 18px", fontWeight: 700, fontSize: 13.5, cursor: "pointer",
+              background: "#C8F542", color: "#111C2E", border: "none", borderRadius: 999,
+              padding: "10px 18px", fontWeight: 800, fontSize: 13.5, cursor: "pointer",
               display: "flex", alignItems: "center", gap: 6,
             }}
           >
@@ -106,22 +106,26 @@ export function TournamentsSection({ profile, showToast }) {
       </div>
 
       {/* Sport Filter Chips */}
-      <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 12, marginBottom: 20 }}>
-        {["all", ...SPORT_OPTIONS.slice(0, 7)].map((s) => (
-          <button
-            key={s}
-            onClick={() => setSportFilter(s)}
-            style={{
-              padding: "6px 14px", borderRadius: 999, fontSize: 12.5, fontWeight: 600,
-              background: sportFilter === s ? V.flood : V.pitchCard,
-              color: sportFilter === s ? "#fff" : V.chalkDim,
-              border: `1px solid ${sportFilter === s ? V.flood : V.line}`,
-              cursor: "pointer", whiteSpace: "nowrap",
-            }}
-          >
-            {s === "all" ? "All Sports" : s}
-          </button>
-        ))}
+      <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 12, marginBottom: 20, scrollbarWidth: "none", WebkitOverflowScrolling: "touch", paddingRight: 28 }}>
+        {["all", ...SPORT_OPTIONS.slice(0, 7)].map((s) => {
+          const isSelected = sportFilter === s;
+          const label = s === "all" ? "All sports" : s.charAt(0).toUpperCase() + s.slice(1);
+          return (
+            <button
+              key={s}
+              onClick={() => setSportFilter(s)}
+              style={{
+                padding: "8px 18px", borderRadius: 999, fontSize: 13, fontWeight: isSelected ? 800 : 600,
+                background: isSelected ? "#C8F542" : "#FFFFFF",
+                color: isSelected ? "#111C2E" : "#172B4D",
+                border: `1px solid ${isSelected ? "#C8F542" : "#DCE6F1"}`,
+                cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s ease",
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
       </div>
 
       {/* TOURNAMENT DETAIL VIEW */}
@@ -324,15 +328,61 @@ export function TournamentsSection({ profile, showToast }) {
               <SkeletonCard />
             </div>
           ) : tournaments.length === 0 ? (
-            <EmptyState
-              icon="trophy"
-              title="No tournaments currently scheduled"
-              description={canHostTournament
-                ? "Be the first organizer to host a cup or tournament on Velocity Turf!"
-                : "Check back later for upcoming tournaments and leagues."}
-              actionLabel={canHostTournament ? "Host Tournament" : undefined}
-              onAction={canHostTournament ? () => setShowCreateModal(true) : undefined}
-            />
+            <div
+              style={{
+                background: "#FFFFFF",
+                borderRadius: 24,
+                border: "1px solid #E5EDF5",
+                padding: "48px 24px",
+                textAlign: "center",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                boxShadow: "0 2px 10px rgba(0, 0, 0, 0.02)",
+              }}
+            >
+              <div
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: "50%",
+                  background: "#E0F7FA",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: 16,
+                  color: "#00838F",
+                }}
+              >
+                <Trophy size={28} />
+              </div>
+              <h2 style={{ fontSize: 20, fontWeight: 800, color: "#172B4D", margin: "0 0 8px" }}>
+                No tournaments scheduled
+              </h2>
+              <p style={{ fontSize: 14, color: "#718096", maxWidth: 320, lineHeight: 1.5, margin: "0 0 24px" }}>
+                Nothing is open for entry yet. Check back soon, or find a turf and play.
+              </p>
+              <button
+                type="button"
+                onClick={onFindTurf || (() => {})}
+                style={{
+                  background: "#C8F542",
+                  color: "#111C2E",
+                  border: "none",
+                  borderRadius: 999,
+                  padding: "14px 28px",
+                  fontSize: 14.5,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  boxShadow: "0 2px 8px rgba(200, 245, 66, 0.3)",
+                }}
+              >
+                Find a turf to book →
+              </button>
+            </div>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 300px), 1fr))", gap: 16 }}>
               {tournaments.map((t) => (

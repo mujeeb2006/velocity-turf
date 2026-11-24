@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon, MoreVertical, Edit, Settings, Bell, Shield, HelpCircle, LogOut, ChevronRight } from "@/components/ui/icons";
 import { Modal, Btn } from "@/components/dashboard/kit";
+import { PwaInstallButton } from "@/components/PwaInstallButton";
 
 export default function MobileProfileSection({
   profile,
@@ -209,6 +210,14 @@ export default function MobileProfileSection({
             <ChevronRight size={18} />
           </span>
         </button>
+      </div>
+
+      {/* Install Mobile App Card */}
+      <div style={{ margin: "14px 4px 6px" }}>
+        <PwaInstallButton
+          role={roleLabel.toLowerCase().includes("admin") ? "admin" : "owner"}
+          variant="card"
+        />
       </div>
 
       {/* Logout Row */}

@@ -28,10 +28,12 @@ import { OwnerTournamentsSection } from "@/components/dashboard/OwnerTournaments
 import { MaintenanceSection } from "@/components/dashboard/MaintenanceSection";
 import { StaffSection } from "@/components/dashboard/StaffSection";
 import { OwnerQrCheckinSection } from "@/components/dashboard/OwnerQrCheckinSection";
+import { useScrollResetOnTab, resetPageScroll } from "@/lib/scroll";
 import { SmartNotificationCenter } from "@/components/dashboard/SmartNotificationCenter";
 import { extractErrorMessage } from "@/lib/api-response";
-import { X, Camera, Star, StadiumIcon } from "@/components/ui/icons";
+import { X, Camera, Star, ArrowLeft, StadiumIcon } from "@/components/ui/icons";
 import MobileProfileSection from "@/components/dashboard/MobileProfileSection";
+import { PwaInstallButton } from "@/components/PwaInstallButton";
 import {
   ManagePricingModal,
   EditTurfModal,
@@ -836,6 +838,7 @@ export default function OwnerDashboardClient({ profile }) {
   const notes = useNotifications(supabase, profile?.id, showToast);
 
   const [tab, setTab] = useState("overview");
+  useScrollResetOnTab(tab);
   const [turfs, setTurfs] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [payouts, setPayouts] = useState([]);
@@ -904,6 +907,7 @@ export default function OwnerDashboardClient({ profile }) {
     if (isStaff && id === "payouts") return;
     setTab(id);
     window.history.replaceState(null, "", `#${id}`);
+    resetPageScroll();
   };
 
   // ---- data: one pass loads turfs, bookings, payouts, reviews, games and occupancy
@@ -1211,6 +1215,7 @@ export default function OwnerDashboardClient({ profile }) {
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <PwaInstallButton role="owner" variant="pill" />
                 <button
                   type="button"
                   className="vt-btn"
@@ -1232,7 +1237,7 @@ export default function OwnerDashboardClient({ profile }) {
                 >
                   <Icon name="notification" size={19} color="#172B4D" />
                   {notes.unreadCount > 0 && (
-                    <span style={{ position: "absolute", top: -4, right: -4, minWidth: 17, height: 17, padding: "0 4px", borderRadius: 9, background: "#1769E8", color: "#fff", fontSize: 9.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <span style={{ position: "absolute", top: -4, right: -4, minWidth: 17, height: 17, padding: "0 4px", borderRadius: 9, background: "#EF4444", color: "#fff", fontSize: 9.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>
                       {notes.unreadCount > 9 ? "9+" : notes.unreadCount}
                     </span>
                   )}
@@ -1296,8 +1301,8 @@ export default function OwnerDashboardClient({ profile }) {
                   setShowWalkInModal(true);
                 }}
               >
-                <div className="vt-app-icon-wrap" style={{ background: "#ECFDF5", color: "#10B981" }}>
-                  <Icon name="plus" size={20} />
+                <div className="vt-app-icon-wrap" style={{ background: "#0E7050", color: "#FFFFFF" }}>
+                  <Icon name="plus" size={20} color="#FFFFFF" />
                 </div>
                 <span className="vt-app-label">Walk-in</span>
               </button>
@@ -1360,18 +1365,6 @@ export default function OwnerDashboardClient({ profile }) {
           </div>
         )}
 
-        {/* Mobile subnav back button if on subtab */}
-        {tab !== "overview" && tab !== "profile" && (
-          <div className="vt-mobile-subnav-bar">
-            <button type="button" className="vt-mobile-subnav-back" onClick={() => selectTab("overview")}>
-              ← Home
-            </button>
-            <span className="vt-mobile-subnav-title">
-              {items.find((it) => it.id === tab)?.label || tab}
-            </span>
-          </div>
-        )}
-
         {/* ------------------------------------------------------------ overview */}
         {tab === "overview" && (() => {
           const m = d.month;
@@ -1388,6 +1381,7 @@ export default function OwnerDashboardClient({ profile }) {
                   sub="Here's how your turfs are doing today."
                   action={
                     <div className="vt-topbar-action-row" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                      <PwaInstallButton role="owner" variant="pill" />
                       <Btn
                         icon="plus"
                         size="sm"
@@ -1406,81 +1400,274 @@ export default function OwnerDashboardClient({ profile }) {
                   }
                 />
               </div>
-              {loading ? skeletonStats : activeTurfs.length === 0 ? (
-                <div style={{ marginBottom: 28 }}>
-                  <EmptyBlock icon="stadium" title="No turfs yet" subtitle="List your first turf to start receiving bookings and managing schedules."
-                    action={<Btn variant="primary" onClick={() => setShowAddTurf(true)}>Add your first turf</Btn>} />
-                </div>
-              ) : (
-                <>
-                  <div style={{ display: "grid", gap: 10, marginBottom: 22 }}>
-                    {pendingCount > 0 && (
-                      <AttentionItem icon="clock" tone={overdueCount ? V.danger : V.pending}
-                        title={overdueCount
-                          ? `${overdueCount} overdue booking request${overdueCount === 1 ? "" : "s"}`
-                          : `${pendingCount} new booking request${pendingCount === 1 ? "" : "s"}`}
-                        subtitle={`${overdueCount ? "Overdue · needs a reply" : "Needs a reply"}: ${requestToReview.turf}, ${formatBookingDate(requestToReview.date)}, ${formatTime12(requestToReview.time)}.`}
-                        action={<Btn variant="primary" size="sm" onClick={() => { setBookingView("requests"); selectTab("bookings"); }}>Review request</Btn>} />
-                    )}
-                    {awaiting.length > 0 && (
-                      <AttentionItem icon="shield" tone={V.sky} title={`${awaiting.length} listing${awaiting.length === 1 ? " is" : "s are"} awaiting admin approval`}
-                        subtitle={`${awaiting.map((t) => t.name).join(", ")} — you'll be notified once reviewed.`} />
-                    )}
-                    {rejected.length > 0 && (
-                      <AttentionItem icon="alert" tone={V.danger} title={`${rejected.length} listing${rejected.length === 1 ? " was" : "s were"} not approved`}
-                        subtitle={`${rejected.map((t) => t.name).join(", ")} — contact support if you'd like to resubmit.`} />
-                    )}
+              {/* DESKTOP-ONLY OVERVIEW CONTENT */}
+              <div className="vt-desktop-only">
+                {loading ? skeletonStats : activeTurfs.length === 0 ? (
+                  <div style={{ marginBottom: 28 }}>
+                    <EmptyBlock icon="stadium" title="No turfs yet" subtitle="List your first turf to start receiving bookings and managing schedules."
+                      action={<Btn variant="primary" onClick={() => setShowAddTurf(true)}>Add your first turf</Btn>} />
                   </div>
-                  <StatGrid>
-                    <StatCard label="Earned this month" value={formatCompactINR(m.revenue)} icon="rupee" color={OWNER_COLOR} delta={m.revenueChange} sub={`${formatCompactINR(d.lifetime.revenue)} all time`} />
-                    <StatCard label="Games today" value={todayBookingCount} icon="calendar" color={V.confirmed} sub={todayBookingCount ? `${todayBookingCount} confirmed bookings` : "None confirmed yet"} />
-                    <StatCard label="Turf usage today" value={d.avgOccupancy === null ? "—" : `${d.avgOccupancy}%`} icon="trending" color={V.pending} sub="Across all live turfs" />
-                    <StatCard label="Average rating" value={d.rating.average === null ? "—" : d.rating.average.toFixed(1)} icon="star" color={V.violet} sub={d.rating.total ? `${d.rating.total} review${d.rating.total === 1 ? "" : "s"}` : "No reviews yet"} />
-                    <StatCard label="Requests accepted" value={d.acceptance === null ? "—" : `${d.acceptance}%`} icon="check" color={V.sky} sub="Of the requests you replied to" />
-                  </StatGrid>
-                </>
-              )}
+                ) : (
+                  <>
+                    <div style={{ display: "grid", gap: 10, marginBottom: 22 }}>
+                      {pendingCount > 0 && (
+                        <AttentionItem icon="clock" tone={overdueCount ? V.danger : V.pending}
+                          title={overdueCount
+                            ? `${overdueCount} overdue booking request${overdueCount === 1 ? "" : "s"}`
+                            : `${pendingCount} new booking request${pendingCount === 1 ? "" : "s"}`}
+                          subtitle={`${overdueCount ? "Overdue · needs a reply" : "Needs a reply"}: ${requestToReview.turf}, ${formatBookingDate(requestToReview.date)}, ${formatTime12(requestToReview.time)}.`}
+                          action={<Btn variant="primary" size="sm" onClick={() => { setBookingView("requests"); selectTab("bookings"); }}>Review request</Btn>} />
+                      )}
+                      {awaiting.length > 0 && (
+                        <AttentionItem icon="shield" tone={V.sky} title={`${awaiting.length} listing${awaiting.length === 1 ? " is" : "s are"} awaiting admin approval`}
+                          subtitle={`${awaiting.map((t) => t.name).join(", ")} — you'll be notified once reviewed.`} />
+                      )}
+                      {rejected.length > 0 && (
+                        <AttentionItem icon="alert" tone={V.danger} title={`${rejected.length} listing${rejected.length === 1 ? " was" : "s were"} not approved`}
+                          subtitle={`${rejected.map((t) => t.name).join(", ")} — contact support if you'd like to resubmit.`} />
+                      )}
+                    </div>
+                    <StatGrid>
+                      <StatCard label="Earned this month" value={formatCompactINR(m.revenue)} icon="rupee" color={OWNER_COLOR} delta={m.revenueChange} sub={`${formatCompactINR(d.lifetime.revenue)} all time`} />
+                      <StatCard label="Games today" value={todayBookingCount} icon="calendar" color={V.confirmed} sub={todayBookingCount ? `${todayBookingCount} confirmed bookings` : "None confirmed yet"} />
+                      <StatCard label="Turf usage today" value={d.avgOccupancy === null ? "—" : `${d.avgOccupancy}%`} icon="trending" color={V.pending} sub="Across all live turfs" />
+                      <StatCard label="Average rating" value={d.rating.average === null ? "—" : d.rating.average.toFixed(1)} icon="star" color={V.violet} sub={d.rating.total ? `${d.rating.total} review${d.rating.total === 1 ? "" : "s"}` : "No reviews yet"} />
+                      <StatCard label="Requests accepted" value={d.acceptance === null ? "—" : `${d.acceptance}%`} icon="check" color={V.sky} sub="Of the requests you replied to" />
+                    </StatGrid>
+                  </>
+                )}
 
-              {activeTurfs.length > 0 && (
-                <>
-                  <div className="vt-two-col">
-                    <Card>
-                      <SectionTitle action={<Segmented label="Chart range" value={range} onChange={setRange} options={[{ id: 7, label: "7d" }, { id: 30, label: "30d" }, { id: 90, label: "90d" }]} />}>Earnings</SectionTitle>
-                      {loading ? <SkeletonCard lines={3} /> : <BarChart data={seriesToBars(revenueSeries(bookings, range, today), range)} formatValue={formatINR} ariaLabel={`Daily revenue for the last ${range} days`} />}
-                    </Card>
-                    <Card>
-                      <SectionTitle>Today's schedule</SectionTitle>
-                      {loading ? <SkeletonCard lines={3} /> : d.todaySchedule.length === 0 ? (
-                        <div style={{ color: V.chalkFaint, fontSize: 13 }}>No games booked today yet.</div>
-                      ) : (
-                        <div style={{ display: "grid", maxHeight: 290, overflowY: "auto" }}>
-                          {d.todaySchedule.map((r, i) => (
-                            <div key={r.id} style={{ display: "flex", gap: 12, alignItems: "center", padding: "10px 0", borderBottom: i < d.todaySchedule.length - 1 ? `1px solid ${V.line}` : "none" }}>
-                              <span style={{ fontFamily: mono, fontSize: 12, fontWeight: 700, color: V.chalk, width: 66, flexShrink: 0 }}>{formatTime12(r.time)}</span>
-                              <div style={{ minWidth: 0, flex: 1 }}>
-                                <div style={{ color: V.chalk, fontWeight: 700, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.player}</div>
-                                <div style={{ color: V.chalkFaint, fontSize: 11.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.turf} · {r.sport}</div>
+                {activeTurfs.length > 0 && (
+                  <>
+                    <div className="vt-two-col">
+                      <Card>
+                        <SectionTitle action={<Segmented label="Chart range" value={range} onChange={setRange} options={[{ id: 7, label: "7d" }, { id: 30, label: "30d" }, { id: 90, label: "90d" }]} />}>Earnings</SectionTitle>
+                        {loading ? <SkeletonCard lines={3} /> : <BarChart data={seriesToBars(revenueSeries(bookings, range, today), range)} formatValue={formatINR} ariaLabel={`Daily revenue for the last ${range} days`} />}
+                      </Card>
+                      <Card>
+                        <SectionTitle>Today's schedule</SectionTitle>
+                        {loading ? <SkeletonCard lines={3} /> : d.todaySchedule.length === 0 ? (
+                          <div style={{ color: V.chalkFaint, fontSize: 13 }}>No games booked today yet.</div>
+                        ) : (
+                          <div style={{ display: "grid", maxHeight: 290, overflowY: "auto" }}>
+                            {d.todaySchedule.map((r, i) => (
+                              <div key={r.id} style={{ display: "flex", gap: 12, alignItems: "center", padding: "10px 0", borderBottom: i < d.todaySchedule.length - 1 ? `1px solid ${V.line}` : "none" }}>
+                                <span style={{ fontFamily: mono, fontSize: 12, fontWeight: 700, color: V.chalk, width: 66, flexShrink: 0 }}>{formatTime12(r.time)}</span>
+                                <div style={{ minWidth: 0, flex: 1 }}>
+                                  <div style={{ color: V.chalk, fontWeight: 700, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.player}</div>
+                                  <div style={{ color: V.chalkFaint, fontSize: 11.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.turf} · {r.sport}</div>
+                                </div>
+                                <StatusPill status={r.status} />
                               </div>
-                              <StatusPill status={r.status} />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </Card>
-                  </div>
+                            ))}
+                          </div>
+                        )}
+                      </Card>
+                    </div>
 
-                  <SectionTitle action={pendingCount > 3 ? <Btn variant="ghost" size="sm" onClick={() => selectTab("bookings")}>View all {pendingCount}</Btn> : null}>Requests to review</SectionTitle>
-                  {loading ? <div style={{ display: "grid", gap: 12 }}>{[...Array(2)].map((_, i) => <SkeletonRow key={i} columns={3} />)}</div>
-                    : pendingCount === 0 ? <EmptyBlock icon="checkCircle" title="All caught up" subtitle="No pending booking requests right now." />
-                      : (
-                        <div style={{ display: "grid", gap: 12 }}>
-                          {d.requests.slice(0, 3).map((r) => (
-                            <RequestCard key={r.id} r={r} today={today} busy={respondingId === r.id} onAccept={() => respond(r, "accept")} onDecline={() => setDeclining(r)} />
-                          ))}
+                    <SectionTitle action={pendingCount > 3 ? <Btn variant="ghost" size="sm" onClick={() => selectTab("bookings")}>View all {pendingCount}</Btn> : null}>Requests to review</SectionTitle>
+                    {loading ? <div style={{ display: "grid", gap: 12 }}>{[...Array(2)].map((_, i) => <SkeletonRow key={i} columns={3} />)}</div>
+                      : pendingCount === 0 ? <EmptyBlock icon="checkCircle" title="All caught up" subtitle="No pending booking requests right now." />
+                        : (
+                          <div style={{ display: "grid", gap: 12 }}>
+                            {d.requests.slice(0, 3).map((r) => (
+                              <RequestCard key={r.id} r={r} today={today} busy={respondingId === r.id} onAccept={() => respond(r, "accept")} onDecline={() => setDeclining(r)} />
+                            ))}
+                          </div>
+                        )}
+                  </>
+                )}
+              </div>
+
+              {/* NATIVE MOBILE-ONLY OVERVIEW VIEW (matches reference mobile app UI) */}
+              <div className="vt-mobile-only">
+                {/* 1. Earned this month card */}
+                <div className="vt-mobile-card">
+                  <div style={{ color: "#718096", fontSize: 13, fontWeight: 600 }}>Earned this month</div>
+                  <div style={{ fontSize: 32, fontWeight: 900, color: "#172B4D", margin: "2px 0" }}>
+                    {formatINR(m?.revenue || 0)}
+                  </div>
+                  <div style={{ color: "#718096", fontSize: 13, fontWeight: 600 }}>
+                    {formatINR(d?.lifetime?.revenue || 0)} all time
+                  </div>
+                  <div style={{ height: 1, background: "#F0F4F8", margin: "16px 0" }} />
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                    <div>
+                      <div style={{ color: "#718096", fontSize: 12, fontWeight: 600 }}>Games today</div>
+                      <div style={{ fontSize: 24, fontWeight: 900, color: "#172B4D", marginTop: 2 }}>
+                        {todayBookingCount}
+                      </div>
+                      <div style={{ color: "#718096", fontSize: 11.5, marginTop: 2 }}>
+                        {todayBookingCount ? `${todayBookingCount} confirmed` : "None confirmed yet"}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ color: "#718096", fontSize: 12, fontWeight: 600 }}>Turf usage today</div>
+                      <div style={{ fontSize: 24, fontWeight: 900, color: "#172B4D", marginTop: 2 }}>
+                        {d.avgOccupancy === null || d.avgOccupancy === undefined ? "0%" : `${d.avgOccupancy}%`}
+                      </div>
+                      <div style={{ color: "#718096", fontSize: 11.5, marginTop: 2 }}>
+                        Across all live turfs
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Earnings trend card */}
+                <div className="vt-mobile-card">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.8, color: "#718096", textTransform: "uppercase" }}>
+                      EARNINGS
+                    </span>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      {[7, 30, 90].map((r) => (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => setRange(r)}
+                          style={{
+                            padding: "4px 12px",
+                            borderRadius: 999,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            border: range === r ? "none" : "1px solid #E5EDF5",
+                            background: range === r ? "#172B4D" : "#FFFFFF",
+                            color: range === r ? "#FFFFFF" : "#172B4D",
+                          }}
+                        >
+                          {r}d
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 28, fontWeight: 900, color: "#172B4D" }}>
+                    {formatINR(revenueSeries(bookings, range, today).reduce((sum, item) => sum + (item.revenue || 0), 0))}
+                  </div>
+                  <div style={{ color: "#718096", fontSize: 12, marginTop: 2, marginBottom: 14 }}>
+                    Total for this period
+                  </div>
+                  <div style={{ minHeight: 80 }}>
+                    <BarChart
+                      data={seriesToBars(revenueSeries(bookings, range, today), range)}
+                      formatValue={formatINR}
+                      ariaLabel={`Daily revenue for the last ${range} days`}
+                    />
+                  </div>
+                </div>
+
+                {/* 3. Average rating & Requests accepted (2 cards side by side) */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+                  <div className="vt-mobile-card" style={{ marginBottom: 0 }}>
+                    <div style={{ color: "#718096", fontSize: 12, fontWeight: 600 }}>Average rating</div>
+                    <div style={{ fontSize: 24, fontWeight: 900, color: "#172B4D", margin: "6px 0 2px" }}>
+                      {d.rating.average ? d.rating.average.toFixed(1) : "—"}
+                    </div>
+                    <div style={{ color: "#718096", fontSize: 11 }}>
+                      {d.rating.total ? `${d.rating.total} reviews` : "No reviews yet"}
+                    </div>
+                  </div>
+                  <div className="vt-mobile-card" style={{ marginBottom: 0 }}>
+                    <div style={{ color: "#718096", fontSize: 12, fontWeight: 600 }}>Requests accepted</div>
+                    <div style={{ fontSize: 24, fontWeight: 900, color: "#172B4D", margin: "6px 0 2px" }}>
+                      {d.acceptance !== null && d.acceptance !== undefined ? `${d.acceptance}%` : "—"}
+                    </div>
+                    <div style={{ color: "#718096", fontSize: 11 }}>
+                      Of requests you replied to
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. Today's schedule */}
+                <div className="vt-mobile-card">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.8, color: "#172B4D", textTransform: "uppercase" }}>
+                      TODAY'S SCHEDULE
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => selectTab("bookings")}
+                      style={{ background: "none", border: "none", color: "#1769E8", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}
+                    >
+                      Full calendar
+                    </button>
+                  </div>
+                  {d.todaySchedule.length === 0 ? (
+                    <div style={{ textAlign: "center", padding: "12px 0 6px" }}>
+                      <div style={{ color: "#718096", fontSize: 13.5, marginBottom: 14 }}>
+                        No games booked today yet
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setWalkInTurf(null);
+                          setWalkInSlot(null);
+                          setShowWalkInModal(true);
+                        }}
+                        style={{
+                          background: "#0E7050",
+                          color: "#FFFFFF",
+                          border: "none",
+                          borderRadius: 999,
+                          padding: "10px 20px",
+                          fontSize: 13,
+                          fontWeight: 800,
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        + Add walk-in booking
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: "grid", gap: 10 }}>
+                      {d.todaySchedule.map((r, i) => (
+                        <div key={r.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: i < d.todaySchedule.length - 1 ? "1px solid #F0F4F8" : "none" }}>
+                          <div>
+                            <div style={{ fontWeight: 800, fontSize: 13.5, color: "#172B4D" }}>{r.turf} · {r.player}</div>
+                            <div style={{ fontSize: 12, color: "#718096" }}>{formatTime12(r.time)} · {r.sport}</div>
+                          </div>
+                          <StatusPill status={r.status} />
                         </div>
-                      )}
-                </>
-              )}
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 5. Requests to review */}
+                <div className="vt-mobile-card">
+                  <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.8, color: "#718096", textTransform: "uppercase", marginBottom: 16 }}>
+                    REQUESTS TO REVIEW
+                  </div>
+                  {pendingCount === 0 ? (
+                    <div style={{ textAlign: "center", padding: "4px 0 8px" }}>
+                      <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#D1FAE5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
+                        <Icon name="check" size={22} color="#059669" />
+                      </div>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: "#172B4D", marginBottom: 3 }}>
+                        All caught up
+                      </div>
+                      <div style={{ fontSize: 12.5, color: "#718096" }}>
+                        No pending booking requests right now
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ display: "grid", gap: 10 }}>
+                      {d.requests.map((req) => (
+                        <div key={req.id} style={{ padding: 12, background: "#FAFCFE", border: "1px solid #E5EDF5", borderRadius: 12 }}>
+                          <div style={{ fontWeight: 800, fontSize: 13.5, color: "#172B4D" }}>{req.turf} · {req.player}</div>
+                          <div style={{ fontSize: 12, color: "#718096", marginTop: 2 }}>{formatBookingDate(req.date)}, {formatTime12(req.time)}</div>
+                          <div style={{ marginTop: 8 }}>
+                            <Btn size="sm" variant="primary" onClick={() => { setBookingView("requests"); selectTab("bookings"); }}>Review request</Btn>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </>
           );
         })()}
@@ -1491,6 +1678,7 @@ export default function OwnerDashboardClient({ profile }) {
             <TopBar
               title="My Turfs"
               sub={`${activeTurfs.length} listing${activeTurfs.length === 1 ? "" : "s"}`}
+              onBack={() => selectTab("overview")}
               action={
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   <Btn
@@ -1661,40 +1849,315 @@ export default function OwnerDashboardClient({ profile }) {
           ];
           return (
             <>
-              <TopBar title="Bookings" sub={`${pendingCount} requests to review · ${d.upcoming.length} upcoming confirmed bookings`} action={
-                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                  <Btn icon="plus" size="sm" variant="primary" onClick={() => { setWalkInTurf(null); setWalkInSlot(null); setShowWalkInModal(true); }}>
-                    Walk-in Booking
-                  </Btn>
-                  {refreshButton}
-                  <Btn icon="download" size="sm" variant="secondary" onClick={() => setShowExportModal(true)}>
-                    Export Excel
-                  </Btn>
-                  {bookingView === "history" && (
-                    <Btn icon="download" size="sm" disabled={!list.length} onClick={() => downloadCSV(`bookings-${today}.csv`, list, [
-                      { label: "Date", key: "date" }, { label: "Time", key: "time" }, { label: "Turf", key: "turf" }, { label: "Player", key: "player" },
-                      { label: "Sport", key: "sport" }, { label: "Amount (INR)", key: "amount" }, { label: "Status", key: "status" },
-                    ])}>Export CSV</Btn>
-                  )}
-                </div>
-              } />
-              <Toolbar>
-                <Segmented label="Booking list" value={bookingView} onChange={setBookingView} options={[
-                  { id: "requests", label: "To review", count: d.requests.length }, { id: "upcoming", label: "Upcoming", count: d.upcoming.length }, { id: "history", label: "Past", count: d.history.length },
-                ]} />
-                <SearchInput value={bookingQuery} onChange={setBookingQuery} placeholder="Search player, turf or sport…" label="Search bookings" />
-              </Toolbar>
-              {loading ? (
-                <div style={{ display: "grid", gap: 12 }}>{[...Array(3)].map((_, i) => <SkeletonRow key={i} columns={3} />)}</div>
-              ) : bookingView === "requests" ? (
-                list.length === 0 ? <EmptyBlock icon="inbox" title={q ? "No requests match" : "No bookings awaiting review"} subtitle="New bookings are confirmed automatically." /> : (
-                  <div style={{ display: "grid", gap: 12 }}>
-                    {list.map((r) => <RequestCard key={r.id} r={r} today={today} busy={respondingId === r.id} onAccept={() => respond(r, "accept")} onDecline={() => setDeclining(r)} />)}
+              {/* Desktop layout */}
+              <div className="vt-desktop-only">
+                <TopBar title="Bookings" sub={`${pendingCount} requests to review · ${d.upcoming.length} upcoming confirmed bookings`} onBack={() => selectTab("overview")} action={
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                    <Btn icon="plus" size="sm" variant="primary" onClick={() => { setWalkInTurf(null); setWalkInSlot(null); setShowWalkInModal(true); }}>
+                      Walk-in Booking
+                    </Btn>
+                    {refreshButton}
+                    <Btn icon="download" size="sm" variant="secondary" onClick={() => setShowExportModal(true)}>
+                      Export Excel
+                    </Btn>
+                    {bookingView === "history" && (
+                      <Btn icon="download" size="sm" disabled={!list.length} onClick={() => downloadCSV(`bookings-${today}.csv`, list, [
+                        { label: "Date", key: "date" }, { label: "Time", key: "time" }, { label: "Turf", key: "turf" }, { label: "Player", key: "player" },
+                        { label: "Sport", key: "sport" }, { label: "Amount (INR)", key: "amount" }, { label: "Status", key: "status" },
+                      ])}>Export CSV</Btn>
+                    )}
                   </div>
-                )
-              ) : (
-                <DataTable columns={columns} rows={list} minWidth={760} empty={bookingView === "upcoming" ? "No upcoming confirmed bookings." : "No past bookings yet."} />
-              )}
+                } />
+                <Toolbar>
+                  <Segmented label="Booking list" value={bookingView} onChange={setBookingView} options={[
+                    { id: "requests", label: "To review", count: d.requests.length }, { id: "upcoming", label: "Upcoming", count: d.upcoming.length }, { id: "history", label: "Past", count: d.history.length },
+                  ]} />
+                  <SearchInput value={bookingQuery} onChange={setBookingQuery} placeholder="Search player, turf or sport…" label="Search bookings" />
+                </Toolbar>
+                {loading ? (
+                  <div style={{ display: "grid", gap: 12 }}>{[...Array(3)].map((_, i) => <SkeletonRow key={i} columns={3} />)}</div>
+                ) : bookingView === "requests" ? (
+                  list.length === 0 ? <EmptyBlock icon="inbox" title={q ? "No requests match" : "No bookings awaiting review"} subtitle="New bookings are confirmed automatically." /> : (
+                    <div style={{ display: "grid", gap: 12 }}>
+                      {list.map((r) => <RequestCard key={r.id} r={r} today={today} busy={respondingId === r.id} onAccept={() => respond(r, "accept")} onDecline={() => setDeclining(r)} />)}
+                    </div>
+                  )
+                ) : (
+                  <DataTable columns={columns} rows={list} minWidth={760} empty={bookingView === "upcoming" ? "No upcoming confirmed bookings." : "No past bookings yet."} />
+                )}
+              </div>
+
+              {/* Mobile native app layout */}
+              <div className="vt-mobile-only" style={{ display: "grid", gap: 14 }}>
+                {/* Header */}
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <button
+                    type="button"
+                    onClick={() => selectTab("overview")}
+                    className="vt-mobile-back-circle-btn"
+                    aria-label="Back to overview"
+                  >
+                    <ArrowLeft size={18} color="#172B4D" />
+                  </button>
+                  <div>
+                    <h2 style={{ color: "#172B4D", fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: -0.4 }}>
+                      Bookings
+                    </h2>
+                    <p style={{ color: "#718096", margin: "2px 0 0", fontSize: 13 }}>
+                      {d.requests.length} to review · {d.upcoming.length} upcoming
+                    </p>
+                  </div>
+                </div>
+
+                {/* Action Bar */}
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <button
+                    type="button"
+                    onClick={() => { setWalkInTurf(null); setWalkInSlot(null); setShowWalkInModal(true); }}
+                    style={{
+                      flex: 1,
+                      background: "#C8F542",
+                      color: "#172B4D",
+                      border: "none",
+                      borderRadius: 999,
+                      padding: "12px 20px",
+                      fontSize: 14,
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <Icon name="plus" size={16} color="#172B4D" />
+                    <span>Walk-in booking</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={fetchAll}
+                    aria-label="Refresh bookings"
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 22,
+                      background: "#FFFFFF",
+                      border: "1px solid #E5EDF5",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Icon name="refresh" size={17} color="#172B4D" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowExportModal(true)}
+                    aria-label="Download bookings"
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 22,
+                      background: "#FFFFFF",
+                      border: "1px solid #E5EDF5",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Icon name="download" size={17} color="#172B4D" />
+                  </button>
+                </div>
+
+                {/* Filter Pills */}
+                <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2, scrollbarWidth: "none" }}>
+                  {[
+                    { id: "requests", label: "To review", count: d.requests.length },
+                    { id: "upcoming", label: "Upcoming", count: d.upcoming.length },
+                    { id: "history", label: "Past", count: d.history.length },
+                  ].map((o) => {
+                    const active = bookingView === o.id;
+                    return (
+                      <button
+                        key={o.id}
+                        type="button"
+                        onClick={() => setBookingView(o.id)}
+                        style={{
+                          background: active ? "#172B4D" : "#FFFFFF",
+                          color: active ? "#FFFFFF" : "#172B4D",
+                          border: active ? "none" : "1px solid #E5EDF5",
+                          borderRadius: 999,
+                          padding: "8px 18px",
+                          fontWeight: 700,
+                          fontSize: 13,
+                          cursor: "pointer",
+                          whiteSpace: "nowrap",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          flexShrink: 0,
+                        }}
+                      >
+                        <span>{o.label}</span>
+                        <span>{o.count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Search Input */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    background: "#FFFFFF",
+                    border: "1px solid #E5EDF5",
+                    borderRadius: 16,
+                    padding: "12px 16px",
+                  }}
+                >
+                  <Icon name="search" size={16} color="#718096" />
+                  <input
+                    type="text"
+                    value={bookingQuery}
+                    onChange={(e) => setBookingQuery(e.target.value)}
+                    placeholder="Search player, turf or sport"
+                    aria-label="Search bookings"
+                    style={{
+                      border: "none",
+                      outline: "none",
+                      background: "transparent",
+                      color: "#172B4D",
+                      fontSize: 13.5,
+                      width: "100%",
+                    }}
+                  />
+                </div>
+
+                {/* Cards List */}
+                {loading ? (
+                  <div style={{ display: "grid", gap: 12 }}>{[...Array(3)].map((_, i) => <SkeletonCard key={i} lines={2} />)}</div>
+                ) : bookingView === "requests" ? (
+                  list.length === 0 ? (
+                    <div style={{ textAlign: "center", padding: "40px 20px", color: "#718096", fontSize: 13.5, background: "#FFFFFF", borderRadius: 20, border: "1px solid #E5EDF5" }}>
+                      No bookings awaiting review. New bookings are confirmed automatically.
+                    </div>
+                  ) : (
+                    <div style={{ display: "grid", gap: 12 }}>
+                      {list.map((r) => <RequestCard key={r.id} r={r} today={today} busy={respondingId === r.id} onAccept={() => respond(r, "accept")} onDecline={() => setDeclining(r)} />)}
+                    </div>
+                  )
+                ) : list.length === 0 ? (
+                  <div style={{ textAlign: "center", padding: "40px 20px", color: "#718096", fontSize: 13.5, background: "#FFFFFF", borderRadius: 20, border: "1px solid #E5EDF5" }}>
+                    {bookingView === "upcoming" ? "No upcoming bookings found." : "No past bookings found."}
+                  </div>
+                ) : (
+                  <div style={{ display: "grid", gap: 12 }}>
+                    {list.map((r) => {
+                      const att = r.attendance_status || "not_arrived";
+                      const isCheckedIn = att === "checked_in";
+                      return (
+                        <div
+                          key={r.id}
+                          style={{
+                            background: "#FFFFFF",
+                            border: "1px solid #E5EDF5",
+                            borderRadius: 20,
+                            padding: "18px 20px",
+                            boxShadow: "0 4px 14px rgba(23, 105, 232, 0.04)",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 14,
+                          }}
+                        >
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontSize: 16, fontWeight: 800, color: "#172B4D", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {r.turf || "Turf"}
+                              </div>
+                              <div style={{ fontSize: 13, color: "#718096", marginTop: 2 }}>
+                                {r.player || "Customer"}
+                              </div>
+                            </div>
+                            <div
+                              style={{
+                                background: r.status === "confirmed" ? "#EAF7FF" : r.status === "completed" ? "#E9F9ED" : "#FEF3C7",
+                                color: r.status === "confirmed" ? "#1769E8" : r.status === "completed" ? "#10B981" : "#D97706",
+                                borderRadius: 8,
+                                padding: "5px 12px",
+                                fontSize: 12,
+                                fontWeight: 700,
+                                textTransform: "capitalize",
+                              }}
+                            >
+                              {r.status}
+                            </div>
+                          </div>
+
+                          <div style={{ fontSize: 13.5, fontWeight: 800, color: "#172B4D" }}>
+                            {formatBookingDate(r.date)} · {formatTime12(r.time)}
+                          </div>
+
+                          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                            {r.status === "confirmed" && !isCheckedIn ? (
+                              <button
+                                type="button"
+                                onClick={() => handleCheckin(r.id, "checked_in")}
+                                style={{
+                                  flex: 1,
+                                  background: "#1769E8",
+                                  color: "#FFFFFF",
+                                  border: "none",
+                                  borderRadius: 999,
+                                  padding: "12px 20px",
+                                  fontSize: 13.5,
+                                  fontWeight: 800,
+                                  cursor: "pointer",
+                                  textAlign: "center",
+                                }}
+                              >
+                                Check in with QR
+                              </button>
+                            ) : isCheckedIn ? (
+                              <div style={{ flex: 1, background: "#DCFCE7", color: "#15803D", borderRadius: 999, padding: "10px 14px", fontSize: 13, fontWeight: 800, textAlign: "center" }}>
+                                ✓ Checked In
+                              </div>
+                            ) : null}
+                            <button
+                              type="button"
+                              onClick={() => setSelectedBookingForModal(r)}
+                              style={{
+                                flex: 1,
+                                background: "#FFFFFF",
+                                color: "#172B4D",
+                                border: "1px solid #E5EDF5",
+                                borderRadius: 999,
+                                padding: "12px 20px",
+                                fontSize: 13.5,
+                                fontWeight: 700,
+                                cursor: "pointer",
+                                textAlign: "center",
+                              }}
+                            >
+                              Details
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Footer text */}
+                <div style={{ textAlign: "center", fontSize: 12, color: "#718096", marginTop: 8 }}>
+                  Updated {new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} · New bookings are confirmed automatically
+                </div>
+              </div>
             </>
           );
         })()}
@@ -1707,6 +2170,7 @@ export default function OwnerDashboardClient({ profile }) {
             onRefresh={fetchAll}
             onViewBookingDetail={(b) => setSelectedBookingForModal(b)}
             profile={profile}
+            onBack={() => selectTab("overview")}
           />
         )}
 
@@ -1749,6 +2213,7 @@ export default function OwnerDashboardClient({ profile }) {
               <TopBar
                 title="Analytics & Revenue"
                 sub={targetTurf ? `Performance metrics for ${targetTurf.name}` : `Performance across all ${turfs.length} turf venue${turfs.length === 1 ? "" : "s"}`}
+                onBack={() => selectTab("overview")}
                 action={
                   <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                     {turfs.length > 1 && (
@@ -1890,7 +2355,7 @@ export default function OwnerDashboardClient({ profile }) {
           ];
           return (
             <>
-              <TopBar title="Payouts" sub="Money paid out to you" action={payouts.length > 0 && (
+              <TopBar title="Payouts" sub="Money paid out to you" onBack={() => selectTab("overview")} action={payouts.length > 0 && (
                 <Btn icon="download" size="sm" onClick={() => downloadCSV(`payouts-${today}.csv`, payouts, [
                   { label: "Payout ID", value: (p) => p.payout_id || p.payout_number || p.id }, { label: "Period", value: (p) => p.period || [p.period_start, p.period_end].filter(Boolean).join(" to ") },
                   { label: "Amount (INR)", key: "amount" }, { label: "Status", key: "status" },
@@ -1920,7 +2385,7 @@ export default function OwnerDashboardClient({ profile }) {
             (reviewStars === "all" || (reviewStars === "low" ? Number(r.rating) <= 2 : Number(r.rating) === Number(reviewStars))));
           return (
             <>
-              <TopBar title="Reviews" sub="What players are saying about your turfs" action={refreshButton} />
+              <TopBar title="Reviews" sub="What players are saying about your turfs" onBack={() => selectTab("overview")} action={refreshButton} />
               {loading ? <SkeletonCard lines={3} /> : d.reviewRows.length === 0 ? (
                 <EmptyBlock icon="messageSquare" title="No reviews yet" subtitle="Reviews from players will appear here after their first booking." />
               ) : (
@@ -2093,7 +2558,7 @@ export default function OwnerDashboardClient({ profile }) {
           className={`vt-bottom-bar-btn ${tab === "overview" ? "active" : ""}`}
           onClick={() => selectTab("overview")}
         >
-          <Icon name="building" size={20} />
+          <Icon name="home" size={20} />
           <span>Home</span>
         </button>
         <button

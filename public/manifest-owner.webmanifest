@@ -1,0 +1,72 @@
+{
+  "name": "Velocity Turf Owner",
+  "short_name": "VT Owner",
+  "description": "Velocity Turf Venue Manager - Turf Management, QR Scanner, Attendance, Bookings & Revenue",
+  "id": "velocity-turf-owner",
+  "start_url": "/owner?source=pwa-owner",
+  "scope": "/owner",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "dir": "ltr",
+  "lang": "en-US",
+  "background_color": "#064E3B",
+  "theme_color": "#0E7050",
+  "categories": ["business", "sports", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/owner/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/owner/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/owner/icon-192x192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/owner/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/owner/icon-512x512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "QR Scanner",
+      "short_name": "Scanner",
+      "description": "Scan player QR entry tickets",
+      "url": "/owner?tab=checkin",
+      "icons": [{ "src": "/icons/owner/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Bookings",
+      "short_name": "Bookings",
+      "description": "View schedule and walk-in arrivals",
+      "url": "/owner?tab=bookings",
+      "icons": [{ "src": "/icons/owner/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "My Turfs",
+      "short_name": "Turfs",
+      "description": "Manage slots, pricing & amenities",
+      "url": "/owner?tab=turfs",
+      "icons": [{ "src": "/icons/owner/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ],
+  "prefer_related_applications": false
+}

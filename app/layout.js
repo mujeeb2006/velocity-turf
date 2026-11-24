@@ -1,6 +1,8 @@
 import "./globals.css";
+import { Suspense } from "react";
 import { ToastProvider } from "@/components/ui/toast";
 import { PwaRegister } from "@/components/PwaRegister";
+import { NavigationScrollHandler } from "@/components/NavigationScrollHandler";
 
 export const viewport = {
   themeColor: [
@@ -56,12 +58,25 @@ export default function RootLayout({ children }) {
                 window.dispatchEvent(new Event('velocityturf:beforeinstallprompt'));
               });
               if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                var path = window.location.pathname;
+                var swScript = '/sw.js';
+                var swScope = '/';
+                if (path.startsWith('/admin') || path.startsWith('/install/admin')) {
+                  swScript = '/sw-admin.js';
+                  swScope = '/admin';
+                } else if (path.startsWith('/owner') || path.startsWith('/install/owner')) {
+                  swScript = '/sw-owner.js';
+                  swScope = '/owner';
+                } else if (path.startsWith('/player') || path.startsWith('/install/player')) {
+                  swScript = '/sw-player.js';
+                  swScope = '/player';
+                }
+                navigator.serviceWorker.register(swScript, { scope: swScope })
                   .then(function(reg) {
-                    console.log('[PWA] Early SW registration success:', reg.scope);
+                    console.log('[PWA] Scoped SW registration success:', swScript, reg.scope);
                   })
                   .catch(function(err) {
-                    console.error('[PWA] Early SW registration failed:', err);
+                    console.error('[PWA] Scoped SW registration failed:', err);
                   });
               }
             `,
@@ -69,6 +84,9 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body>
+        <Suspense fallback={null}>
+          <NavigationScrollHandler />
+        </Suspense>
         <PwaRegister />
         <ToastProvider>{children}</ToastProvider>
       </body>

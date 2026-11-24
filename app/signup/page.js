@@ -23,7 +23,7 @@ import {
 import AuthShell from "../auth-shell";
 import { inputStyle, buttonStyle, errorStyle, linkStyle } from "../auth-styles";
 import { COLORS as V } from "@/lib/design-tokens";
-import { SportIcon, Calendar, ArrowRight } from "@/components/ui/icons";
+import { SportIcon, Calendar, ArrowRight, Eye, EyeOff } from "@/components/ui/icons";
 
 function SignupForm() {
   const supabase = createClient();
@@ -32,6 +32,8 @@ function SignupForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
@@ -291,28 +293,100 @@ function SignupForm() {
           autoComplete="email"
           style={{ ...inputStyle, width: "100%", minHeight: 48, borderRadius: 10, padding: "13px 15px", boxSizing: "border-box" }}
         />
-        <input
-          type="password"
-          aria-label="Password"
-          placeholder="Create a password (at least 8 characters)"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          minLength={8}
-          autoComplete="new-password"
-          style={{ ...inputStyle, width: "100%", minHeight: 48, borderRadius: 10, padding: "13px 15px", boxSizing: "border-box" }}
-        />
-        <input
-          type="password"
-          aria-label="Confirm password"
-          placeholder="Re-enter your password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          required
-          minLength={8}
-          autoComplete="new-password"
-          style={{ ...inputStyle, width: "100%", minHeight: 48, borderRadius: 10, padding: "13px 15px", boxSizing: "border-box" }}
-        />
+        <div style={{ position: "relative", width: "100%" }}>
+          <input
+            type={showPassword ? "text" : "password"}
+            aria-label="Password"
+            placeholder="Create a password (at least 8 characters)"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            minLength={8}
+            autoComplete="new-password"
+            style={{
+              ...inputStyle,
+              width: "100%",
+              minHeight: 48,
+              borderRadius: 10,
+              padding: "13px 15px",
+              paddingRight: password.length > 0 ? 44 : 15,
+              boxSizing: "border-box",
+            }}
+          />
+          {password.length > 0 && (
+            <button
+              type="button"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              title={showPassword ? "Hide password" : "Show password"}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setShowPassword(!showPassword)}
+              style={{
+                position: "absolute",
+                right: 8,
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                padding: 8,
+                color: "#718096",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: 6,
+              }}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          )}
+        </div>
+        <div style={{ position: "relative", width: "100%" }}>
+          <input
+            type={showConfirmPassword ? "text" : "password"}
+            aria-label="Confirm password"
+            placeholder="Re-enter your password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            minLength={8}
+            autoComplete="new-password"
+            style={{
+              ...inputStyle,
+              width: "100%",
+              minHeight: 48,
+              borderRadius: 10,
+              padding: "13px 15px",
+              paddingRight: confirmPassword.length > 0 ? 44 : 15,
+              boxSizing: "border-box",
+            }}
+          />
+          {confirmPassword.length > 0 && (
+            <button
+              type="button"
+              aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+              title={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              style={{
+                position: "absolute",
+                right: 8,
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                padding: 8,
+                color: "#718096",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: 6,
+              }}
+            >
+              {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          )}
+        </div>
         <input
           type="text"
           aria-label="Referral code (optional)"

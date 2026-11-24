@@ -29,8 +29,8 @@ function getManualInstallMethod(userAgent, platform) {
   return null;
 }
 
-// Routes where an install prompt competes with a form the visitor is filling in.
-const HIDDEN_ROUTE_PREFIXES = ["/login", "/signup", "/auth", "/unauthorized"];
+// Routes where an install prompt competes with a form or dedicated install flow.
+const HIDDEN_ROUTE_PREFIXES = ["/login", "/signup", "/auth", "/unauthorized", "/download", "/install"];
 
 function isStandalone() {
   if (typeof window === "undefined") return false;
@@ -103,6 +103,29 @@ export function PwaRegister() {
       window.removeEventListener("orientationchange", schedule);
       root.style.removeProperty("--vt-bottom-nav-h");
     };
+  }, [pathname]);
+
+  // Synchronize the <link rel="manifest"> tag in document.head so dynamic client routing
+  // points Chrome / Safari to the appropriate PWA manifest for the active portal.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    let manifestTag = document.querySelector('link[rel="manifest"]');
+    if (!manifestTag) {
+      manifestTag = document.createElement("link");
+      manifestTag.setAttribute("rel", "manifest");
+      document.head.appendChild(manifestTag);
+    }
+    let targetManifest = "/manifest.webmanifest";
+    if (pathname?.startsWith("/admin") || pathname?.startsWith("/install/admin")) {
+      targetManifest = "/manifest-admin.webmanifest";
+    } else if (pathname?.startsWith("/owner") || pathname?.startsWith("/install/owner")) {
+      targetManifest = "/manifest-owner.webmanifest";
+    } else if (pathname?.startsWith("/player") || pathname?.startsWith("/install/player")) {
+      targetManifest = "/manifest-player.webmanifest";
+    }
+    if (manifestTag.getAttribute("href") !== targetManifest) {
+      manifestTag.setAttribute("href", targetManifest);
+    }
   }, [pathname]);
 
   const hiddenOnRoute = HIDDEN_ROUTE_PREFIXES.some((prefix) => pathname?.startsWith(prefix));
@@ -251,13 +274,21 @@ export function PwaRegister() {
     chromium: "Open the browser menu (⋮) and tap “Install app” or “Add to Home screen”.",
   }[manualInstallMethod];
 
+  const roleMeta = pathname?.startsWith("/admin")
+    ? { title: "Velocity Turf Admin", desc: "Admin portal & approvals", badge: "Admin" }
+    : pathname?.startsWith("/owner")
+    ? { title: "Velocity Turf Owner", desc: "Turf management & scanner", badge: "Owner" }
+    : pathname?.startsWith("/player")
+    ? { title: "Velocity Turf Player", desc: "Instant slots & matches", badge: "Player" }
+    : { title: "Velocity Turf", desc: "Instant slots & 1-tap booking", badge: "Fast" };
+
   return (
     <>
       <aside
         ref={bannerRef}
         className="vt-pwa-banner"
         role="region"
-        aria-label="Install Velocity Turf Application"
+        aria-label={`Install ${roleMeta.title} Application`}
       >
         <div className="vt-pwa-brand" aria-hidden="true">
           <BrandMark size={28} />
@@ -265,10 +296,10 @@ export function PwaRegister() {
 
         <div className="vt-pwa-copy">
           <div className="vt-pwa-heading">
-            <strong>Velocity Turf</strong>
-            <span className="vt-pwa-badge">Fast</span>
+            <strong>{roleMeta.title}</strong>
+            <span className="vt-pwa-badge">{roleMeta.badge}</span>
           </div>
-          <p className="vt-pwa-desc">Instant slots &amp; 1-tap booking</p>
+          <p className="vt-pwa-desc">{roleMeta.desc}</p>
         </div>
 
         <div className="vt-pwa-actions">

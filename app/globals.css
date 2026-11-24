@@ -5,10 +5,19 @@
 }
 
 html,
+body,
+button,
+input,
+optgroup,
+select,
+textarea {
+  font-family: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+html,
 body {
   background: #FFFFFF;
   color: #172B4D;
-  font-family: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   color-scheme: light;
 }
 
@@ -170,6 +179,19 @@ button:active {
   }
 }
 
+.vt-mobile-only {
+  display: none !important;
+}
+
+.vt-mobile-card {
+  background: #FFFFFF;
+  border: 1px solid #E5EDF5;
+  border-radius: 18px;
+  padding: 18px;
+  margin-bottom: 14px;
+  box-shadow: 0 2px 10px rgba(23, 105, 232, 0.03);
+}
+
 /* ---- Native Mobile App Dashboard Header & 4x2 Quick Action Grid ---- */
 .vt-mobile-app-header {
   display: none;
@@ -183,7 +205,15 @@ button:active {
   display: none;
 }
 
+.vt-mobile-back-circle-btn {
+  display: none;
+}
+
 @media (max-width: 767px) {
+  .vt-mobile-only {
+    display: block !important;
+  }
+
   .vt-mobile-app-header {
     display: block;
     margin-bottom: 8px;
@@ -291,6 +321,26 @@ button:active {
     font-size: 14.5px;
     font-weight: 800;
     color: #172B4D;
+  }
+
+  .vt-mobile-back-circle-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #FFFFFF;
+    border: 1px solid #E5EDF5;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: transform 0.15s ease, background-color 0.15s ease;
+  }
+
+  .vt-mobile-back-circle-btn:active {
+    transform: scale(0.95);
+    background: #F8FAFC;
   }
 
   /* Fixed Bottom Navigation Bar */
@@ -848,16 +898,26 @@ button:active {
   .vt-auth-shell-card {
     grid-template-columns: 1fr !important;
     min-height: auto !important;
-    border-radius: 18px !important;
+    border-radius: 28px !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    gap: 16px !important;
   }
   .vt-auth-hero {
-    padding: 24px 20px !important;
+    border-radius: 28px !important;
+    padding: 32px 24px !important;
+    box-shadow: 0 10px 30px rgba(23, 105, 232, 0.2) !important;
   }
   .vt-auth-hero h2 {
-    font-size: 1.4rem !important;
+    font-size: 1.5rem !important;
   }
   .vt-auth-form-side {
-    padding: 28px 20px !important;
+    background: #FFFFFF !important;
+    border-radius: 24px !important;
+    border: 1px solid #E5EDF5 !important;
+    padding: 32px 24px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
   }
 }
 
@@ -1751,7 +1811,7 @@ body {
   gap: 11px;
   width: fit-content;
   color: #18221f;
-  font-family: "Exo 2", sans-serif;
+  font-family: "Manrope", sans-serif;
   font-size: 14px;
   font-weight: 800;
   letter-spacing: 0.8px;
@@ -1858,7 +1918,7 @@ body {
 .vt-auth-heading h1 {
   margin: 0 0 7px;
   color: #162125;
-  font-family: "Exo 2", sans-serif;
+  font-family: "Manrope", sans-serif;
   font-size: 25px;
   font-weight: 800;
   line-height: 1.2;
@@ -1993,7 +2053,7 @@ body {
 .vt-landing-title {
   margin: 0 0 18px;
   color: #f5f7f2;
-  font-family: "Barlow Condensed", "Exo 2", sans-serif;
+  font-family: "Manrope", sans-serif;
   font-size: 76px;
   font-weight: 700;
   line-height: 0.88;

@@ -14,7 +14,7 @@ import {
   linkStyle,
 } from "@/app/auth-styles";
 import { COLORS as V, FONT_BODY } from "@/lib/design-tokens";
-import { Check, CheckCircle, X, User, ArrowRight } from "@/components/ui/icons";
+import { Check, CheckCircle, X, User, ArrowRight, Eye, EyeOff } from "@/components/ui/icons";
 
 function SetupPasswordForm() {
   const router = useRouter();
@@ -591,26 +591,31 @@ function SetupPasswordForm() {
                 paddingRight: 56,
               }}
             />
-            <button
-              type="button"
-              aria-label={showPassword ? "Hide password" : "Show password"}
-              onClick={() => setShowPassword(!showPassword)}
-              style={{
-                position: "absolute",
-                right: 10,
-                top: "50%",
-                transform: "translateY(-50%)",
-                background: "none",
-                border: "none",
-                color: "#94A3B8",
-                cursor: "pointer",
-                fontSize: 12,
-                fontWeight: 600,
-                padding: "6px 8px",
-              }}
-            >
-              {showPassword ? "Hide" : "Show"}
-            </button>
+            {password.length > 0 && (
+              <button
+                type="button"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                title={showPassword ? "Hide password" : "Show password"}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: "absolute",
+                  right: 10,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  color: "#94A3B8",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "6px 8px",
+                }}
+              >
+                {showPassword ? <EyeOff size={18} color="#94A3B8" /> : <Eye size={18} color="#94A3B8" />}
+              </button>
+            )}
           </div>
         </div>
 
@@ -644,26 +649,31 @@ function SetupPasswordForm() {
                 paddingRight: 56,
               }}
             />
-            <button
-              type="button"
-              aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              style={{
-                position: "absolute",
-                right: 10,
-                top: "50%",
-                transform: "translateY(-50%)",
-                background: "none",
-                border: "none",
-                color: "#94A3B8",
-                cursor: "pointer",
-                fontSize: 12,
-                fontWeight: 600,
-                padding: "6px 8px",
-              }}
-            >
-              {showConfirmPassword ? "Hide" : "Show"}
-            </button>
+            {confirmPassword.length > 0 && (
+              <button
+                type="button"
+                aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                title={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                style={{
+                  position: "absolute",
+                  right: 10,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  color: "#94A3B8",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "6px 8px",
+                }}
+              >
+                {showConfirmPassword ? <EyeOff size={18} color="#94A3B8" /> : <Eye size={18} color="#94A3B8" />}
+              </button>
+            )}
           </div>
         </div>
 

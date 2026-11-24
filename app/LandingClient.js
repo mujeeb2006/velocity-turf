@@ -548,7 +548,11 @@ export default function LandingClient() {
           <Link href="#">Games</Link>
           <Link href="#">Venues</Link>
           <Link href="#">Trainers</Link>
-          <Link href="#">Partner with us</Link>
+          <Link href="/download" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 700, color: "#1769E8", textDecoration: "none" }}>
+            <span style={{ fontSize: 13, background: "#EAF2FF", padding: "4px 10px", borderRadius: 8, border: "1px solid rgba(23,105,232,0.25)" }}>
+              📲 Download Apps
+            </span>
+          </Link>
         </nav>
 
         <Link href="/login" className="nav-button">LOGIN</Link>

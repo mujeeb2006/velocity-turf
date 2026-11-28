@@ -4,3 +4,9 @@ node_modules
 .env
 npm-debug.log*
 .DS_Store
+
+# Supabase CLI cache & database dumps
+supabase/.temp/
+*.dump
+*.sql.gz
+

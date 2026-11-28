@@ -172,9 +172,8 @@ test("Privilege escalation protection: URL parameter tampering cannot grant owne
     const currentRole = profile ? normalizeUserRole(profile.role) : null;
     if (currentRole === "owner") return { authorized: true, role: "owner" };
 
-    const isInvitedOwner =
-      user.app_metadata?.role === "owner" ||
-      user.user_metadata?.role === "owner";
+    // Hardened: Only trusted app_metadata is accepted, user_metadata is ignored
+    const isInvitedOwner = user.app_metadata?.role === "owner";
 
     if (!isInvitedOwner) {
       return { authorized: false, error: "User is not authorized for owner access" };

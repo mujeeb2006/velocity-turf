@@ -24,7 +24,32 @@ export async function middleware(request) {
   });
 
   // Touching getUser() is what actually refreshes the session token.
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { pathname } = request.nextUrl;
+
+  // Early route protection for /admin and /owner page paths (Defense-in-depth).
+  // Unauthenticated visitors are bounced to /login with the return destination preserved.
+  const isProtectedPage =
+    pathname === "/admin" ||
+    pathname.startsWith("/admin/") ||
+    pathname === "/owner" ||
+    pathname.startsWith("/owner/");
+
+  if (isProtectedPage && !user) {
+    const loginUrl = new URL("/login", request.url);
+    const returnTarget = request.nextUrl.pathname + request.nextUrl.search;
+    loginUrl.searchParams.set("next", returnTarget);
+
+    const redirectResponse = NextResponse.redirect(loginUrl);
+    // Propagate refreshed cookies to redirect response if any were set
+    response.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie);
+    });
+    return redirectResponse;
+  }
 
   return response;
 }

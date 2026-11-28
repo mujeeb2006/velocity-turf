@@ -41,16 +41,33 @@ export async function POST(request) {
       });
     }
 
-    // 2. Query Auth user state
+    // 2. Query Auth user state reliably using profile.id if available
     let authUser = null;
-    const { data: listData } = await admin.auth.admin.listUsers();
-    if (listData?.users) {
-      authUser = listData.users.find((u) => normalizeEmail(u.email) === email) || null;
+    if (profile?.id) {
+      try {
+        const { data: userData, error: userErr } = await admin.auth.admin.getUserById(profile.id);
+        if (!userErr && userData?.user) {
+          authUser = userData.user;
+        }
+      } catch (userLookupErr) {
+        console.warn("Could not query auth user by profile id for resend invite:", userLookupErr);
+      }
+    }
+
+    // Fallback: If no profile ID or user wasn't found by ID, inspect user list
+    if (!authUser) {
+      try {
+        const { data: listData } = await admin.auth.admin.listUsers();
+        if (listData?.users) {
+          authUser = listData.users.find((u) => normalizeEmail(u.email) === email) || null;
+        }
+      } catch (listErr) {
+        console.warn("Could not query auth user list for resend invite fallback:", listErr);
+      }
     }
 
     const isOwnerInAuth =
       authUser?.app_metadata?.role === "owner" ||
-      authUser?.user_metadata?.role === "owner" ||
       profile?.role === "owner";
 
     if (!isOwnerInAuth) {

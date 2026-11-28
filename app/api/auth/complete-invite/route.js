@@ -19,12 +19,13 @@ export async function POST() {
     return NextResponse.json({ error: "Authentication required." }, { status: 401 });
   }
 
-  // Look up existing profile
-  const { data: profile } = await supabase
+  // Look up existing profile with admin client to ensure reliable reading
+  const admin = createAdminClient();
+  const { data: profile } = await admin
     .from("profiles")
     .select("id, role, full_name, email")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
   const currentRole = profile ? normalizeUserRole(profile.role) : null;
 
@@ -33,9 +34,20 @@ export async function POST() {
   }
 
   // Check if this user was legitimately invited or designated as an owner by admin
-  const isInvitedOwner =
-    user.app_metadata?.role === "owner" ||
-    user.user_metadata?.role === "owner";
+  // Security: Rely strictly on server-side app_metadata or authoritative auth user record,
+  // NEVER on mutable client-provided user_metadata.
+  let isInvitedOwner = user.app_metadata?.role === "owner";
+
+  if (!isInvitedOwner) {
+    try {
+      const { data: authUserData, error: authUserErr } = await admin.auth.admin.getUserById(user.id);
+      if (!authUserErr && authUserData?.user?.app_metadata?.role === "owner") {
+        isInvitedOwner = true;
+      }
+    } catch (err) {
+      console.warn("Could not verify auth user app_metadata in complete-invite:", err);
+    }
+  }
 
   if (!isInvitedOwner) {
     // Ordinary player attempting privilege escalation
@@ -45,8 +57,7 @@ export async function POST() {
     );
   }
 
-  // Use admin client to finalize owner role assignment in profiles
-  const admin = createAdminClient();
+  // Finalize owner role assignment in profiles
   const fullName = user.user_metadata?.full_name || profile?.full_name || "";
   const email = user.email || profile?.email || "";
 

@@ -23,23 +23,37 @@ export async function POST(request) {
   const siteUrl = getSiteUrl(request);
   const admin = createAdminClient();
 
-  // 1. Inspect actual Supabase Auth account state
-  let authUser = null;
-  try {
-    const { data: listData, error: listErr } = await admin.auth.admin.listUsers();
-    if (!listErr && listData?.users) {
-      authUser = listData.users.find((u) => normalizeEmail(u.email) === email) || null;
-    }
-  } catch (err) {
-    console.warn("Could not query auth user for access link:", err);
-  }
-
-  // 2. Inspect application profile
+  // 1. Inspect application profile first
   const { data: profile } = await admin
     .from("profiles")
     .select("id, role, full_name, email")
     .eq("email", email)
     .maybeSingle();
+
+  // 2. Inspect actual Supabase Auth account state reliably by profile.id
+  let authUser = null;
+  if (profile?.id) {
+    try {
+      const { data: userData, error: userErr } = await admin.auth.admin.getUserById(profile.id);
+      if (!userErr && userData?.user) {
+        authUser = userData.user;
+      }
+    } catch (err) {
+      console.warn("Could not query auth user by profile id for access link:", err);
+    }
+  }
+
+  // Fallback: If not found via profile.id (e.g. unlinked profile), query auth user list
+  if (!authUser) {
+    try {
+      const { data: listData, error: listErr } = await admin.auth.admin.listUsers();
+      if (!listErr && listData?.users) {
+        authUser = listData.users.find((u) => normalizeEmail(u.email) === email) || null;
+      }
+    } catch (err) {
+      console.warn("Could not query auth user for access link fallback:", err);
+    }
+  }
 
   // Determine whether the user has completed registration and confirmed a password
   const isConfirmed = Boolean(authUser?.confirmed_at);

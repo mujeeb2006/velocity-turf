@@ -7,8 +7,9 @@ import { normalizeUserRole } from "@/lib/auth/validation";
 import { useToast } from "@/components/ui/toast";
 import { COLORS as V, FONT_BODY, buttonStyle } from "@/lib/design-tokens";
 import BrandLockup from "@/components/brand-lockup";
-import { ArrowLeft, User, Mail, Lock, ChevronRight, Eye, EyeOff } from "@/components/ui/icons";
+import { ArrowLeft, User, Mail, Lock, ChevronRight, Eye, EyeOff, Shield } from "@/components/ui/icons";
 import { Modal, Btn } from "@/components/dashboard/kit";
+import PrivacySecurityModal from "@/components/dashboard/PrivacySecurityModal";
 
 const inputStyle = {
   width: "100%",
@@ -99,6 +100,7 @@ export default function AccountSettingsClient({ profile }) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [activeEditModal, setActiveEditModal] = useState(null);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   async function saveName(event) {
     if (event?.preventDefault) event.preventDefault();
@@ -267,8 +269,26 @@ export default function AccountSettingsClient({ profile }) {
                 <Lock size={20} color="#EA580C" />
               </div>
               <div className="vt-settings-card-texts">
-                <span className="vt-settings-card-label">Password</span>
+                <span className="vt-settings-card-label">Change Password</span>
                 <span className="vt-settings-card-val">••••••••</span>
+              </div>
+            </div>
+            <ChevronRight size={18} color="#A0AEC0" />
+          </button>
+
+          {/* Privacy & Security Card */}
+          <button
+            type="button"
+            className="vt-settings-mobile-card"
+            onClick={() => setShowPrivacyModal(true)}
+          >
+            <div className="vt-settings-card-left">
+              <div className="vt-settings-icon-wrap" style={{ background: "#FFF1F2" }}>
+                <Shield size={20} color="#E11D48" />
+              </div>
+              <div className="vt-settings-card-texts">
+                <span className="vt-settings-card-label">Privacy & Security</span>
+                <span className="vt-settings-card-val">Policy, encryption & terms</span>
               </div>
             </div>
             <ChevronRight size={18} color="#A0AEC0" />
@@ -334,8 +354,34 @@ export default function AccountSettingsClient({ profile }) {
               <span className="vt-settings-overline">SETTINGS</span>
               <a href="#profile"><SettingIcon name="profile" /><span>Profile details</span><i /></a>
               <a href="#email"><SettingIcon name="email" /><span>Email address</span><i /></a>
-              <a href="#password"><SettingIcon name="password" /><span>Privacy & Security</span><i /></a>
-              <a href="#support"><SettingIcon name="shield" /><span>Help & Support</span><i /></a>
+              <a href="#password"><SettingIcon name="password" /><span>Change Password</span><i /></a>
+              <button
+                type="button"
+                onClick={() => setShowPrivacyModal(true)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  width: "100%",
+                  padding: "10px 14px",
+                  background: "none",
+                  border: "none",
+                  borderRadius: 10,
+                  color: "#172B4D",
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  textAlign: "left",
+                  transition: "background 0.15s ease",
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = "#F4F7FB"}
+                onMouseLeave={(e) => e.currentTarget.style.background = "none"}
+              >
+                <SettingIcon name="shield" />
+                <span style={{ flex: 1 }}>Privacy & Security</span>
+                <ChevronRight size={15} color="#A0AEC0" />
+              </button>
+              <a href="#support"><SettingIcon name="support" /><span>Help & Support</span><i /></a>
             </nav>
 
             <div className="vt-settings-private-note">
@@ -385,7 +431,7 @@ export default function AccountSettingsClient({ profile }) {
               <section className="vt-settings-card" id="password" style={{ "--settings-accent": V.coral }}>
                 <div className="vt-settings-card-heading">
                   <span className="vt-settings-icon"><SettingIcon name="password" /></span>
-                  <div><h2>Privacy & Security</h2><p>Update your password and manage account protection.</p></div>
+                  <div><h2>Change Password</h2><p>Choose a secure password of at least 8 characters to protect your account.</p></div>
                 </div>
                 <form onSubmit={changePassword} className="vt-settings-form vt-settings-password-form">
                   <Field label="New password" type="password" placeholder="Enter new password" autoComplete="new-password" minLength={8} value={newPassword} onChange={e => setNewPassword(e.target.value)} required />
@@ -396,6 +442,25 @@ export default function AccountSettingsClient({ profile }) {
                     </button>
                   </div>
                 </form>
+              </section>
+
+              <section className="vt-settings-card" id="privacy" style={{ "--settings-accent": V.sky }}>
+                <div className="vt-settings-card-heading">
+                  <span className="vt-settings-icon"><SettingIcon name="shield" /></span>
+                  <div><h2>Privacy & Security Policies</h2><p>Review data handling, 256-bit encryption, account rights, and platform terms.</p></div>
+                </div>
+                <div style={{ padding: "4px 0" }}>
+                  <p style={{ fontSize: 13.5, color: "#4A5568", margin: "0 0 14px", lineHeight: 1.6 }}>
+                    Velocity Turf complies with strict data protection standards. Your credentials, booking logs, and payment tokens are guarded with database-level row isolation and end-to-end TLS encryption.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowPrivacyModal(true)}
+                    style={buttonStyle("secondary", "sm")}
+                  >
+                    View Privacy Policy & Terms
+                  </button>
+                </div>
               </section>
 
               <section className="vt-settings-card" id="support" style={{ "--settings-accent": V.violet }}>
@@ -557,6 +622,12 @@ export default function AccountSettingsClient({ profile }) {
           </div>
         </Modal>
       )}
+
+      {/* PRIVACY & SECURITY MODAL */}
+      <PrivacySecurityModal
+        isOpen={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
+      />
     </main>
   );
 }

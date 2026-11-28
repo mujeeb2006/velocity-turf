@@ -67,6 +67,8 @@ import {
   Gift,
   ArrowRight,
   ArrowLeft,
+  ChevronRight,
+  ChevronLeft,
   Calendar,
   Clock,
   MapPin,
@@ -281,15 +283,60 @@ function TurfCard({ turf, onBook, onMatch, index = 0 }) {
   const price = calcPrice(turf, turf.occupancy);
   const isDynamic = turf.occupancy > 70;
   const { cover: coverImage, gallery } = getTurfImages(turf);
+  const photos = gallery && gallery.length > 0 ? gallery : [coverImage];
+  const [photoIndex, setPhotoIndex] = useState(0);
   const hasAvailability = Array.isArray(turf.slots) && turf.slots.some(slot => slot.status === "available");
   const primarySport = Array.isArray(turf.sports) && turf.sports.length > 0 ? turf.sports[0] : "Sports";
+
+  const prevPhoto = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setPhotoIndex((prev) => (prev - 1 + photos.length) % photos.length);
+  };
+
+  const nextPhoto = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setPhotoIndex((prev) => (prev + 1) % photos.length);
+  };
+
+  const currentPhoto = photos[photoIndex] || coverImage;
 
   return (
     <article className="vt-venue-card" style={{ ...panel(), "--venue-index": index }}>
       <div className="vt-venue-cover">
-        <img src={coverImage} alt={`${primarySport} venue`} loading="lazy" onError={e => { e.currentTarget.style.display = "none"; }} />
+        <img
+          key={currentPhoto}
+          src={currentPhoto}
+          alt={`${turf.name || primarySport} venue photo ${photoIndex + 1}`}
+          loading="lazy"
+          onError={e => { e.currentTarget.style.display = "none"; }}
+        />
         <div className="vt-venue-cover-shade" />
-        {gallery.length > 1 && (
+
+        {/* Side Rotate / Navigation Buttons for 2 or more photos */}
+        {photos.length > 1 && (
+          <>
+            <button
+              type="button"
+              className="vt-carousel-arrow vt-carousel-arrow-prev"
+              onClick={prevPhoto}
+              aria-label="Previous photo"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button
+              type="button"
+              className="vt-carousel-arrow vt-carousel-arrow-next"
+              onClick={nextPhoto}
+              aria-label="Next photo"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </>
+        )}
+
+        {photos.length > 1 && (
           <span style={{
             position: "absolute",
             top: 10,
@@ -302,14 +349,33 @@ function TurfCard({ turf, onBook, onMatch, index = 0 }) {
             borderRadius: 6,
             fontSize: 10.5,
             fontWeight: 700,
-            zIndex: 2,
+            zIndex: 3,
             display: "inline-flex",
             alignItems: "center",
             gap: 4,
           }}>
-            <Camera size={11} color="#fff" /> {gallery.length} photos
+            <Camera size={11} color="#172B4D" /> {photoIndex + 1}/{photos.length}
           </span>
         )}
+
+        {/* Dots indicator for multi-photo turfs */}
+        {photos.length > 1 && (
+          <div className="vt-carousel-dots" onClick={(e) => e.stopPropagation()}>
+            {photos.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                className={`vt-carousel-dot ${i === photoIndex ? "active" : ""}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPhotoIndex(i);
+                }}
+                aria-label={`Go to photo ${i + 1}`}
+              />
+            ))}
+          </div>
+        )}
+
         <span className={`vt-venue-status ${hasAvailability ? "" : "unavailable"}`}>
           {hasAvailability ? "Open slots today" : "No slots today"}
         </span>
@@ -907,6 +973,32 @@ function BookingModal({ turf, profile, supabase, onClose, onConfirm, showToast, 
                         inset: 0,
                         background: "linear-gradient(to top, rgba(23, 43, 77, 0.45) 0%, transparent 60%)",
                       }} />
+                      {photos.length > 1 && (
+                        <>
+                          <button
+                            type="button"
+                            className="vt-carousel-arrow vt-carousel-arrow-prev"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActivePhotoIdx((prev) => (prev - 1 + photos.length) % photos.length);
+                            }}
+                            aria-label="Previous photo"
+                          >
+                            <ChevronLeft size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            className="vt-carousel-arrow vt-carousel-arrow-next"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActivePhotoIdx((prev) => (prev + 1) % photos.length);
+                            }}
+                            aria-label="Next photo"
+                          >
+                            <ChevronRight size={16} />
+                          </button>
+                        </>
+                      )}
                       {photos.length > 1 && (
                         <div style={{
                           position: "absolute",

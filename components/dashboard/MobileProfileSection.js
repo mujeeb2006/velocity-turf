@@ -26,6 +26,7 @@ import { Modal, Btn, TopBar } from "@/components/dashboard/kit";
 import { PwaInstallButton } from "@/components/PwaInstallButton";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
+import PrivacySecurityModal from "@/components/dashboard/PrivacySecurityModal";
 
 const PRESET_AVATARS = [
   "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
@@ -49,7 +50,7 @@ export default function MobileProfileSection({
   const { showToast } = useToast();
   const fileInputRef = useRef(null);
 
-  // Modals state: "edit-profile", "account", "security", "support", null
+  // Modals state: "edit-profile", "account", "password", "security", "support", null
   const [activeModal, setActiveModal] = useState(null);
   const [showMenuDropdown, setShowMenuDropdown] = useState(false);
 
@@ -395,12 +396,17 @@ export default function MobileProfileSection({
               <div style={{ flex: 1 }}>
                 <h3 className="vt-profile-section-title">Account Settings</h3>
                 <p className="vt-profile-section-sub">
-                  Manage your primary email address and venue role assignments.
+                  Manage your primary email address, password, and venue credentials.
                 </p>
               </div>
-              <Btn size="sm" variant="secondary" onClick={() => setActiveModal("account")}>
-                Manage
-              </Btn>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <Btn size="sm" variant="secondary" onClick={() => setActiveModal("password")}>
+                  Change Password
+                </Btn>
+                <Btn size="sm" variant="secondary" onClick={() => setActiveModal("account")}>
+                  Manage Email
+                </Btn>
+              </div>
             </div>
             <div className="vt-profile-meta-grid">
               <div className="vt-profile-meta-item">
@@ -408,8 +414,8 @@ export default function MobileProfileSection({
                 <span className="vt-profile-meta-value">{email}</span>
               </div>
               <div className="vt-profile-meta-item">
-                <span className="vt-profile-meta-label">Role Access</span>
-                <span className="vt-profile-meta-value">{roleLabel}</span>
+                <span className="vt-profile-meta-label">Account Password</span>
+                <span className="vt-profile-meta-value">••••••••••••</span>
               </div>
             </div>
           </div>
@@ -423,23 +429,23 @@ export default function MobileProfileSection({
               <div style={{ flex: 1 }}>
                 <h3 className="vt-profile-section-title">Privacy & Security</h3>
                 <p className="vt-profile-section-sub">
-                  Password security, active session protection, and credential protection.
+                  Privacy policy, data protection, account safety, and platform terms.
                 </p>
               </div>
               <Btn size="sm" variant="secondary" onClick={() => setActiveModal("security")}>
-                Security Settings
+                View Policy & Terms
               </Btn>
             </div>
             <div className="vt-profile-meta-grid">
               <div className="vt-profile-meta-item">
-                <span className="vt-profile-meta-label">Account Password</span>
-                <span className="vt-profile-meta-value">••••••••••••</span>
+                <span className="vt-profile-meta-label">Security & Protection</span>
+                <span className="vt-profile-meta-value" style={{ color: "#10B981", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <Check size={14} /> 256-Bit SSL Encrypted
+                </span>
               </div>
               <div className="vt-profile-meta-item">
-                <span className="vt-profile-meta-label">Security Status</span>
-                <span className="vt-profile-meta-value" style={{ color: "#10B981", display: "inline-flex", alignItems: "center", gap: 5 }}>
-                  <Check size={14} /> Active & Protected
-                </span>
+                <span className="vt-profile-meta-label">Platform Terms</span>
+                <span className="vt-profile-meta-value">Fair Play & Booking Rules</span>
               </div>
             </div>
           </div>
@@ -503,6 +509,22 @@ export default function MobileProfileSection({
                 <Settings size={19} color="#4A5568" />
               </span>
               <span className="vt-profile-row-label">Account Settings</span>
+            </div>
+            <span className="vt-profile-row-chevron">
+              <ChevronRight size={18} />
+            </span>
+          </button>
+
+          <button
+            type="button"
+            className="vt-profile-menu-row"
+            onClick={() => setActiveModal("password")}
+          >
+            <div className="vt-profile-menu-left">
+              <span className="vt-profile-row-icon">
+                <Lock size={19} color="#4A5568" />
+              </span>
+              <span className="vt-profile-row-label">Change Password</span>
             </div>
             <span className="vt-profile-row-chevron">
               <ChevronRight size={18} />
@@ -780,11 +802,11 @@ export default function MobileProfileSection({
         </Modal>
       )}
 
-      {/* 3. PRIVACY & SECURITY MODAL */}
-      {activeModal === "security" && (
+      {/* 2B. CHANGE PASSWORD MODAL (Under Account Settings) */}
+      {activeModal === "password" && (
         <Modal
-          title="Privacy & Security"
-          subtitle="Change your password and manage account protection."
+          title="Change Password"
+          subtitle="Choose a secure password with at least 8 characters."
           onClose={() => setActiveModal(null)}
           maxWidth={460}
         >
@@ -880,6 +902,12 @@ export default function MobileProfileSection({
           </form>
         </Modal>
       )}
+
+      {/* 3. PRIVACY & SECURITY MODAL */}
+      <PrivacySecurityModal
+        isOpen={activeModal === "security"}
+        onClose={() => setActiveModal(null)}
+      />
 
       {/* 4. HELP & SUPPORT MODAL */}
       {activeModal === "support" && (

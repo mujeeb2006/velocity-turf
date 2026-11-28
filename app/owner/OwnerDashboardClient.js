@@ -719,7 +719,7 @@ function RequestCard({ r, today, busy, onAccept, onDecline }) {
             {formatBookingDate(r.date)}, {formatTime12(r.time)} · {r.sport}{r.players ? ` · ${r.players} player${r.players === 1 ? "" : "s"}` : ""} ·{" "}
             <strong style={{ color: V.chalk, fontFamily: font }}>{formatINR(r.amount)}</strong>
           </div>
-          <div style={{ color: overdue ? V.danger : V.chalkFaint, fontSize: 11.5, marginTop: 3 }}>
+          <div style={{ color: overdue ? V.danger : V.chalkFaint, fontSize: 11.5, marginTop: 3 }} suppressHydrationWarning>
             {overdue ? `Overdue · requested ${relativeTime(r.createdAt)}` : `Requested ${relativeTime(r.createdAt)}`}
           </div>
         </div>
@@ -845,6 +845,8 @@ export default function OwnerDashboardClient({ profile }) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [updatedAt, setUpdatedAt] = useState(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
   const [range, setRange] = useState(30);
   const [bookingView, setBookingView] = useState("requests");
@@ -1174,20 +1176,19 @@ export default function OwnerDashboardClient({ profile }) {
     { id: "profile", label: "Profile", icon: "user" },
   ];
 
-  const refreshButton = <Btn icon="refresh" size="sm" onClick={fetchAll}>{updatedAt ? `Refreshed ${updatedAt}` : "Refresh"}</Btn>;
+  const refreshButton = <Btn icon="refresh" size="sm" onClick={fetchAll}>{mounted && updatedAt ? `Refreshed ${updatedAt}` : "Refresh"}</Btn>;
   const addTurfButton = <Btn variant="primary" icon="plus" onClick={() => setShowAddTurf(true)}>Add a turf</Btn>;
   const skeletonStats = <StatGrid>{[...Array(5)].map((_, i) => <SkeletonCard key={i} lines={1} />)}</StatGrid>;
 
   const firstName = (profile?.full_name || profile?.email || "Owner").trim().split(" ")[0];
-  const [greeting, setGreeting] = useState("Good day,");
-
-  useEffect(() => {
+  const greeting = useMemo(() => {
+    if (!mounted) return "Good day,";
     const hour = new Date().getHours();
-    setGreeting(hour < 12 ? "Good morning," : hour < 17 ? "Good afternoon," : "Good evening,");
-  }, []);
+    return hour < 12 ? "Good morning," : hour < 17 ? "Good afternoon," : "Good evening,";
+  }, [mounted]);
 
   return (
-    <div className="vt-dashboard-shell" style={{ display: "flex", position: "relative" }}>
+    <div className="vt-dashboard-shell" style={{ display: "flex", position: "relative" }} suppressHydrationWarning>
       <SideNav
         items={items} active={tab} onSelect={selectTab}
         roleLabel={isStaff ? `STAFF PORTAL (${(staffRole || "staff").replace("_", " ").toUpperCase()})` : "OWNER PORTAL"}
@@ -2215,8 +2216,9 @@ export default function OwnerDashboardClient({ profile }) {
                 )}
 
                 {/* Footer text */}
-                <div suppressHydrationWarning style={{ textAlign: "center", fontSize: 12, color: "#718096", marginTop: 8 }}>
-                  {updatedAt ? `Updated ${updatedAt} · ` : ""}New bookings are confirmed automatically
+                <div style={{ textAlign: "center", fontSize: 12, color: "#718096", marginTop: 8 }}>
+                  {mounted && updatedAt ? <span>Updated {updatedAt} · </span> : null}
+                  <span>New bookings are confirmed automatically</span>
                 </div>
               </div>
             </>
@@ -2488,7 +2490,7 @@ export default function OwnerDashboardClient({ profile }) {
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
                             <span style={{ color: V.chalk, fontWeight: 800, fontSize: 14 }}>{r.playerName} <span style={{ color: V.chalkFaint, fontWeight: 500 }}>· {r.turfName}</span></span>
                             <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-                              <span style={{ color: V.chalkFaint, fontSize: 11.5 }}>{relativeTime(r.created_at)}</span>
+                              <span style={{ color: V.chalkFaint, fontSize: 11.5 }} suppressHydrationWarning>{relativeTime(r.created_at)}</span>
                               <Stars value={Number(r.rating)} />
                             </span>
                           </div>

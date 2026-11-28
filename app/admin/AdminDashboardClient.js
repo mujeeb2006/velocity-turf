@@ -192,8 +192,10 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
   const [gamesRaw, setGamesRaw] = useState([]);
   const [usersFailed, setUsersFailed] = useState(usersError);
   const [greeting, setGreeting] = useState("Good day,");
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const h = new Date().getHours();
     if (h < 12) setGreeting("Good morning,");
     else if (h < 17) setGreeting("Good afternoon,");
@@ -271,10 +273,22 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
   const [payoutForm, setPayoutForm] = useState({
     ownerId: "",
     amount: "",
-    periodStart: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-    periodEnd: new Date().toISOString().slice(0, 10),
+    periodStart: "",
+    periodEnd: "",
     status: "paid",
   });
+
+  // Initialise date fields after mount to avoid SSR/client mismatch
+  useEffect(() => {
+    setPayoutForm((prev) => {
+      if (prev.periodStart) return prev;
+      return {
+        ...prev,
+        periodStart: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+        periodEnd: new Date().toISOString().slice(0, 10),
+      };
+    });
+  }, []);
   const [payoutSubmitting, setPayoutSubmitting] = useState(false);
   const [payoutSubmitError, setPayoutSubmitError] = useState("");
   const [viewBankOwner, setViewBankOwner] = useState(null);
@@ -973,10 +987,10 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
     { id: "profile", label: "Profile", icon: "user" },
   ];
 
-  const refreshButton = <Btn icon="refresh" size="sm" onClick={refreshAll}>{updatedAt ? `Updated ${updatedAt}` : "Refresh"}</Btn>;
+  const refreshButton = <Btn icon="refresh" size="sm" onClick={refreshAll}>{mounted && updatedAt ? `Updated ${updatedAt}` : "Refresh"}</Btn>;
 
   return (
-    <div className="vt-dashboard-shell" style={{ display: "flex", position: "relative" }}>
+    <div className="vt-dashboard-shell" style={{ display: "flex", position: "relative" }} suppressHydrationWarning>
       <SideNav
         items={items} active={tab} onSelect={selectTab} roleLabel="ADMIN CONSOLE" roleIcon="shield" roleColor={V.violet}
         name={profile?.full_name} email={profile?.email} onSignOut={handleSignOut} onSettings={() => router.push("/settings")}
@@ -1098,7 +1112,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
                             <span style={{ color: V.chalk, fontWeight: 800, fontSize: 17 }}>{t.name}</span>
                             <StatusPill status="pending" />
                           </div>
-                          <div style={{ color: V.chalkDim, fontSize: 13, marginTop: 4 }}>
+                          <div style={{ color: V.chalkDim, fontSize: 13, marginTop: 4 }} suppressHydrationWarning>
                             <span title={`${t.address}, ${t.city}`}>{t.address}, {t.city}</span> · Owner: <strong style={{ color: V.chalk }}>{t.owner}</strong> · Submitted {relativeTime(t.createdAt)}
                           </div>
 
@@ -1208,7 +1222,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
 
                         <div>
                           <div style={{ fontSize: 17, fontWeight: 800, color: "#172B4D" }}>{t.name}</div>
-                          <div style={{ fontSize: 12.5, color: "#718096", marginTop: 2 }}>
+                          <div style={{ fontSize: 12.5, color: "#718096", marginTop: 2 }} suppressHydrationWarning>
                             {t.city} · Owner: <strong style={{ color: "#172B4D" }}>{t.owner}</strong> · {relativeTime(t.createdAt)}
                           </div>
                         </div>
@@ -2122,7 +2136,7 @@ export default function AdminDashboardClient({ profile, initialUsers = [], users
                           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
                             <span style={{ color: V.chalkFaint, fontFamily: mono, fontSize: 12 }}>{d.id}</span>
                             <StatusPill status={d.status} />
-                            <span style={{ color: V.chalkFaint, fontSize: 11.5 }}>{relativeTime(d.createdAt)}</span>
+                            <span style={{ color: V.chalkFaint, fontSize: 11.5 }} suppressHydrationWarning>{relativeTime(d.createdAt)}</span>
                           </div>
                           <div style={{ color: V.chalk, fontWeight: 700, fontSize: 15, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{d.issue}</div>
                           <div style={{ color: V.chalkDim, fontSize: 13, marginTop: 3 }}>{d.user} · {d.turf} · <span style={{ fontFamily: font }}>{formatINR(d.amount)}</span></div>
